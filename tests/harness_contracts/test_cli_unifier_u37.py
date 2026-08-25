@@ -295,10 +295,11 @@ def process():
     # ── Entrypoint Tests ────────────────────────────────────────────────
     def test_hermes_os_cli_entypoint_help(self):
         """bin/hermes_os_cli.py shows help."""
+        root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, "bin/hermes_os_cli.py", "--help"],
+            [sys.executable, str(root / "bin/hermes_os_cli.py"), "--help"],
             capture_output=True, text=True,
-            cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster"
+            cwd=str(root)
         )
         assert result.returncode == 0
         assert "hermes" in result.stdout.lower()
@@ -307,11 +308,12 @@ def process():
     def test_hermes_os_cli_direct_prompt(self, temp_workspace):
         """bin/hermes_os_cli.py accepts direct prompt as positional args."""
         (temp_workspace / "test.py").write_text("print('test')\n")
+        root = Path(__file__).resolve().parents[2]
         
         result = subprocess.run(
-            [sys.executable, "bin/hermes_os_cli.py", "Create", "a", "test", "file"],
+            [sys.executable, str(root / "bin/hermes_os_cli.py"), "Create", "a", "test", "file"],
             capture_output=True, text=True, timeout=60,
-            cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster",
+            cwd=str(root),
             env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
         )
         
@@ -321,11 +323,12 @@ def process():
     def test_hermes_os_cli_yolo_flag(self, temp_workspace):
         """bin/hermes_os_cli.py accepts --yolo -z flags with prompt."""
         (temp_workspace / "test.py").write_text("print('test')\n")
+        root = Path(__file__).resolve().parents[2]
         
         result = subprocess.run(
-            [sys.executable, "bin/hermes_os_cli.py", "--yolo", "-z", "Create", "a", "test", "file"],
+            [sys.executable, str(root / "bin/hermes_os_cli.py"), "--yolo", "-z", "Create", "a", "test", "file"],
             capture_output=True, text=True, timeout=60,
-            cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster",
+            cwd=str(root),
             env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
         )
         
@@ -333,19 +336,21 @@ def process():
 
     def test_hermes_os_cli_subcommand_doctor(self):
         """bin/hermes_os_cli.py doctor subcommand."""
+        root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, "bin/hermes_os_cli.py", "doctor"],
+            [sys.executable, str(root / "bin/hermes_os_cli.py"), "doctor"],
             capture_output=True, text=True, timeout=30,
-            cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster"
+            cwd=str(root)
         )
         assert result.returncode == 0
 
     def test_hermes_os_cli_subcommand_status(self):
         """bin/hermes_os_cli.py status subcommand."""
+        root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, "bin/hermes_os_cli.py", "status"],
+            [sys.executable, str(root / "bin/hermes_os_cli.py"), "status"],
             capture_output=True, text=True, timeout=10,
-            cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster"
+            cwd=str(root)
         )
         assert result.returncode == 0
         assert "Hermes OS CLI" in result.stdout

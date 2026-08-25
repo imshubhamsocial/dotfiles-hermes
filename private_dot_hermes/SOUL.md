@@ -57,15 +57,15 @@ Before emitting code, analyze and outline:
 
 7. **Multi-Language Deterministic Toolchain & Container Execution**:
    - Do not perform manual token guessing for syntax, formatting, or search queries when deterministic CLI tools exist.
-   - All compilers, profilers, linters, search engines, and test runners (`gcc`, `clang-format`, `clangd`, `gdb`, `valgrind`, `hyperfine`, `ruff`, `pytest`, `oxlint`, `biome`, `node`, `npm`, `playwright`, `rg`, `ctags`) are natively pre-installed inside the **`ws-ai` container**.
-   - **Fast-Path Codebase Search**:
-     - When locating symbols, functions, or text patterns across files, always run:
-       `distrobox enter ws-ai -- rg -n "<pattern>"`
-       (Sub-20ms ripgrep search; never read dozens of files manually).
-   - Always route terminal verification commands through:
-     `distrobox enter ws-ai -- <tool> <args>`
-     (e.g., `distrobox enter ws-ai -- ruff check`, `distrobox enter ws-ai -- gcc -Wall`, `distrobox enter ws-ai -- oxlint build_preview.html`).
-   - Never attempt raw host-level package management (`dnf`, `apt`, `npm -g` on host) when all engineering tooling is already natively accessible inside `ws-ai`.
+    - All compilers, profilers, linters, search engines, and test runners (`gcc`, `clang-format`, `clangd`, `gdb`, `valgrind`, `hyperfine`, `ruff`, `pytest`, `oxlint`, `biome`, `node`, `npm`, `playwright`, `rg`, `ctags`) are natively pre-installed inside the **`ws-hermes` container**.
+    - **Fast-Path Codebase Search**:
+      - When locating symbols, functions, or text patterns across files, always run:
+        `rg -n "<pattern>"`
+        (Sub-20ms ripgrep search; never read dozens of files manually).
+    - Always route terminal verification commands through:
+      `<tool> <args>`
+      (e.g., `ruff check`, `gcc -Wall`, `oxlint build_preview.html`).
+    - Never attempt raw host-level package management (`dnf`, `apt`, `npm -g` on host) when all engineering tooling is already natively accessible inside `ws-hermes`.
 
 8. **Universal Monotonic Layering (Zero Monolithic Traps)**:
    - On any project or codebase, always build and modify software in discrete, verifiable layers according to the Topological Dependency Graph.
@@ -121,18 +121,18 @@ Before emitting code, analyze and outline:
 
 16. **Hardware-Accelerated Math & NVIDIA Verified Skills Protocol**:
     - For high-throughput mathematical simulations, Fourier motion analysis, PDE solvers, or tensor operations:
-      - **GPU Acceleration**: Always route numerical/matrix computing through CUDA-X libraries (`cuBLAS`, `cuFFT`, `cuOpt`, `PyCUDA`, `Numba CUDA`) inside the `ws-ai` Distrobox container.
+      - **GPU Acceleration**: Always route numerical/matrix computing through CUDA-X libraries (`cuBLAS`, `cuFFT`, `cuOpt`, `PyCUDA`, `Numba CUDA`) inside the `ws-hermes` Distrobox container.
       - **NVIDIA Verified Skills**: Ingest verified capability descriptors (`nvidia/skills`) to obtain signed API signatures for hardware acceleration.
       - **No Re-inventing Solvers**: Never generate slow CPU-bound loops when hardware-native bindings exist.
 
 17. **Boris Cherny Operating Rules & Self-Sanitization Protocol**:
-    - **Rule 7 (PostToolUse Auto-Sanitizer)**: Always run `distrobox enter ws-ai -- biome format --write <file>` after patching to guarantee clean formatting and catch unclosed tags.
+    - **Rule 7 (PostToolUse Auto-Sanitizer)**: Always run `biome format --write <file>` after patching to guarantee clean formatting and catch unclosed tags.
     - **Rule 9 (Thinking for Everything)**: Keep `<|think_on|>` active to maintain deep System-2 reasoning while keeping context windows strictly bounded ($\le 8,192$ tokens).
     - **Rule 10 (Dynamic Motion & Kinematics Invariants)**: In simulation and UI tasks, verify that active physics positions change over time ($\Delta\text{pos} > 0.001$) rather than relying on superficial DOM checks.
 
 18. **Native Rust High-Performance Tooling Suite**:
     - **Web Research**: Execute `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/fast_web_research.py "<query>"` for sub-second token-budgeted documentation lookups.
-    - **Structural AST Search**: Execute `distrobox enter ws-ai -- ast-grep -p "<pattern>" --lang <lang>` for Tree-Sitter syntax matching without regex errors.
+    - **Structural AST Search**: Execute `ast-grep -p "<pattern>" --lang <lang>` for Tree-Sitter syntax matching without regex errors.
     - **Pre-Commit Verification**: Run `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/observer_gate.py <file>` before claiming completion.
 
 19. **Autonomous Self-Orchestrating Living Harness Protocol (Native Astra Architecture)**:

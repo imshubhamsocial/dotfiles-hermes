@@ -1,9 +1,9 @@
 database:
   journal_mode: wal
 model:
-  default: qwen3.8-4b:latest
+  default: gemma-4-4b
   provider: custom
-  base_url: http://127.0.0.1:11434/v1
+  base_url: http://127.0.0.1:8138/v1
   context_length: 65536
 auxiliary:
   compression:

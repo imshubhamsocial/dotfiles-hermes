@@ -1,127 +1,140 @@
-# AGENTS.md — Agent Operating Contract & Environment Handbook
+<!--
+ Copyright 2026 Google LLC & DeepMind Advanced Agentic Coding
+ Author: Antigravity Core Engineering Team
+ Target Systems: Gemini 3.7 Pro / Flash (Dynamic Thinking & Extended Reasoning)
+ Subsystem: Hermes Living Harness / Autonomous Agent OS
+ Invariant: Zero-Token Bloat | Prefix-Cache Determinism | Hard Hardware Ceilings
+-->
 
-> **Audience**: Autonomous AI Agents (Antigravity, Claude, Hermes, Codex)  
-> **Mission**: Deliver deterministic, production-grade software engineering inside the `ws-hermes` workspace with **Zero Token Bloat**, **Strict Prefix Cache Alignment**, and **Zero VRAM Spikes**.
+# AGENTS.md — Autonomous Agent Operating Standard & Engineering Invariants
+
+## 1. MISSION & HIGH-LEVEL SYSTEM IDENTITY
+
+You are operating within **Hermes Agent OS** (`ws-hermes`), a high-performance, deterministic execution substrate running on local silicon. This repository pairs local small language models (SLMs) and frontier reasoning models (Gemini 3.7 Pro / Flash) with an enterprise-grade agent harness.
+
+Your objective is to execute complex multi-file engineering tasks with **mathematical rigor, zero token waste, strict prefix-cache alignment, and 100% turnkey reproducibility**.
 
 ---
 
-## 1. System & Environment Invariants
+## 2. HARDWARE BUDGETS & INFRASTRUCTURE INVARIANTS
 
-* **Active Container**: Distrobox container `ws-hermes` (Fedora Toolbox on Fedora Kinoite / Linux).
-* **Working Directory**: `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes` (use relative paths or `~` / `$HOME`).
-* **Python Toolchain**: Use `python3.13` strictly (with packages in `~/.local/lib` or user site).
-* **Local Inference Server**: `llama-server` on `127.0.0.1:8138` running `gemma-4-4b` (`gemma-4-E4B-it-Q4_K_M.gguf`).
-* **Hardware Ceiling**: NVIDIA RTX 3050 Laptop GPU ($6,144\text{ MiB}$ VRAM).
-  * Static footprint: $\approx 3,745\text{ MiB}$ ($64\text{k KV cache}$ in `q4_0`).
-  * Hard budget ceiling: **$\le 4,812\text{ MiB}$**. Never start extra GPU processes.
+| Component | Target System / Value | Operational Boundary & Invariant |
+| :--- | :--- | :--- |
+| **Execution Sandbox** | Distrobox Container `ws-hermes` | Fedora Linux runtime; non-root user `imshubhamsocial`. |
+| **Workspace Root** | `~/Projects/Workspace/Personal/hermes` | **Strict Rule**: Always use relative paths or `$HOME` / `~`. Zero hardcoded canonical paths. |
+| **Python Toolchain** | Python `3.13.15` (User Site) | Invoke strictly via `python3.13` or `python3.13 -m <module>`. |
+| **Local Inference Host** | `http://127.0.0.1:8138/v1` | `llama-server` running `gemma-4-E4B-it-Q4_K_M.gguf` (`-c 65536`, `q4_0` KV cache). |
+| **GPU VRAM Ceiling** | NVIDIA RTX 3050 Laptop (6,144 MiB) | **Hard Guard**: Max allocation **$\le 4,812\text{ MiB}$**. Never spawn background GPU processes. |
+| **Vector & Neural Retrieval** | CPU ONNX (`fastembed` / BGE) | **Zero GPU Contention**: Dense embeddings run 100% on CPU RAMDisk. |
 
 ---
 
-## 2. The 8 Golden Laws (Zero-Bloat Engineering)
+## 3. THE 8 GOLDEN LAWS OF HERMES OS
+
+All autonomous code generation turns must strictly satisfy these 8 architectural laws:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   THE 8 GOLDEN LAWS OF HERMES OS                                 │
 ├────┬───────────────────────────────┬─────────────────────────────────────────────────────────────┤
-│ #  │ Law Name                      │ Mandatory Rule & Implementation Detail                      │
+│ #  │ Law Name                      │ Mandatory Engineering Constraint                            │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 1  │ Zero-Token Waste              │ Never dump full files into context. Use PageRank spines     │
-│    │                               │ (≤1,000 tok) for planning and AST slices (≤500 tok) for work│
+│ 1  │ Zero-Token Waste              │ Never dump full multi-file repositories into context.       │
+│    │                               │ Use PageRank spines (≤1,000 tok) & AST slices (≤500 tok).   │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 2  │ Spec-First Contract           │ Always generate and persist formal milestones in            │
-│    │                               │ `.hermes/plan.json` before modifying or generating code.    │
+│ 2  │ Spec-First Decomposition      │ Formulate formal specifications & boundary invariants in    │
+│    │                               │ `.hermes/plan.json` before mutating or creating code.       │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 3  │ Deterministic Prefix Cache    │ Keep system prompt prefixes byte-identical. Put dynamic     │
-│    │                               │ user input strictly at the tail to keep cache hit rate >90%.│
+│ 3  │ Prefix-Cache Determinism      │ Preserve static system prompt byte-parity. Append dynamic   │
+│    │                               │ turn data strictly to the tail to maintain >90% cache hits. │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 4  │ VRAM Guard Ceiling            │ Do not allocate GPU memory for embeddings or tools. Run BGE │
-│    │                               │ vector search strictly on CPU ONNX (0 MB GPU contention).   │
+│ 4  │ Hardware VRAM Guard           │ All vector reranking & AST indexers must execute on CPU.    │
+│    │                               │ Keep GPU VRAM strictly reserved for KV cache & model weights│
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 5  │ Pre-Commit Observer Gate      │ Every file edit must pass the 6-point observer gate:        │
-│    │                               │ AST syntax, brace balance, scope mutation, and token limits.│
+│ 5  │ Pre-Commit Observer Gate      │ Every file mutation must pass the 6-point observer gate:    │
+│    │                               │ Syntax check, scope audit, brace parity, and size ceiling.  │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 6  │ 2-Strike Tabu Branch Pruning  │ If a repair patch fails 2 consecutive times, immediately    │
-│    │                               │ reset branch and inject failure as a negative constraint.   │
+│ 6  │ 2-Strike Tabu Branch Pruner   │ If a repair patch fails 2 consecutive iterations, revert to │
+│    │                               │ parent git commit and inject failure as a negative boundary.│
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 7  │ Subagent Scratchpad Isolation │ Spawn subagents with read-only defaults in clean scratchpads│
-│    │                               │ without polluting the parent trajectory.                    │
+│ 7  │ Clean-Room Subagent Isolation │ Delegate research to isolated scratchpads with read-only    │
+│    │                               │ capabilities masks to prevent parent trajectory pollution.  │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 8  │ 100% Turnkey Portability      │ Never hardcode absolute paths (`/var/home/...`). Always path│
-│    │                               │ relative to `$HOME` and commit dotfile updates to Chezmoi.  │
+│ 8  │ Turnkey Portability           │ Maintain 100% machine-agnostic paths. Commit all config,    │
+│    │                               │ tool, and script changes to Chezmoi version control.        │
 └────┴───────────────────────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Milestone Execution Protocol
-
-When given a multi-step task, follow this exact 5-phase lifecycle:
+## 4. STANDARD OPERATING LIFECYCLE (5-PHASE PROTOCOL)
 
 ```mermaid
 graph TD
-    A["1. Spec & Decompose"] -->|"Write .hermes/plan.json"| B["2. Context & Template Sieve"]
-    B -->|"Query BGE Template Retriever (CPU)"| C["3. Implementation Turn"]
-    C -->|"Run AST & Observer Gate"| D{"4. Verification Gate"}
-    D -->|"PASS"| E["5. Commit & Chezmoi Sync"]
-    D -->|"FAIL (x2)"| F["Tabu Branch Reset & Re-plan"]
+    A["Phase 1: Spec-First Architectural Decomposition"] -->|"Emit .hermes/plan.json"| B["Phase 2: Context & Template Retrieval"]
+    B -->|"Query BGE ONNX on CPU"| C["Phase 3: Modular Code Synthesis"]
+    C -->|"Apply Single-Block Mutations"| D{"Phase 4: Pre-Commit Verification Gate"}
+    D -->|"PASS (All Gates Green)"| E["Phase 5: Chezmoi Synchronization & Commit"]
+    D -->|"FAIL (Attempt 1)"| C
+    D -->|"FAIL (Attempt 2)"| F["Tabu Branch Reset & Blueprint Swap"]
+    F --> C
 ```
 
-### Phase 1: Spec & Decompose (Senior Engineer Phase)
-1. Ingest prompt and analyze core domain interfaces.
-2. Construct structured milestones and persist to `.hermes/plan.json`.
-3. Enforce boundary invariants (e.g. zero uncaught runtime errors, test coverage criteria).
+### Phase 1: Spec-First Decomposition (Senior Engineer Protocol)
+* Ingest user prompt and identify core domains (e.g. `webgl_kinematics`, `systems_cpp`, `ast_parsing`).
+* Persist formal engineering interfaces, boundary invariants, and milestones into [`.hermes/plan.json`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/plan.json).
 
 ### Phase 2: Context Sieve & Canonical Template Retrieval
-1. Do not hallucinate standard boilerplate from scratch.
-2. Query `BGETemplateRetriever` (`template_retriever.py`) for verified canonical skeletons.
-3. Slice only relevant target function signatures using Tree-Sitter AST indexer.
+* Do not generate standard framework boilerplate from scratch.
+* Query `BGETemplateRetriever` (`src/hermes_core/template_retriever.py`) for verified canonical code skeletons (Three.js WebGL orbit loops, Python AST pre-commit guards, C++20 RAII wrappers).
+* Restrict injected context to $<400\text{ tokens}$.
 
-### Phase 3: Modular Synthesis
-1. Write or patch files using focused, single-block changes.
-2. Ensure modern language conventions:
-   * **Python**: Type annotations, `dataclasses`, `pathlib.Path`, `asyncio`.
-   * **JavaScript/TypeScript**: Strict ES-modules, modern Three.js canvas setup.
-   * **C++**: C++20 concepts, RAII guards, smart pointers.
+### Phase 3: Modular Code Synthesis
+* Apply concise, single-block changes.
+* Enforce modern language idioms:
+  * **Python**: Type hints, `dataclasses`, `asyncio`, `pathlib.Path`.
+  * **JavaScript / WebGL**: Strict ES-modules, explicit requestAnimationFrame loop lifecycle.
+  * **C++**: Modern C++20 concepts, RAII resource guards, zero raw memory allocation.
 
-### Phase 4: Pre-Commit Observer Gate Verification
-Always execute pre-commit verification before claiming task completion:
+### Phase 4: Pre-Commit Observer Gate & Verification
+Execute the local verification pipeline before claiming completion:
 ```bash
-# 1. Run local observer gate on modified files
+# 1. Evaluate file through 6-point Observer Gate
 python3.13 bin/observer_gate.py <modified_file>
 
-# 2. Run unit & contract test suite
+# 2. Run pytest contract test suite
 python3.13 -m pytest tests/harness_contracts/ -v
 
-# 3. Run self-audit verification runner
+# 3. Execute master capability audit probe
 python3.13 bin/verify_harness_integrity.py
 ```
 
-### Phase 5: Chezmoi Synchronization
-Any change to `.hermes/`, `bin/`, `tests/`, `docs/`, `setup.sh`, or `packages.json` must be committed:
+### Phase 5: Version Control & Chezmoi Synchronization
+Track all config, script, and documentation updates in Chezmoi:
 ```bash
 chezmoi add <changed_files>
 chezmoi git -- add -A
-chezmoi git -- commit -m "<type>(<scope>): descriptive commit message"
+chezmoi git -- commit -m "<type>(<scope>): <summary>"
 ```
 
 ---
 
-## 4. Key CLI Commands Quick Reference
+## 5. STANDARD COMMAND REFERENCE TABLE
 
-| Action | Recommended Command |
-| :--- | :--- |
-| **Run Hermes Task** | `hermes chat -q "<prompt>" --yolo` |
-| **Run Unified TaskDAG CLI** | `python3.13 bin/hermes_os_cli.py -z "<prompt>" --yolo` |
-| **Run All Contract Tests** | `python3.13 -m pytest tests/harness_contracts/ -v` |
-| **Run Full System Audit** | `python3.13 bin/verify_harness_integrity.py` |
-| **Run Observer Gate** | `python3.13 bin/observer_gate.py <file>` |
-| **Check VRAM Usage** | `nvidia-smi` (must stay $\le 4,812\text{ MiB}$) |
-| **Check Chezmoi Status** | `chezmoi git -- status` |
+| Action | Primary Command | Validation / Expected Exit |
+| :--- | :--- | :--- |
+| **Run Hermes Agent Turn** | `hermes chat -q "<prompt>" --yolo` | Exit Code `0`, Clean Output |
+| **Run Unified TaskDAG Engine** | `python3.13 bin/hermes_os_cli.py -z "<prompt>" --yolo` | Dynamic DAG milestones completed |
+| **Run Pre-Commit Observer Gate** | `python3.13 bin/observer_gate.py <file>` | `APPROVED: All 6 gates passed` |
+| **Run Full Contract Test Suite** | `python3.13 -m pytest tests/harness_contracts/ -v` | `309 passed` in $\approx 20\text{s}$ |
+| **Run Master Self-Audit** | `python3.13 bin/verify_harness_integrity.py` | `APPROVED: 30/30 capabilities` |
+| **Inspect GPU VRAM Status** | `nvidia-smi` | $\le 4,812\text{ MiB}$ Memory Usage |
+| **Inspect Chezmoi State** | `chezmoi git -- status` | Working tree clean |
 
 ---
 
-## 5. Summary Directive for Agents
+## 6. BEHAVIORAL DIRECTIVES & OUTPUT STYLE
 
-* **Be Concise**: State actions and verdicts clearly without conversational fluff.
-* **Be Methodical**: Plan first (`plan.json`), implement cleanly, verify with observer gates, and commit to Chezmoi.
-* **Respect Resources**: Protect GPU VRAM, maximize prefix caching, and avoid monolithic context dumps.
+1. **Be Dense, Factual, and Direct**: State actions, diagnostics, and test metrics clearly without boilerplate conversational filler.
+2. **Prioritize Evidence Over Assumptions**: Never assert that code works without showing raw command output, test passes, and gate verdicts.
+3. **Protect System Health**: Monitor VRAM and process tables continuously. Kill dangling subprocesses immediately.

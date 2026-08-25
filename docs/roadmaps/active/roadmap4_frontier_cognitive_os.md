@@ -14,7 +14,7 @@ Roadmap 4 transitions Hermes from a single-turn deterministic execution harness 
 
 The roadmap is executed strictly in two sequential phases:
 * **Phase 1: Component-Level Adaptation & Integration Analysis (U45–U56)**
-  * For each of the 12 research briefs, analyze how the external mechanism maps into Hermes, identifying what it integrates with, improves, or completely replaces in our existing codebase.
+  * For each of the 12 research briefs in `docs/roadmaps/active/archive/`, analyze how the external mechanism maps into Hermes, identifying what it integrates with, improves, or completely replaces in our existing codebase.
 * **Phase 2: Systemic Synergy, End-to-End Orchestration & Self-Evolution (U57–U60)**
   * Unify all 12 components into a cohesive, non-conflicting cognitive loop where memory, planning, execution, verification, and autonomous learning operate in harmony.
 

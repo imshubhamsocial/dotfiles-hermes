@@ -29,8 +29,6 @@
     "wget"
   ],
   "npm_packages": [
-    "@openai/codex",
-    "@anthropic-ai/claude-code",
     "pyright",
     "typescript",
     "typescript-language-server",

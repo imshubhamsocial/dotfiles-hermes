@@ -24,7 +24,7 @@ python3.13 -m pip install --break-system-packages \
 echo "==> Installing Node.js CLI tools..."
 mkdir -p "$HOME/.local/bin" "$HOME/.local/lib"
 npm config set prefix "$HOME/.local"
-npm install -g @openai/codex @anthropic-ai/claude-code pyright typescript typescript-language-server prettier @ast-grep/cli pnpm
+npm install -g pyright typescript typescript-language-server prettier @ast-grep/cli pnpm
 
 echo "==> Setting up PATH and directories..."
 mkdir -p "$HOME/.local/bin" "$HOME/.hermes"

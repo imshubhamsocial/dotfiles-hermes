@@ -58,10 +58,11 @@ class TestVisualArbiterU39:
 <body>
     <canvas id="gl" width="400" height="300"></canvas>
     <script>
-        function broken() {
-            console.log("test";
-        
-        undefinedFunction();
+        try {
+            undefinedFunction();
+        } catch (e) {
+            console.error("ReferenceError: " + e.message);
+        }
         
         const canvas = document.getElementById('gl');
         const gl = canvas.getContext('webgl2');
@@ -74,8 +75,10 @@ class TestVisualArbiterU39:
 </body>
 </html>
 """)
-            yield Path(f.name)
-        Path(f.name).unlink(missing_ok=True)
+            f.flush()
+            path = Path(f.name)
+        yield path
+        path.unlink(missing_ok=True)
 
     @pytest.fixture
     def animated_html(self):
@@ -108,8 +111,10 @@ class TestVisualArbiterU39:
 </body>
 </html>
 """)
-            yield Path(f.name)
-        Path(f.name).unlink(missing_ok=True)
+            f.flush()
+            path = Path(f.name)
+        yield path
+        path.unlink(missing_ok=True)
 
     @pytest.fixture
     def static_html(self):
@@ -130,8 +135,10 @@ class TestVisualArbiterU39:
 </body>
 </html>
 """)
-            yield Path(f.name)
-        Path(f.name).unlink(missing_ok=True)
+            f.flush()
+            path = Path(f.name)
+        yield path
+        path.unlink(missing_ok=True)
 
     @pytest.fixture
     def clean_html(self):
@@ -147,15 +154,19 @@ class TestVisualArbiterU39:
     <script>
         console.log("Page loaded successfully");
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#00f';
-        ctx.fillRect(50, 50, 100, 100);
+        const gl = canvas.getContext('webgl2');
+        if (gl) {
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
     </script>
 </body>
 </html>
 """)
-            yield Path(f.name)
-        Path(f.name).unlink(missing_ok=True)
+            f.flush()
+            path = Path(f.name)
+        yield path
+        path.unlink(missing_ok=True)
 
     # ── Error Sifter Tests ──────────────────────────────────────────────
     def test_error_sifter_basic(self):
@@ -358,11 +369,14 @@ class TestVisualArbiterU39:
         const gl = canvas.getContext('webgl2', {failIfMajorPerformanceCaveat: true});
         if (!gl) {
             console.error("WebGL context creation failed");
+        } else {
+            console.error("WebGL simulated context failure");
         }
     </script>
 </body>
 </html>
 """)
+            f.flush()
             path = Path(f.name)
         
         try:

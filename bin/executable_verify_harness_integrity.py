@@ -37,7 +37,17 @@ CHAMPION_BASELINE_TOTAL = 108
 
 def _module(name: str, relpath: str):
     path = ROOT / relpath
+    if not path.exists() and relpath.startswith("ws-ai/sdk/"):
+        alt = ROOT / "sdk" / Path(relpath).name
+        if alt.exists():
+            path = alt
     if not path.exists():
+        if relpath.startswith("src/hermes_core/"):
+            mod_name = "hermes_core." + Path(relpath).stem
+            try:
+                return importlib.import_module(mod_name)
+            except Exception:
+                pass
         return None
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)

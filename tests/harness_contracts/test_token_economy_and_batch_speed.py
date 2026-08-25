@@ -33,20 +33,23 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from bin.extract_code_mode import extract_code_validated  # noqa: E402
-from src.hermes_core.presets import (  # noqa: E402
+try:
+    from bin.extract_code_mode import extract_code_validated  # noqa: E402
+except ImportError:
+    from extract_code_mode import extract_code_validated  # noqa: E402
+from hermes_core.presets import (  # noqa: E402
     MINIMAL_ALLOWED_TOOLS,
     MINIMAL_SYSTEM_PROMPT,
     build_minimal_agent,
     estimate_prompt_tokens,
     filter_functions,
 )
-from src.hermes_core.token_engine import (  # noqa: E402
+from hermes_core.token_engine import (  # noqa: E402
     DifferentialStateCompactor,
     EphemeralToolBuffer,
     GoalAnchor,
 )
-from src.hermes_core.middleware import MythosCognitiveGovernor  # noqa: E402
+from hermes_core.middleware import MythosCognitiveGovernor  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +65,10 @@ def _load(name: str, path: Path):
 
 
 def load_hermes_sdk():
-    return _load("hermes_sdk", ROOT / "ws-ai" / "sdk" / "hermes_sdk.py")
+    p = ROOT / "sdk" / "hermes_sdk.py"
+    if not p.exists():
+        p = ROOT / "ws-ai" / "sdk" / "hermes_sdk.py"
+    return _load("hermes_sdk", p)
 
 
 def load_observer_gate():
@@ -187,7 +193,7 @@ class TestU9MinimalPreset:
 
     def test_engine_rejects_unknown_preset(self):
         pytest.importorskip("openai")
-        from src.hermes_core.swarm_engine import HermesOrchestrator
+        from hermes_core.swarm_engine import HermesOrchestrator
         orch = HermesOrchestrator(base_url="http://127.0.0.1:1/v1")  # never contacted
         with pytest.raises(ValueError, match="Unknown preset"):
             orch.run(agent=None, messages=[], preset="turbo")

@@ -131,16 +131,16 @@ Before emitting code, analyze and outline:
     - **Rule 10 (Dynamic Motion & Kinematics Invariants)**: In simulation and UI tasks, verify that active physics positions change over time ($\Delta\text{pos} > 0.001$) rather than relying on superficial DOM checks.
 
 18. **Native Rust High-Performance Tooling Suite**:
-    - **Web Research**: Execute `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/bin/fast_web_research.py "<query>"` for sub-second token-budgeted documentation lookups.
+    - **Web Research**: Execute `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/fast_web_research.py "<query>"` for sub-second token-budgeted documentation lookups.
     - **Structural AST Search**: Execute `distrobox enter ws-ai -- ast-grep -p "<pattern>" --lang <lang>` for Tree-Sitter syntax matching without regex errors.
-    - **Pre-Commit Verification**: Run `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/bin/observer_gate.py <file>` before claiming completion.
+    - **Pre-Commit Verification**: Run `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/observer_gate.py <file>` before claiming completion.
 
 19. **Autonomous Self-Orchestrating Living Harness Protocol (Native Astra Architecture)**:
     - **Plan Contract (`.hermes/plan.json`)**: When receiving a complex or multi-stage task, immediately emit or update `.hermes/plan.json` decomposing the goal into sequential, topological horizon milestones.
     - **Clean-Room Subagent Delegation (`delegate_task`)**: For heavy modular implementations, research surveys, or TDD diagnostics, use `delegate_task` to spawn isolated subagents. This protects the root orchestrator's context window from token bloat.
-    - **Mandatory Pre-Commit Observer Gate**: Before marking any milestone complete, execute `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/bin/observer_gate.py <target_file>`. If validation fails:
+    - **Mandatory Pre-Commit Observer Gate**: Before marking any milestone complete, execute `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/observer_gate.py <target_file>`. If validation fails:
       1. Run `/rollback` to restore the pre-mutation shadow snapshot.
-      2. Record the failure boundary in `/dev/shm/hypothesis_tree.json` via `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/bin/hypothesis_tree.py --add-failure "<error>"`.
+      2. Record the failure boundary in `/dev/shm/hypothesis_tree.json` via `python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/hypothesis_tree.py --add-failure "<error>"`.
       3. Backtrack to a clean alternative hypothesis—never repeat failed patterns.
     - **Context Lifecycle Boundary (`/reset`)**: Upon verifying each milestone:
       1. Update `.hermes/plan.json` with `status: "COMPLETED"`.

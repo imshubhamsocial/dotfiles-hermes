@@ -1,47 +1,46 @@
-# 03. Active Milestone Prompt: U45 (Modular System Prompt Engine & Context Compactor Gate)
+# 03. Active Milestone Prompt: U46 (OpenSkills Universal Package Manager & Lifecycle)
 
-> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U45`  
+> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U46`  
 > **Authoritative Roadmap**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
-> **Research Archive**: `docs/roadmaps/active/archive/01_anthropic_system_prompts.md` & `13_perplexity_local_first_and_openskills.md`  
+> **Research Archive**: `docs/roadmaps/active/archive/13_perplexity_local_first_and_openskills.md` & `02_anthropic_universal_skills.md`  
 > **Hardware Context**: `docs/prompts/01_environment_and_hardware.md`  
 > **Coding & Invariant Rules**: `docs/prompts/02_rules_conventions_and_standards.md`
 
 ---
 
-## 1. Milestone Objective (`U45`)
+## 1. Milestone Objective (`U46`)
 
-Refactor the prompt construction engine in `hermes` to replace monolithic string concatenation with **Anthropic-style modular prompt slotting** and implement a **Perplexity-style active context compaction gate**:
+Implement the **OpenSkills Universal Package Manager & Skill Lifecycle Subsystem** (`src/hermes_core/openskills_manager.py`) to standardize on-demand skill discovery, JIT loading, isolated execution, and eviction without bloating Gemma-4's active context window:
 
-1. **Modular Prompt Slotting Engine (`src/hermes_core/prompt_slotting.py` or `hermes_cli/prompt_slotting.py`)**:
-   * Break system instructions into 4 immutable, orthogonal slots:
-     * **Slot 1: Identity & Persona Isolation** (Strict operational boundaries, non-intrusive refusal).
-     * **Slot 2: Environmental & Hardware Bounds** (Local RTX 3050, 64k context, Btrfs NOCOW, `/dev/shm`).
-     * **Slot 3: Master Behavioral Invariants & Coding Laws** (AST containment, zero-sorry testing, relative paths).
-     * **Slot 4: Tool Definitions & Native Jinja Schema** (Gemma-4 tool-calling format).
-   * **Prefix-Cache Byte Alignment**: Ensure static slots sit strictly at byte-offset 0 so `llama-server` achieves $>90\%$ KV-cache prefix hits across multi-turn sessions.
+1. **Standardized OpenSkills Parser & Manifest Engine (`src/hermes_core/openskills_manager.py`)**:
+   * Parse `SKILL.md` packages following the universal OpenSkills / Anthropic standard (`name`, `description`, YAML frontmatter, execution schema, dependencies).
+   * Replace legacy ad-hoc `bin/skills_catalog.py` indexing with a standardized registry supporting both local `.hermes/skills/` and system-wide bundled packages.
 
-2. **Active Context Compactor Gate (`src/hermes_core/context_compactor.py`)**:
-   * Monitor active trajectory token volume during multi-turn sessions.
-   * When conversational history / stale tool outputs approach $\ge 4,000\text{ tokens}$, automatically compact stale turns into concise semantic summaries so Gemma-4 stays within its peak cognitive reasoning window.
+2. **JIT Lifecycle: Progressive Disclosure (Load ➔ Execute ➔ Unload)**:
+   * **Stage 1 (L0 Discovery - In Prompt)**: Expose only concise name + single-sentence description in the system prompt ($<50\text{ tokens}$ per skill).
+   * **Stage 2 (L1 On-Demand Load)**: When the model invokes `load_skill(name)`, inject the full detailed instruction block and tool schema dynamically into Slot 4 / Active Context.
+   * **Stage 3 (L2 Unload & Context Eviction)**: Once the skill-related subtask concludes, automatically unload detailed instructions to prevent attention dilution and context bloat.
+
+3. **Dependency & Environment Isolation**:
+   * Validate that skill execution hooks adhere to zero-GPU-VRAM limits (running CPU / RAMDisk).
 
 ---
 
 ## 2. Implementation Deliverables
 
-* `src/hermes_core/prompt_slotting.py`: Modular prompt slot engine with ordering, validation, and rendering.
-* `src/hermes_core/context_compactor.py`: Active context compactor gate with token thresholding and summary generation.
-* Integration into CLI agent loop (`src/hermes_core/agent.py` or `hermes_cli/agent.py`).
+* `src/hermes_core/openskills_manager.py`: OpenSkills package parser, registry, JIT loader, and lifecycle manager.
+* Integration into CLI agent loop and prompt slotting engine (`src/hermes_core/prompt_slotting.py`).
 
 ---
 
 ## 3. Dedicated Contract Test Suite
 
-Author `tests/harness_contracts/test_roadmap4_u45_prompt_slotting_and_compactor.py` asserting:
-1. `test_prompt_slots_render_in_strict_canonical_order()`: Validates Slots 1 through 4 ordering.
-2. `test_prefix_cache_byte_stability()`: Validates identical hash output on static slots across turns.
-3. `test_slot_injection_and_override_protection()`: Validates user messages cannot overwrite Slot 1/3 invariants.
-4. `test_context_compactor_triggers_at_threshold()`: Validates compaction triggers when token count $\ge 4,000$.
-5. `test_context_compactor_preserves_most_recent_turn_and_plan()`: Validates active diffs and plan state are preserved verbatim during compaction.
+Author `tests/harness_contracts/test_roadmap4_u46_openskills_lifecycle.py` asserting:
+1. `test_openskills_yaml_frontmatter_parsing()`: Validates YAML frontmatter parsing against OpenSkills schema.
+2. `test_progressive_disclosure_discovery_tokens()`: Validates that L0 discovery format consumes $<50$ tokens per skill.
+3. `test_jit_skill_load_and_unload_lifecycle()`: Validates dynamic injection into active context on `load_skill` and eviction on `unload_skill`.
+4. `test_skill_dependency_and_missing_field_validation()`: Validates graceful refusal and error trapping on malformed `SKILL.md`.
+5. `test_openskills_zero_vram_overhead()`: Validates $0\text{ MB GPU VRAM}$ consumed during skill lifecycle operations.
 
 ---
 
@@ -49,12 +48,11 @@ Author `tests/harness_contracts/test_roadmap4_u45_prompt_slotting_and_compactor.
 
 1. Execute and verify inside `ws-hermes`:
    ```bash
-   distrobox enter ws-hermes -- pytest tests/harness_contracts/test_roadmap4_u45_prompt_slotting_and_compactor.py -v
-   distrobox enter ws-hermes -- pytest tests/harness_contracts/ -q
+   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u46_openskills_lifecycle.py -v
+   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
    ```
-2. Ensure **100% pass rate** across all 309 existing tests + new U45 tests.
-3. Verify **$0\text{ MB GPU VRAM}$** overhead.
-4. Stage and commit changes cleanly in Chezmoi:
+2. Ensure **100% pass rate** across all 325 existing tests + new U46 tests.
+3. Stage and commit changes cleanly in Chezmoi:
    ```bash
-   distrobox enter ws-hermes -- bash -c "chezmoi add <modified_files> && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U45 modular prompt slotting engine and active context compactor gate'"
+   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/openskills_manager.py tests/harness_contracts/test_roadmap4_u46_openskills_lifecycle.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U46 OpenSkills universal package manager and lifecycle'"
    ```

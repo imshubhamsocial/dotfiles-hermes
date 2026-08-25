@@ -19,3 +19,4 @@ This directory contains pure, objective deep-dive research briefs for every exte
 | **09** | [`09_openviking_context_database.md`](./09_openviking_context_database.md) | `github.com/volcengine/OpenViking` | Hierarchical virtual filesystem context database (L0/L1/L2) |
 | **10** | [`10_schema_org_structured_data.md`](./10_schema_org_structured_data.md) | `schema.org` / Semrush | JSON-LD semantic entity grounding & structured machine metadata |
 | **11** | [`11_draft_detective_and_graft.md`](./11_draft_detective_and_graft.md) | `agencyenterprise/draft-detective` & Graft | Adversarial claim verification & AST code transformation |
+| **12** | [`12_google_agent_architecture_and_workflows.md`](./12_google_agent_architecture_and_workflows.md) | Google ADK, Gemini CLI & Antigravity | Google Agent OS paradigm: graph decomposition, progressive disclosure & reactive dispatch |

@@ -16,11 +16,11 @@ import time
 import json
 import urllib.request
 
-ROOT_DIR = "/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster"
-LLAMA_BIN_DIR = os.path.join(ROOT_DIR, "llama.cpp", "build", "bin")
+ROOT_DIR = "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
+LLAMA_BIN_DIR = os.path.join(ROOT_DIR, "bin", "llama")
 TEST_PORT = 8138
-MODEL_PATH = os.path.join(ROOT_DIR, "assets", "gemma-4-E4B-it-Q4_K_M.gguf")
-DRAFT_PATH = os.path.join(ROOT_DIR, "assets", "mtp-gemma-4-E4B-it-Q4_0.gguf")
+MODEL_PATH = os.path.join(ROOT_DIR, "assets", "gguf", "gemma-4-E4B-it-Q4_K_M.gguf")
+DRAFT_PATH = os.path.join(ROOT_DIR, "assets", "MTP", "mtp-gemma-4-E4B-it-Q4_0.gguf")
 
 def log(msg):
     print(f"[ARBITER] {msg}")

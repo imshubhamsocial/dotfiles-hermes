@@ -80,7 +80,7 @@ def start_llama_server_for_cluster(cluster_cfg):
             model_path = "/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/assets/qwen2.5-coder-3b-instruct-q4_k_m.gguf"
 
     cmd = [
-        "/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/llama.cpp/build/bin/llama-server",
+        os.path.expanduser("~/.local/bin/llama-server"),
         "-m", os.path.abspath(model_path),
         "-c", str(ctx_len),
         "--host", "127.0.0.1",

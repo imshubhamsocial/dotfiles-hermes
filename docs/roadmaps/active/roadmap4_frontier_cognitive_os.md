@@ -1,123 +1,209 @@
-# ROADMAP 4: FRONTIER AGENT OS & COGNITIVE INFRASTRUCTURE SPECIFICATION
-## Research Synthesis, Component Adaptation, and Full Systemic Synergy
+# MILESTONE 4: FRONTIER AGENT OS & COGNITIVE INFRASTRUCTURE EXECUTION PLAN
+## Holistic Cognitive Architecture, Hardware-Calibrated Component Adaptation, Synergistic Integration & Verification Harness
 
-> **Document ID**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
-> **Status**: **Active Operational Roadmap**  
-> **Preceding Baseline**: Roadmaps 1, 2, and 3 (`U1`–`U44`) Verified (309/309 Tests Passing)  
-> **Scope**: Implementation & Integration Plan for the 12 Frontier Research Pillars into Hermes OS.
-
----
-
-## 1. Executive Strategy & Two-Phase Architecture
-
-Roadmap 4 transitions Hermes from a single-turn deterministic execution harness into a **frontier-grade, self-evolving, multi-agent cognitive operating system**. 
-
-The roadmap is executed strictly in two sequential phases:
-* **Phase 1: Component-Level Adaptation & Integration Analysis (U45–U56)**
-  * For each of the 12 research briefs in `docs/roadmaps/active/archive/`, analyze how the external mechanism maps into Hermes, identifying what it integrates with, improves, or completely replaces in our existing codebase.
-* **Phase 2: Systemic Synergy, End-to-End Orchestration & Self-Evolution (U57–U60)**
-  * Unify all 12 components into a cohesive, non-conflicting cognitive loop where memory, planning, execution, verification, and autonomous learning operate in harmony.
+> **Document ID**: `docs/roadmaps/active/milestone_frontier_cognitive_os2.md`  
+> **Status**: **Authoritative Active Implementation & Verification Plan**  
+> **Baseline Integrity**: Post-Roadmap 3 (`U1`–`U44`) Verified (309/309 Tests Passing)  
+> **Hardware Target**: NVIDIA RTX 3050 Laptop GPU (6 GB VRAM, CC 8.6), 16 GB Host RAM, FastEmbed CPU ONNX, `/dev/shm` RAMDisk  
+> **Inference Engine**: Local `llama-server` on `:8138` (Gemma-4-E4B-it Q4_K_M + MTP Speculative Drafter, Flash-Attn ON, Jinja DSL, 64k Context in `q4_0`)
 
 ---
 
-## 2. Phase 1: Component-by-Component Adaptation Matrix (U45 – U56)
+## 1. Executive Synthesis & Architectural Blueprint
 
-```
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                               PHASE 1: INDIVIDUAL COMPONENT INTEGRATION MATRIX                            │
-├────────┬────────────────────────────────────────┬─────────────────────────────────────────────────────────┤
-│ Spec # │ Research Source & Domain               │ Hermes Implementation & Replacement Strategy            │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U45**│ 01. Anthropic System Prompts           │ **Modular Prompt Slotting Engine**: Replaces monolithic │
-│        │ (`platform.claude.com`)                │ prompt strings with strict, cache-aligned slots.        │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U46**│ 02. Anthropic Universal Skills         │ **Progressive Disclosure Skills Catalog**: Extends      │
-│        │ (`github.com/anthropics/skills`)       │ `.hermes/skills/` with standard YAML frontmatter index. │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U47**│ 03. OpenCode-Mem Vector Memory         │ **Local Vector Episodic Database**: Integrates FastEmbed│
-│        │ (`github.com/tickernelz/opencode-mem`) │ on CPU to capture cross-session negative constraints.   │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U48**│ 04. Agent-OS Standards & Specs         │ **Two-Tier Coding Standards & Spec-First Gateway**:     │
-│        │ (`github.com/buildermethods/agent-os`) │ Formalizes pre-implementation specifications.           │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U49**│ 05. COG Second Brain                   │ **Markdown-First Knowledge Vault & Verifier Harness**:  │
-│        │ (`github.com/huytieu/COG-second-brain`)| Implements dual-agent worker/verifier audit loops.      │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U50**│ 06. Codebase Memory MCP                │ **Tree-Sitter Structural Graph MCP Bridge**: Replaces   │
-│        │ (`github.com/DeusData/codebase-memory`)| raw whole-file reading with sub-ms AST symbol queries.  │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U51**│ 07. NVIDIA SkillEvaluator              │ **Multi-Tier Skill Lift A/B Benchmark Runner**: Tests   │
-│        │ (`github.com/NVIDIA/SkillEvaluator`)   │ empirical delta performance before accepting skills.    │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U52**│ 08. DeepMind Recirculation             │ **Inference-Time Dynamical Recurrence Hook**: Prefill   │
-│        │ (`arxiv:2608.17981`)                   │ activation recurrence for Gemma-4 System-2 reasoning.   │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U53**│ 09. OpenViking Context VFS             │ **Hierarchical L0/L1/L2 Context Virtual Filesystem**:   │
-│        │ (`github.com/volcengine/OpenViking`)   │ 3-tier progressive context expansion via POSIX tools.   │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U54**│ 10. Schema.org Structured Metadata     │ **JSON-LD Semantic Entity Grounding Formatter**: Embeds │
-│        │ (`schema.org` / Semrush)               │ deterministic schema metadata in all generated plans.   │
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U55**│ 11. Draft-Detective Adversarial Audit  │ **Pre-Commit Adversarial Fact-Checking Gate**: Cross-   │
-│        │ (`agencyenterprise/draft-detective`)   │ examines generated claims against workspace ground truth│
-├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U56**│ 12. Google ADK & Antigravity Framework │ **ADK 2.0 Task Graph, Reactive Bus & /learn Loop**:     │
-│        │ (`google/adk-python`, `antigravity`)   │ Subagent leasing, thought signatures & auto-learning.   │
-└────────┴────────────────────────────────────────┴─────────────────────────────────────────────────────────┘
-```
+### 1.1 The Core Insight: Antigravity as the Master Blueprint
+* **Antigravity / Google ADK 2.0 (`Brief 12`)** provides the **master operating blueprint**: a hierarchical, reactive state machine operating over an asynchronous execution graph with multi-tier memory, thought-signature propagation, and continuous self-evolution (`/learn`).
+* **The Other 11 Research Briefs (`Briefs 01–11`)** provide the **specialized sub-engines and algorithms** that fill each specific slot in that blueprint:
+  * *Intake & Persona Boundaries* ➔ **Anthropic System Prompts (`Brief 01`)**
+  * *Skill Discovery & Standards* ➔ **Universal Skills (`Brief 02`)** & **Agent-OS (`Brief 04`)**
+  * *Long-Term & Structural Memory* ➔ **OpenCode-Mem (`Brief 03`)**, **COG Vault (`Brief 05`)**, **Codebase Memory MCP (`Brief 06`)** & **OpenViking VFS (`Brief 09`)**
+  * *Inference Quality & Benchmarking* ➔ **NVIDIA SkillEvaluator (`Brief 07`)** & **DeepMind Recirculation (`Brief 08`)**
+  * *Verification, Grounding & Refactoring* ➔ **Schema.org JSON-LD (`Brief 10`)**, **Draft-Detective (`Brief 11`)** & **Graft AST Engine (`Brief 11`)**
 
 ---
 
-## 3. Phase 2: Systemic Synergy & Holistic Architecture (U57 – U60)
-
-Phase 2 unifies the individual components into a continuous, self-improving cognitive loop:
+### 1.2 Unified Cognitive Lifecycle in Hermes
 
 ```mermaid
 flowchart TD
     subgraph INTAKE ["1. Intake & Context Grounding"]
-        USER["User Prompt / Goal"] --> SLOT["U45: Anthropic Prompt Slotting"]
-        SLOT --> VFS["U53: OpenViking L0/L1/L2 Context Sieve"]
-        SLOT --> MEM["U47: OpenCode-Mem Vector Retrieval"]
-        SLOT --> MCP["U50: Codebase Memory MCP Graph"]
+        USER["User Prompt / Goal"] --> SLOT["U45: Anthropic Prompt Slotting Engine"]
+        SLOT --> RULES["U48: Agent-OS 2-Tier Standards (~/.hermes/rules/)"]
+        SLOT --> VFS["U53: OpenViking 3-Tier VFS (L0/L1/L2 Context Sieve)"]
+        SLOT --> MEM["U47: OpenCode-Mem Vector Retrieval (FastEmbed CPU)"]
+        SLOT --> MCP["U50: Codebase Memory MCP (Tree-Sitter Graph)"]
     end
 
     subgraph PLANNING ["2. Planning & Specification"]
         INTAKE --> SPEC["U48: Spec-First Planner (.hermes/plan.json)"]
-        SPEC --> SCHEMA["U54: Schema.org JSON-LD Formatting"]
-        SPEC --> RECUR["U52: DeepMind Recirculation System-2 Verification"]
+        SPEC --> SCHEMA["U54: Schema.org JSON-LD Grounding Anchor"]
+        SPEC --> RECUR["U52: DeepMind Recirculation System-2 Dynamical Step"]
     end
 
-    subgraph EXECUTION ["3. Orchestrated Multi-Agent Execution"]
-        PLANNING --> DAG["U56: ADK 2.0 TaskDAG & Reactive Event Dispatch"]
-        DAG --> WORKER["Isolated Subagents (Bubblewrap / Git Worktrees)"]
-        DAG --> SKILLS["U46: Progressive Disclosure Universal Skills"]
+    subgraph EXECUTION ["3. Orchestrated Reactive Execution"]
+        PLANNING --> DAG["U56: ADK 2.0 Reactive Task DAG (SQLite WAL)"]
+        DAG --> SUBAGENTS["Isolated Subagents (Bubblewrap / Git Worktrees)"]
+        DAG --> SKILLS["U46: Universal Skills Catalog (Progressive Disclosure)"]
+        DAG --> GRAFT["U56: Graft AST Code Transformation Kernel"]
     end
 
-    subgraph VERIFICATION ["4. Dual-Pass Verification Gate"]
-        EXECUTION --> OBS["Pre-Commit Observer Gate (6-Point AST Guard)"]
-        OBS --> DRAFT["U55: Draft-Detective Adversarial Grounding Audit"]
-        DRAFT --> VERIFY["U49: COG Closed-Loop Verifier Agent"]
+    subgraph VERIFICATION ["4. Multi-Tier Verification Matrix"]
+        EXECUTION --> OBS["Pre-Commit Observer Gate (6-Point AST Syntax)"]
+        OBS --> DRAFT["U55: Draft-Detective Adversarial Fact-Check"]
+        DRAFT --> COG["U49: COG Closed-Loop Verifier Agent"]
     end
 
     subgraph EVOLUTION ["5. Learning & Continuous Skill Lift"]
-        VERIFICATION -->|Success| DELIVER["Deliver Artifact & Git Commit"]
-        VERIFICATION -->|Feedback| LEARN["U56: Autonomous /learn Rule Synthesis"]
-        LEARN --> LIFT["U51: NVIDIA SkillEvaluator A/B Lift Certification"]
+        VERIFICATION -->|Pass| DELIVER["Deliver Verified Code & Git Commit"]
+        VERIFICATION -->|Correction / Feedback| LEARN["U56: Autonomous /learn Rule Synthesizer"]
+        LEARN --> LIFT["U51: NVIDIA SkillEvaluator A/B Skill Lift Audit"]
         LIFT --> CATALOG["Promote to Permanent .hermes/skills/"]
     end
 ```
 
-### Phase 2 Milestones Breakdown:
-* **U57: Unified Reactive Execution & Memory Bus**: Seamless event-driven routing between ADK 2.0 subagent tasks, OpenCode-Mem vector stores, and the SQLite WAL DAG.
-* **U58: Closed-Loop Dual-Agent Verification Matrix**: Linking the Pre-Commit Observer Gate, Draft-Detective, and COG Verifier into an automated pre-flight audit pipeline.
-* **U59: Autonomous `/learn` & Skill Evolution Substrate**: Automatic synthesis of negative constraints into rules and benchmark-validated promotion of new skills via NVIDIA SkillEvaluator.
-* **U60: Master Grand Prix Production Certification**: Comprehensive end-to-end evaluation validating the full cognitive OS across multi-file engineering tasks with 100% contract test compliance.
+---
+
+## 2. Component Adaptation & Hardware Calibration (U45 – U56)
+
+For every individual pillar, we analyze its exact role in Hermes, its hardware budget on the RTX 3050 (6 GB), and its integration safeguards:
 
 ---
 
-## 4. Execution Roadmap & Next Steps
+### U45: Anthropic-Style Modular System Prompt Engine
+* **Role & Replacement**: Replaces hardcoded string concatenation in `hermes_cli/agent.py` with versioned, cache-aligned prompt slots (`Identity`, `Environment`, `BehavioralLaws`, `ToolDefinitions`).
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Optimizes prefix caching (`--prompt-cache-all`), guaranteeing **$>90\%$ cache hits** and sub-50ms turn startup.
+* **Integration Safeguards**: System instructions must sit strictly at byte-offset 0 to maintain prefix-cache hashing across multi-turn sessions.
 
-1. **Step 1**: Implement Phase 1 component specifications sequentially (`U45` through `U56`).
-2. **Step 2**: Author corresponding contract tests in `tests/harness_contracts/` for each component.
-3. **Step 3**: Integrate Phase 2 systemic orchestration (`U57` through `U60`).
-4. **Step 4**: Execute the Grand Prix verification suite and synchronize the finalized configuration with Chezmoi.
+---
+
+### U46: Universal Skills Catalog with Progressive Disclosure
+* **Role & Replacement**: Standardizes `.hermes/skills/` to adhere to the open `name + description` YAML frontmatter format (`agentskills.io`).
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Keeps baseline prompt bloat under $<250\text{ tokens}$ regardless of whether 10 or 100 skills are installed.
+* **Integration Safeguards**: Full `SKILL.md` instruction bodies are only loaded into working memory upon explicit skill activation.
+
+---
+
+### U47: OpenCode-Mem Local Vector Episodic Database
+* **Role & Replacement**: Introduces a local semantic memory store to capture developer preferences, project quirks, and negative constraints across sessions.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Runs `BAAI/bge-small-en-v1.5` exclusively on **CPU ONNX** (`fastembed`), ensuring zero GPU memory contention.
+* **Integration Safeguards**: Vector queries are limited to top-k=3 relevant snippets ($<300\text{ tokens}$) to prevent context flooding.
+
+---
+
+### U48: Agent-OS Two-Tier Standards & Spec-First Gateway
+* **Role & Replacement**: Formalizes two-tier standards (`~/.hermes/rules/` for global developer habits, `.hermes/rules/` for project conventions) and mandates `.hermes/plan.json` interface specifications before code mutation.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Pure file-based rules and AST interface validation.
+* **Integration Safeguards**: Rules are deduplicated by resolved canonical path so no rule is injected more than once per turn.
+
+---
+
+### U49: COG Second Brain Knowledge Vault & Verifier Harness
+* **Role & Replacement**: Establishes a pure Markdown knowledge vault with dual-agent closed-loop verification (generator produces code, distinct verifier audits claims against ground truth).
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Runs sequential turns within our existing `llama-server` process without spawning parallel GPU instances.
+* **Integration Safeguards**: Verifier agent operates in a read-only scratchpad to prevent accidental recursive workspace mutation.
+
+---
+
+### U50: Codebase Memory MCP Structural Graph Bridge
+* **Role & Replacement**: Connects a high-performance Tree-sitter MCP server to query call chains, class hierarchies, and symbol definitions, replacing raw full-file dumps.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Single native binary running on CPU/RAM. Slashes prompt context consumption by up to $85\%$.
+* **Integration Safeguards**: Bridge communicates over standard stdio/JSON-RPC MCP transport with a strict 500ms timeout.
+
+---
+
+### U51: NVIDIA SkillEvaluator Multi-Tier Skill Lift Benchmark Runner
+* **Role & Replacement**: Upgrades skill grading from shallow static linting to live **A/B Trajectory Skill Lift**: measuring empirical task success with vs. without the skill loaded.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Automated test runner executing against standardized synthetic task suites.
+* **Integration Safeguards**: Newly generated skills must achieve a **$\ge +15\%$ Skill Lift** and zero regression before promotion to the core catalog.
+
+---
+
+### U52: DeepMind Recirculation Inference Recurrence Hook
+* **Role & Replacement**: Implements multi-pass prefill activation recurrence for complex architectural planning turns, enabling System-2 deliberate reasoning on Gemma-4 without parameter training.
+* **Hardware & VRAM Impact**: **$0\text{ MB extra VRAM}$**. Operates within the allocated 64K KV cache during the prefill phase; generation throughput remains $\approx 35\text{–}45\text{ tok/s}$.
+* **Integration Safeguards**: Active only during Phase 1 specification planning (`spec_first_planner.py`), automatically disabled during high-speed execution turns.
+
+---
+
+### U53: OpenViking Hierarchical L0/L1/L2 Virtual Context Filesystem
+* **Role & Replacement**: Replaces flat context dumps with a 3-tier VFS (`viking://`): L0 (Abstract summary, ~100 tokens), L1 (Structural overview, ~1.5k tokens), and L2 (Full file details).
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Pure Python VFS abstraction mounted in `/dev/shm`.
+* **Integration Safeguards**: Context expands strictly on demand as the agent navigates directories using `ls`/`tree`/`cat`.
+
+---
+
+### U54: Schema.org JSON-LD Semantic Entity Grounding Formatter
+* **Role & Replacement**: Formats all generated architectural blueprints, plans, and technical documents with JSON-LD schema metadata (`SoftwareSourceCode`, `HowTo`, `TaskSpec`).
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Deterministic schema validation via `pydantic`/`jsonschema`.
+* **Integration Safeguards**: Schema blocks are embedded in standardized YAML/JSON frontmatter, isolating machine metadata from human-readable Markdown.
+
+---
+
+### U55: Draft-Detective Adversarial Grounding & Fact-Check Gate
+* **Role & Replacement**: Automated pre-commit adversarial gate that cross-examines generated documentation, PR descriptions, and code comments against actual ground-truth files to eliminate hallucinations.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. Static claim extraction and regex/AST cross-referencing on CPU.
+* **Integration Safeguards**: Blocks any tool execution turn where the generated documentation claims an import or class that does not exist in the AST graph.
+
+---
+
+### U56: Google ADK 2.0 Task Graph, Reactive Bus & Autonomous `/learn`
+* **Role & Replacement**: Implements the master coordination layer: hierarchical task DAG nodes, subagent leasing over an asynchronous message bus, thought-signature propagation, and autonomous rule synthesis via `/learn`.
+* **Hardware & VRAM Impact**: **$0\text{ MB GPU VRAM}$**. SQLite WAL task state engine and reactive event queue.
+* **Integration Safeguards**: Subagents operate in isolated Bubblewrap jails or temporary Git worktrees, preventing clean-room contamination.
+
+---
+
+## 3. Phase 2: Systemic Synergy & Integration Architecture (U57 – U60)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               PHASE 2: HOLISTIC SYSTEMIC INTEGRATION MILESTONES                          │
+├────────┬───────────────────────────────────────────┬─────────────────────────────────────────────────────┤
+│ Spec # │ Integration Milestone Name                │ Cohesive Multi-Component Synergy Deliverables      │
+├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ **U57**│ **Unified Reactive Execution & Memory Bus**│ Links ADK 2.0 TaskDAG + OpenCode-Mem Vector Store   │
+│        │                                           │ + OpenViking VFS + MCP into a unified event bus.    │
+├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ **U58**│ **Closed-Loop Dual-Agent Verification**   │ Unifies Observer Gate (AST) + Draft-Detective       │
+│        │ **Matrix**                                │ (Fact-Check) + COG Verifier into automated pre-fly. │
+├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ **U59**│ **Autonomous `/learn` & Skill Evolution**  │ Seamless loop: user correction ➔ rule synthesis     │
+│        │ **Substrate**                             │ ➔ NVIDIA SkillEvaluator A/B Lift ➔ Skill promotion. │
+├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ **U60**│ **Master Grand Prix Production**          │ Comprehensive 10-tier end-to-end evaluation suite   │
+│        │ **Certification**                         │ validating 100% autonomy, safety, and test passes.  │
+└────────┴───────────────────────────────────────────┴─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Verification & Validation Test Suite Architecture
+
+To maintain the same standard as Roadmaps 1, 2, and 3 (where 309 contract tests verify every capability), Milestone 4 introduces dedicated contract suites:
+
+```
+tests/harness_contracts/
+├── test_roadmap4_u45_prompt_slotting.py            # U45: Prompt slot ordering, cache hit asserts
+├── test_roadmap4_u46_universal_skills.py           # U46: Progressive disclosure & YAML frontmatter
+├── test_roadmap4_u47_vector_memory.py              # U47: FastEmbed CPU episodic capture & recall
+├── test_roadmap4_u48_agent_os_specs.py             # U48: 2-tier rules & plan.json spec gateway
+├── test_roadmap4_u49_cog_verifier.py               # U49: Markdown vault & dual-agent closed loop
+├── test_roadmap4_u50_codebase_memory_mcp.py        # U50: Tree-sitter MCP graph symbol queries
+├── test_roadmap4_u51_nvidia_skill_evaluator.py     # U51: 3-tier validation & A/B Skill Lift metrics
+├── test_roadmap4_u52_deepmind_recirculation.py     # U52: Recurrence hook activation & reasoning lift
+├── test_roadmap4_u53_openviking_vfs.py             # U53: L0/L1/L2 hierarchical context traversal
+├── test_roadmap4_u54_schema_structured_data.py     # U54: JSON-LD metadata generation & validation
+├── test_roadmap4_u55_draft_detective_audit.py      # U55: Adversarial claim cross-examination gate
+├── test_roadmap4_u56_adk_task_and_learn.py         # U56: Reactive subagents & /learn rule synthesis
+├── test_roadmap4_u57_u59_synergy_bus.py            # U57-U59: Systemic event bus & evolution loop
+└── test_roadmap4_u60_grand_prix_certification.py   # U60: Full autonomous end-to-end graduation exam
+```
+
+---
+
+## 5. Execution Sequence & Acceptance Gates
+
+1. **Gate 1 (U45–U48: Intake & Memory Foundations)**: System prompts slotted, Universal Skills indexed, CPU vector store active, and 2-tier rules enforced.
+2. **Gate 2 (U49–U52: Cognitive Processing & Recurrence)**: COG dual-agent verifier active, MCP Tree-sitter graph connected, NVIDIA SkillEvaluator running, and DeepMind Recurrence validated.
+3. **Gate 3 (U53–U56: Structural Grounding & ADK Execution)**: OpenViking 3-tier VFS operational, Schema.org JSON-LD emitted, Draft-Detective adversarial gate blocking ungrounded claims, and ADK reactive subagents functional.
+4. **Gate 4 (U57–U60: Synergy & Grand Prix Graduation)**: Full end-to-end integration passing all contract suites with 0 regressions, $\le 3,800\text{ MiB}$ VRAM footprint, and clean Chezmoi synchronization.

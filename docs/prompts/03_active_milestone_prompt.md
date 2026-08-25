@@ -1,7 +1,7 @@
 # 03. Active Milestone Prompt: Roadmap 4 Phase 1 (U45 – U56)
 
 > **Current Execution Target**: Milestone 4 Phase 1 Component Implementations  
-> **Authoritative Specification**: `docs/roadmaps/active/milestone_frontier_cognitive_os2.md`  
+> **Authoritative Specification**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
 > **Research Archive**: `docs/roadmaps/active/archive/`
 
 ---

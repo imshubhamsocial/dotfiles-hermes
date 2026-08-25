@@ -6,9 +6,9 @@
 USER_SITE="$(python3.13 -m site --user-site 2>/dev/null || echo "$HOME/.local/lib/python3.13/site-packages")"
 export LD_LIBRARY_PATH="${USER_SITE}/nvidia/cu13/lib:${USER_SITE}/nvidia/cublas/lib:${USER_SITE}/nvidia/cuda_nvrtc/lib:${USER_SITE}/nvidia/nccl/lib:${LD_LIBRARY_PATH}"
 
-MODEL_MAIN="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf"
-MODEL_DRAFT="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf"
-SERVER_BIN="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/llama.cpp/build/bin/llama-server"
+MODEL_MAIN="${HOME}/assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf"
+MODEL_DRAFT="${HOME}/assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf"
+SERVER_BIN="${HOME}/bin/llama/llama-server.bin"
 
 exec "$SERVER_BIN" \
     --model "$MODEL_MAIN" \

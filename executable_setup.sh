@@ -6,7 +6,7 @@ echo 'max_parallel_downloads=20' | sudo tee -a /etc/dnf/dnf.conf > /dev/null
 
 echo "==> Installing base tools & compilers..."
 sudo dnf install -y gcc gcc-c++ make cmake clang ripgrep fd-find fzf tree htop nvtop \
-    bubblewrap e2fsprogs nodejs22 \
+    bubblewrap e2fsprogs nodejs22 clang-tools-extra gdb valgrind \
     python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs chezmoi jq curl wget
 
 echo "==> Ensuring pip toolchain..."
@@ -24,7 +24,9 @@ python3.13 -m pip install --break-system-packages \
 echo "==> Installing Node.js CLI tools..."
 mkdir -p "$HOME/.local/bin" "$HOME/.local/lib"
 npm config set prefix "$HOME/.local"
-npm install -g pyright typescript typescript-language-server prettier @ast-grep/cli pnpm
+npm install -g pyright typescript typescript-language-server prettier @ast-grep/cli pnpm \
+    bash-language-server dockerfile-language-server-nodejs vscode-langservers-extracted \
+    yaml-language-server eslint @biomejs/biome @tobilu/qmd
 
 echo "==> Setting up PATH and directories..."
 mkdir -p "$HOME/.local/bin" "$HOME/.hermes"

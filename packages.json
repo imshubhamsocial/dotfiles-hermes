@@ -17,6 +17,9 @@
     "bubblewrap",
     "e2fsprogs",
     "nodejs22",
+    "clang-tools-extra",
+    "gdb",
+    "valgrind",
     "python3.13",
     "python3.13-devel",
     "openssl-devel",
@@ -34,7 +37,14 @@
     "typescript-language-server",
     "prettier",
     "@ast-grep/cli",
-    "pnpm"
+    "pnpm",
+    "bash-language-server",
+    "dockerfile-language-server-nodejs",
+    "vscode-langservers-extracted",
+    "yaml-language-server",
+    "eslint",
+    "@biomejs/biome",
+    "@tobilu/qmd"
   ],
   "python_packages": [
     "pytest>=9.0",

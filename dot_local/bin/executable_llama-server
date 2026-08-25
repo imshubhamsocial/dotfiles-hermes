@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+USER_SITE="$(python3.13 -m site --user-site)"
+CUDA_LIB_DIR="${USER_SITE}/nvidia/cu13/lib"
+CUBLAS_LIB_DIR="${USER_SITE}/nvidia/cublas/lib"
+NVRTC_LIB_DIR="${USER_SITE}/nvidia/cuda_nvrtc/lib"
+NCCL_LIB_DIR="${USER_SITE}/nvidia/nccl/lib"
+export LD_LIBRARY_PATH="${CUDA_LIB_DIR}:${CUBLAS_LIB_DIR}:${NVRTC_LIB_DIR}:${NCCL_LIB_DIR}:${LD_LIBRARY_PATH}"
+exec "$HOME/.local/bin/llama-server.bin" "$@"

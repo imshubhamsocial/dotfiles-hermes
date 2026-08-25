@@ -1,6 +1,6 @@
 # 01. Environment, Hardware Envelope & Repository Structure
 
-> **Authoritative Context**: For autonomous execution via OpenAI Codex on Host / `ws-hermes`  
+> **Authoritative Context**: For autonomous execution via OpenAI Codex on Host  
 > **Target Substrate**: Fedora Kinoite Host + `ws-hermes` Distrobox Substrate
 
 ---
@@ -20,18 +20,18 @@ All code execution, model configurations, and test runners must respect strict p
 
 ---
 
-## 2. Distrobox Container Environment (`ws-hermes`)
+## 2. Execution Container & Testing Rule (`ws-hermes`)
+
+> [!IMPORTANT]
+> **All contract test runs, Playwright tests, and Python commands MUST be executed inside the `ws-hermes` distrobox container.**  
+> Running `pytest` or `python3` directly on the host will fail due to missing CUDA/Playwright libraries.
 
 * **Primary Substrate**: `ws-hermes` container with CUDA 13, Python 3.13, Pytest 9+, Playwright, Tree-sitter, and FastEmbed.
-* **Container Invocation**:
+* **Command Wrapper**:
   ```bash
-  distrobox enter ws-hermes -- <command>
+  distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
   ```
-* **Python Executable**: Use `python3.13` inside `ws-hermes`.
-* **Testing Command**:
-  ```bash
-  distrobox enter ws-hermes -- pytest tests/harness_contracts/ -q
-  ```
+* **Status**: **309/309 PASS (100%)** when executed inside `ws-hermes`.
 
 ---
 

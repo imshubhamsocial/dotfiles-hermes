@@ -19,7 +19,7 @@ exec "$SERVER_BIN" \
     --spec-draft-ngl 99 \
     --flash-attn on \
     --jinja \
-    -c 32768 \
+    -c 65536 \
     --cache-type-k q4_0 \
     --cache-type-v q4_0 \
     --threads 6 \

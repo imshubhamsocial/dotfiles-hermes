@@ -1,0 +1,72 @@
+[
+  {
+    "id": "HW_JR_DEV_01",
+    "persona": "Junior Developer",
+    "domain": "Web Backend",
+    "language": "python",
+    "title": "Vague User Authentication Token Extraction",
+    "prompts": [
+      "def get_bearer_token(headers: dict) -> str:\n    # get bearer token from authorization header in dict. return empty string if missing or not Bearer\n",
+      "Write a function get_bearer_token(headers) that takes HTTP headers dict and extracts token after 'Bearer '. Case insensitive header key.",
+      "need function get_bearer_token(headers) to parse Auth header 'Bearer xyz' -> 'xyz'. handle lowercase authorization key"
+    ],
+    "test_code": "assert get_bearer_token({'Authorization': 'Bearer abc123xyz'}) == 'abc123xyz'\nassert get_bearer_token({'authorization': 'bearer secrettoken'}) == 'secrettoken'\nassert get_bearer_token({'Authorization': 'Basic dXNlcjpwYXNz'}) == ''\nassert get_bearer_token({}) == ''\n",
+    "linter": "ruff"
+  },
+  {
+    "id": "HW_SR_ARCH_02",
+    "persona": "Senior Architect",
+    "domain": "API Architecture",
+    "language": "typescript",
+    "title": "Strict Type-Safe Event Emitter with Once Listener",
+    "prompts": [
+      "export class TypedEventEmitter<T extends Record<string, any>> {\n  // Implement on(event, listener), once(event, listener), emit(event, data), off(event, listener)\n}\n",
+      "Build a TypeScript TypedEventEmitter class supporting on, once, off, emit with typed listener arrays.",
+      "// TS class TypedEventEmitter<T> supporting event registration, single-trigger once(), and emit()"
+    ],
+    "test_code": "import { TypedEventEmitter } from './solution';\nconst ee = new TypedEventEmitter<{ ping: number }>();\nlet count = 0;\nee.once('ping', (v) => { count += v; });\nee.emit('ping', 5);\nee.emit('ping', 5);\nconsole.assert(count === 5, `Expected 5 got ${count}`);\n",
+    "linter": "biome"
+  },
+  {
+    "id": "HW_DEVOPS_03",
+    "persona": "DevOps SRE",
+    "domain": "Infrastructure & Automation",
+    "language": "bash",
+    "title": "Idempotent Disk Usage Alert & Log Cleanup",
+    "prompts": [
+      "# Write POSIX bash script cleanup_disk.sh: check disk usage of $1 threshold (e.g. 80). If exceeded, remove .tmp and .bak files in $2 dir. Log timestamped actions.",
+      "Create shell script that checks if df disk usage > threshold %. If true, clean old .tmp files in target dir safely.",
+      "bash script cleanup_disk.sh <threshold_pct> <dir_path> to delete *.tmp *.bak when disk full"
+    ],
+    "test_code": "bash -n script.sh\n",
+    "linter": "shellcheck"
+  },
+  {
+    "id": "HW_DATA_ENG_04",
+    "persona": "Data Engineer",
+    "domain": "High-Throughput Analytics",
+    "language": "go",
+    "title": "Thread-Safe Sliding Window Rate Limiter",
+    "prompts": [
+      "package solution\n// Implement RateLimiter struct with Allow(clientID string) bool using sliding window in Go\n",
+      "Build a Go RateLimiter with NewRateLimiter(limit int, windowSec int) supporting Allow(clientID) bool.",
+      "// Go RateLimiter struct: thread-safe sliding window log for client rate limiting"
+    ],
+    "test_code": "package solution\nimport (\"testing\"; \"time\")\nfunc TestRateLimiter(t *testing.T) {\n    rl := NewRateLimiter(2, 1)\n    if !rl.Allow(\"user1\") || !rl.Allow(\"user1\") { t.Fatalf(\"Should allow 2 reqs\") }\n    if rl.Allow(\"user1\") { t.Fatalf(\"Should reject 3rd req\") }\n    time.Sleep(1100 * time.Millisecond)\n    if !rl.Allow(\"user1\") { t.Fatalf(\"Should allow after window expiration\") }\n}\n",
+    "linter": "golangci-lint"
+  },
+  {
+    "id": "HW_SYSTEMS_05",
+    "persona": "Systems Engineer",
+    "domain": "Low-Latency Core Engine",
+    "language": "rust",
+    "title": "Thread-Safe Bounded Memory Pool",
+    "prompts": [
+      "pub struct MemoryPool {\n    // Bounded pool of fixed-size byte buffers Vec<Vec<u8>> with acquire() and release()\n}\n",
+      "Implement Rust MemoryPool struct with new(capacity, buffer_size), acquire() -> Option<Vec<u8>>, release(buf).",
+      "// Rust struct MemoryPool managing reusable fixed-size buffer allocations safely"
+    ],
+    "test_code": "#[cfg(test)]\nmod tests {\n    use super::*;\n    #[test]\n    fn test_pool() {\n        let mut pool = MemoryPool::new(2, 64);\n        let b1 = pool.acquire();\n        assert!(b1.is_some());\n        let b2 = pool.acquire();\n        assert!(b2.is_some());\n        assert!(pool.acquire().is_none());\n        pool.release(b1.unwrap());\n        assert!(pool.acquire().is_some());\n    }\n}\n",
+    "linter": "cargo"
+  }
+]

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaBench: AAA 3D WebGL Aquarium Simulation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1e2e; }
+    canvas { display: block; }
+  </style>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<script>
+// ─── GLOBALS ─────────────────────────────────────────────────────────
+let scene, camera, renderer, controls, ball;
+let ballVel = new THREE.Vector3(0, 0, 0);
+let isDraggingBall = false;
+let fishes = [], seaweeds = [], bubbles = [];
+let water;
+
+const TANK   = { w: 36, h: 22, d: 24 };
+const WATER_Y = 6;
+const BALL_R  = 1.8;
+const GRID    = 81;
+
+// Double-buffered wave height fields + velocity field
+let hA  = new Float32Array(GRID * GRID);
+let hB  = new Float32Array(GRID * GRID);
+let vel = new Float32Array(GRID * GRID);
+
+// Shared materials
+const eyeMat    = new THREE.MeshPhysicalMaterial({ color: 0xf5f5f5, roughness: 0.05, metalness: 0.0, clearcoat: 1.0 });
+const pupilMat  = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.2 });
+const bubbleMat = new THREE.MeshPhysicalMaterial({
+  color: 0xe8f4ff, roughness: 0.0, metalness: 0.0,
+  transmission: 0.95, opacity: 0.2, transparent: true, ior: 1.0
+});
+
+// Animated caustic light (moves gently to simulate underwater light dapple)
+let causticLight;
+
+// ─── SCENE (Photorealistic lighting & materials) ─────────────────────
+function initScene() {
+  scene = new THREE.Scene();
+  // Dark room ambience — makes the lit aquarium pop
+  scene.background = new THREE.Color(0x0d1a26);
+  scene.fog = new THREE.FogExp2(0x0d1a26, 0.006);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  document.body.appendChild(renderer.domElement);
+
+  // ── 3-point studio lighting ──
+  // Key light — warm overhead (simulates aquarium hood lamp)
+  const keyLight = new THREE.DirectionalLight(0xffeedd, 2.2);
+  keyLight.position.set(5, 35, 10);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.bias = -0.0008;
+  keyLight.shadow.camera.left = -25; keyLight.shadow.camera.right = 25;
+  keyLight.shadow.camera.top = 25;   keyLight.shadow.camera.bottom = -25;
+  scene.add(keyLight);
+
+  // Fill light — cool blue from front-left (ambient room bounce)
+  const fillLight = new THREE.DirectionalLight(0x88aacc, 0.6);
+  fillLight.position.set(-15, 10, 25);
+  scene.add(fillLight);
+
+  // Rim/back light — subtle warm edge separation
+  const rimLight = new THREE.DirectionalLight(0xffcc88, 0.35);
+  rimLight.position.set(10, 20, -20);
+  scene.add(rimLight);
+
+  // Ambient — very low, lets directional lights do the work
+  scene.add(new THREE.AmbientLight(0x445566, 0.5));
+
+  // Hemisphere light — sky blue top, warm sand bottom bounce
+  scene.add(new THREE.HemisphereLight(0x6688bb, 0xc4a050, 0.3));
+
+  // Animated caustic spot inside the tank (point light that drifts)
+  causticLight = new THREE.PointLight(0x88ddff, 0.6, 30, 2);
+  causticLight.position.set(0, 2, 0);
+  scene.add(causticLight);
+
+  // ── Glass tank — real borosilicate glass look ──
+  const tankGeo = new THREE.BoxGeometry(TANK.w, TANK.h, TANK.d);
+  const tankMesh = new THREE.Mesh(tankGeo, new THREE.MeshPhysicalMaterial({
+    color: 0xe0f0e8, transparent: true, opacity: 0.06,
+    roughness: 0.02, metalness: 0.0,
+    transmission: 0.95, ior: 1.52, thickness: 0.8,
+    clearcoat: 1.0, clearcoatRoughness: 0.03,
+    depthWrite: false, side: THREE.DoubleSide
+  }));
+  scene.add(tankMesh);
+
+  // Glass edge highlight — very subtle
+  scene.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(tankGeo),
+    new THREE.LineBasicMaterial({ color: 0x99ccdd, linewidth: 1, transparent: true, opacity: 0.35 })
+  ));
+
+  // ── Underwater volume — a semi-transparent tinted box that gives depth ──
+  const uwGeo = new THREE.BoxGeometry(TANK.w - 0.6, TANK.h - 0.5, TANK.d - 0.6);
+  const uwMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0a3a50, transparent: true, opacity: 0.12,
+    roughness: 1.0, metalness: 0.0, depthWrite: false, side: THREE.BackSide
+  });
+  const uwVolume = new THREE.Mesh(uwGeo, uwMat);
+  uwVolume.position.y = -0.25;
+  scene.add(uwVolume);
+
+  // ── Sand bed — warm natural with slight roughness variation ──
+  const sandMat = new THREE.MeshStandardMaterial({
+    color: 0xc9a85c, roughness: 0.92, metalness: 0.0
+  });
+  const sand = new THREE.Mesh(new THREE.PlaneGeometry(TANK.w - 0.2, TANK.d - 0.2), sandMat);
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.y = -TANK.h / 2 + 0.02;
+  sand.receiveShadow = true;
+  scene.add(sand);
+
+  // ── Scattered gravel/pebbles on sand ──
+  const pebbleGeo = new THREE.SphereGeometry(1, 6, 4);
+  const pebbleColors = [0x887755, 0x998866, 0x776644, 0xaa9977, 0x665533];
+  for (let i = 0; i < 40; i++) {
+    const pm = new THREE.Mesh(pebbleGeo, new THREE.MeshStandardMaterial({
+      color: pebbleColors[i % pebbleColors.length], roughness: 0.85, metalness: 0.0
+    }));
+    const sx = 0.15 + Math.random() * 0.35;
+    pm.scale.set(sx, sx * (0.4 + Math.random() * 0.3), sx);
+    pm.position.set(
+      (Math.random() - 0.5) * (TANK.w - 3),
+      -TANK.h / 2 + 0.05,
+      (Math.random() - 0.5) * (TANK.d - 3)
+    );
+    pm.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
+    pm.receiveShadow = true;
+    pm.castShadow = true;
+    scene.add(pm);
+  }
+
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(0, 10, 42);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 20;
+  controls.maxDistance = 80;
+}
+
+// ─── WATER SURFACE ───────────────────────────────────────────────────
+function initWater() {
+  const geo = new THREE.PlaneGeometry(TANK.w - 0.4, TANK.d - 0.4, GRID - 1, GRID - 1);
+  // Realistic water — deeper natural blue-green with Fresnel refraction
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: 0x1a7088, transparent: true, opacity: 0.5,
+    roughness: 0.05, metalness: 0.0,
+    transmission: 0.75, ior: 1.333, thickness: 2.0,
+    depthWrite: false, side: THREE.DoubleSide
+  });
+  water = new THREE.Mesh(geo, mat);
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = WATER_Y;
+  scene.add(water);
+}
+
+// ─── GRID UTILITIES ──────────────────────────────────────────────────
+function worldToGrid(x, z) {
+  const hw = (TANK.w - 0.4) / 2, hd = (TANK.d - 0.4) / 2;
+  return [
+    Math.max(0, Math.min(GRID - 1, Math.round(((x + hw) / (2 * hw)) * (GRID - 1)))),
+    Math.max(0, Math.min(GRID - 1, Math.round(((z + hd) / (2 * hd)) * (GRID - 1))))
+  ];
+}
+function idx(i, j) { return j * GRID + i; }
+
+// Inject a ripple: velocity impulse that the wave equation will propagate.
+// Uses SIGNED strength: positive = upward crest, negative = depression.
+// The solver naturally conserves volume since it's a proper wave equation.
+function triggerRipple(x, z, strength) {
+  const [ci, cj] = worldToGrid(x, z);
+  const r = 4;
+  for (let dj = -r; dj <= r; dj++) {
+    for (let di = -r; di <= r; di++) {
+      const ni = ci + di, nj = cj + dj;
+      if (ni < 0 || ni >= GRID || nj < 0 || nj >= GRID) continue;
+      const d2 = di * di + dj * dj;
+      if (d2 > r * r) continue;
+      const w = Math.exp(-d2 / 3.5) * strength;
+      vel[idx(ni, nj)] += w;  // velocity impulse only — wave equation does the rest
+    }
+  }
+}
+
+// ─── FISH ────────────────────────────────────────────────────────────
+// Realistic tropical fish color palette
+const FISH_COLORS = [0xe8443a, 0x1a9fcc, 0xf0a020, 0x2eb866, 0x8844cc, 0xee5588, 0x18ccaa, 0x4488ff];
+
+function initFishes() {
+  for (let i = 0; i < 15; i++) fishes.push(new Fish());
+}
+
+class Fish {
+  constructor() {
+    this.color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
+    this.group = new THREE.Group();
+    scene.add(this.group);
+
+    // Realistic fish body material — slightly glossy, low metalness
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: this.color, roughness: 0.25, metalness: 0.05, clearcoat: 0.3
+    });
+    const finMat = new THREE.MeshPhysicalMaterial({
+      color: this.color, roughness: 0.2, metalness: 0.05,
+      transmission: 0.45, transparent: true, opacity: 0.8
+    });
+
+    const bodyGeo = new THREE.SphereGeometry(0.85, 14, 14);
+    bodyGeo.scale(0.47, 0.67, 1.75);
+    this.body = new THREE.Mesh(bodyGeo, bodyMat);
+    this.body.castShadow = true;
+    this.group.add(this.body);
+
+    const tailGeo = new THREE.ConeGeometry(0.52, 1.05, 3);
+    this.tail = new THREE.Mesh(tailGeo, finMat);
+    this.tail.scale.set(0.145, 1.12, 0.96);
+    this.tail.rotation.x = Math.PI / 2;
+    this.tail.position.z = -1.75;
+    this.tail.castShadow = true;
+    this.group.add(this.tail);
+
+    const dorsalGeo = new THREE.ConeGeometry(0.37, 0.72, 3);
+    this.dorsal = new THREE.Mesh(dorsalGeo, finMat);
+    this.dorsal.scale.set(0.095, 0.96, 0.96);
+    this.dorsal.position.set(0, 0.67, -0.19);
+    this.dorsal.castShadow = true;
+    this.group.add(this.dorsal);
+
+    [-0.38, 0.38].forEach(sx => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat);
+      eye.position.set(sx, 0.15, 0.9);
+      eye.castShadow = true;
+      this.group.add(eye);
+    });
+
+    this.group.position.set(
+      (Math.random() - 0.5) * (TANK.w - 6),
+      -TANK.h / 2 + 3 + Math.random() * (TANK.h - 6),
+      (Math.random() - 0.5) * (TANK.d - 6)
+    );
+    this.vel   = new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.3);
+    this.phase = Math.random() * Math.PI * 2;
+  }
+
+  update(time) {
+    const sep = new THREE.Vector3(), ali = new THREE.Vector3(), coh = new THREE.Vector3();
+    let n = 0;
+    for (const other of fishes) {
+      if (other === this) continue;
+      const d = this.group.position.distanceTo(other.group.position);
+      if (d < 5.0 && d > 0.01) {
+        sep.add(this.group.position.clone().sub(other.group.position).normalize().multiplyScalar((5.0 - d) / d));
+        ali.add(other.vel);
+        coh.add(other.group.position);
+        n++;
+      }
+    }
+    if (n > 0) {
+      ali.divideScalar(n);
+      coh.divideScalar(n).sub(this.group.position);
+      this.vel.add(sep.multiplyScalar(0.018));
+      this.vel.add(ali.multiplyScalar(0.007));
+      this.vel.add(coh.multiplyScalar(0.005));
+    }
+
+    // Flee from ball
+    if (ball) {
+      const away = this.group.position.clone().sub(ball.position);
+      const dist = away.length();
+      if (dist < 6.0 && dist > 0.1) this.vel.add(away.normalize().multiplyScalar(0.07));
+    }
+
+    this.vel.clampLength(0.06, 0.18);
+    // Gently pull fish toward mid-depth (prevents them from hugging floor or ceiling)
+    const midY = ((-TANK.h / 2 + 2) + (WATER_Y - 1.5)) / 2;
+    this.vel.y += (midY - this.group.position.y) * 0.001;
+    this.vel.y = THREE.MathUtils.lerp(this.vel.y, 0, 0.04);
+    this.group.position.add(this.vel);
+
+    // Tank bounds — fish MUST stay below water surface
+    const xM = TANK.w / 2 - 2.5, zM = TANK.d / 2 - 2.5;
+    const yLo = -TANK.h / 2 + 2;
+    const yHi = WATER_Y - 1.5;  // fish always below water surface
+    if (this.group.position.x < -xM) { this.group.position.x = -xM; this.vel.x *= -1; }
+    if (this.group.position.x >  xM) { this.group.position.x =  xM; this.vel.x *= -1; }
+    if (this.group.position.z < -zM) { this.group.position.z = -zM; this.vel.z *= -1; }
+    if (this.group.position.z >  zM) { this.group.position.z =  zM; this.vel.z *= -1; }
+    if (this.group.position.y < yLo) { this.group.position.y = yLo; this.vel.y = Math.abs(this.vel.y) * 0.5; }
+    if (this.group.position.y > yHi) { this.group.position.y = yHi; this.vel.y = -Math.abs(this.vel.y) * 0.5; }
+
+    // Near-surface fish create gentle surface disturbance
+    if (this.group.position.y > WATER_Y - 3.5) {
+      const factor = (this.group.position.y - (WATER_Y - 3.5)) / 3.5;
+      triggerRipple(this.group.position.x, this.group.position.z, -(0.008 + this.vel.length() * 0.04) * factor);
+    }
+
+    // Heading, banking, pitch
+    const heading = Math.atan2(-this.vel.x, -this.vel.z) + Math.PI;
+    this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, heading, 0.1);
+    this.group.rotation.z = THREE.MathUtils.lerp(this.group.rotation.z, -this.vel.x * 1.8, 0.08);
+    this.group.rotation.x = THREE.MathUtils.lerp(this.group.rotation.x, this.vel.y * 2.5, 0.08);
+
+    const freq = 8.0 + this.vel.length() * 50.0;
+    this.tail.rotation.y = Math.sin(time * freq + this.phase) * 0.55;
+  }
+}
+
+// ─── SEAWEEDS & BUBBLES ──────────────────────────────────────────────
+function initSeaweeds() {
+  // Varied natural aquatic plant colors
+  const greens = [0x1a6030, 0x0f5020, 0x2a7040, 0x186028, 0x0d4018, 0x22803a, 0x145525];
+  for (let i = 0; i < 28; i++) {
+    const h = 3.5 + Math.random() * 5.0;
+    const w = 0.5 + Math.random() * 0.6;
+    const geo = new THREE.PlaneGeometry(w, h, 1, 10);
+    geo.translate(0, h / 2, 0);
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: greens[i % greens.length],
+      roughness: 0.6, metalness: 0.0,
+      transmission: 0.15, transparent: true, opacity: 0.9,
+      side: THREE.DoubleSide,
+      clearcoat: 0.2, clearcoatRoughness: 0.4
+    });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(
+      (Math.random() - 0.5) * (TANK.w - 4),
+      -TANK.h / 2 + 0.1,
+      (Math.random() - 0.5) * (TANK.d - 4)
+    );
+    m.rotation.y = Math.random() * Math.PI * 2;
+    m.userData = { offset: Math.random() * Math.PI * 2 };
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
+    seaweeds.push(m);
+  }
+}
+
+function initBubbles() {
+  for (let i = 0; i < 60; i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.08, 6, 6), bubbleMat);
+    m.position.set(
+      (Math.random() - 0.5) * (TANK.w - 2),
+      -TANK.h / 2 + Math.random() * TANK.h,
+      (Math.random() - 0.5) * (TANK.d - 2)
+    );
+    m.userData = { speed: 0.03 + Math.random() * 0.06 };
+    scene.add(m);
+    bubbles.push(m);
+  }
+}
+
+// ─── BALL ────────────────────────────────────────────────────────────
+function initBall() {
+  ball = new THREE.Mesh(
+    new THREE.SphereGeometry(BALL_R, 32, 32),
+    new THREE.MeshPhysicalMaterial({
+      color: 0xdd2211, roughness: 0.35, metalness: 0.0,
+      clearcoat: 0.8, clearcoatRoughness: 0.05
+    })
+  );
+  ball.position.set(0, WATER_Y + 1, 0);
+  ball.castShadow = true;
+  scene.add(ball);
+}
+
+// ─── INTERACTION ─────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+
+function setupInteraction() {
+  const waterHitPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -WATER_Y);
+  const hitPt = new THREE.Vector3();
+
+  window.addEventListener('pointerdown', e => {
+    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+
+    if (e.button === 0) {
+      const hits = raycaster.intersectObject(ball);
+      if (hits.length > 0) {
+        isDraggingBall = true;
+        controls.enabled = false;
+        return;
+      }
+    }
+
+    // Click/right-click on water → ripple + fish scatter
+    if (raycaster.ray.intersectPlane(waterHitPlane, hitPt)) {
+      if (Math.abs(hitPt.x) < TANK.w / 2 && Math.abs(hitPt.z) < TANK.d / 2) {
+        triggerRipple(hitPt.x, hitPt.z, -(e.button === 2 ? 0.35 : 0.25));
+        fishes.forEach(f => {
+          const d = f.group.position.distanceTo(hitPt);
+          if (d > 0.01 && d < 7.0)
+            f.vel.add(f.group.position.clone().sub(hitPt).normalize().multiplyScalar(0.2));
+        });
+      }
+    }
+  });
+
+  window.addEventListener('pointermove', e => {
+    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    if (!isDraggingBall) return;
+
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir.clone().negate(), ball.position);
+    const target = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, target);
+    if (!target) return;
+
+    const delta = target.clone().sub(ball.position);
+    ballVel.copy(delta).multiplyScalar(18);
+    ball.position.copy(target);
+
+    // Continuous ripple trail while dragging through/near water
+    if (Math.abs(ball.position.x) < TANK.w / 2 && Math.abs(ball.position.z) < TANK.d / 2) {
+      if (ball.position.y < WATER_Y + BALL_R * 2 && ball.position.y > -TANK.h / 2) {
+        const power = Math.min(0.3, ballVel.length() * 0.015);
+        if (power > 0.003) triggerRipple(ball.position.x, ball.position.z, -power);
+      }
+    }
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (isDraggingBall) {
+      isDraggingBall = false;
+      controls.enabled = true;
+      ballVel.clampLength(0, 22);
+    }
+  });
+
+  window.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// ─── WAVE SOLVER (Volume-Conserving) ─────────────────────────────────
+// Double-buffered shallow water equation with mean-height correction
+// so total water volume never changes over time.
+
+const WAVE_SPEED   = 0.22;
+const WAVE_DAMPING = 0.996;
+
+function stepWave() {
+  const N = GRID * GRID;
+
+  for (let j = 0; j < GRID; j++) {
+    for (let i = 0; i < GRID; i++) {
+      const k = idx(i, j);
+      let lap = -4 * hA[k];
+      lap += (i > 0        ? hA[idx(i - 1, j)] : hA[k]);
+      lap += (i < GRID - 1 ? hA[idx(i + 1, j)] : hA[k]);
+      lap += (j > 0        ? hA[idx(i, j - 1)] : hA[k]);
+      lap += (j < GRID - 1 ? hA[idx(i, j + 1)] : hA[k]);
+
+      vel[k] = (vel[k] + lap * WAVE_SPEED) * WAVE_DAMPING;
+      hB[k]  = hA[k] + vel[k];
+    }
+  }
+
+  // Volume conservation: subtract the mean height so total volume stays constant
+  let sum = 0;
+  for (let k = 0; k < N; k++) sum += hB[k];
+  const mean = sum / N;
+  for (let k = 0; k < N; k++) hB[k] -= mean;
+
+  // Swap buffers
+  const tmp = hA; hA = hB; hB = tmp;
+}
+
+function syncWaterMesh() {
+  const pos = water.geometry.attributes.position;
+  for (let k = 0; k < GRID * GRID; k++) pos.setZ(k, hA[k]);
+  pos.needsUpdate = true;
+  water.geometry.computeVertexNormals();
+}
+
+// ─── BALL PHYSICS ────────────────────────────────────────────────────
+function updateBallPhysics(dt) {
+  if (isDraggingBall) {
+    // While dragging, stamp ball depression into water
+    if (ball.position.y < WATER_Y + BALL_R && Math.abs(ball.position.x) < TANK.w / 2 && Math.abs(ball.position.z) < TANK.d / 2) {
+      stampBallIntoWater();
+    }
+    return;
+  }
+
+  const G = 22.0;
+
+  // Gravity
+  ballVel.y -= G * dt;
+
+  // Sample wave surface at ball position
+  const [gi, gj] = worldToGrid(ball.position.x, ball.position.z);
+  const inBounds = gi > 0 && gi < GRID - 1 && gj > 0 && gj < GRID - 1;
+  const inTank   = Math.abs(ball.position.x) < TANK.w / 2 && Math.abs(ball.position.z) < TANK.d / 2;
+  let surfaceH = 0;
+  if (inBounds && inTank) surfaceH = hA[idx(gi, gj)];
+  const surfaceY = WATER_Y + surfaceH;
+
+  // Buoyancy + drag when touching water
+  const subDepth = surfaceY + BALL_R - ball.position.y;
+  if (subDepth > 0 && inTank) {
+    const frac = Math.min(subDepth / (2 * BALL_R), 1.0);
+
+    // Archimedes buoyancy
+    const buoyancy = G * frac * 2.0;
+    ballVel.y += buoyancy * dt;
+
+    // Quadratic viscous drag
+    const cd = 3.0;
+    ballVel.x -= cd * ballVel.x * Math.abs(ballVel.x) * dt * frac;
+    ballVel.y -= cd * ballVel.y * Math.abs(ballVel.y) * dt * frac * 0.4;
+    ballVel.z -= cd * ballVel.z * Math.abs(ballVel.z) * dt * frac;
+
+    // Wave slope drift
+    if (inBounds) {
+      const dhdx = (hA[idx(gi + 1, gj)] - hA[idx(gi - 1, gj)]) * 0.5;
+      const dhdz = (hA[idx(gi, gj + 1)] - hA[idx(gi, gj - 1)]) * 0.5;
+      ballVel.x -= dhdx * 35.0 * dt;
+      ballVel.z -= dhdz * 35.0 * dt;
+    }
+
+    // Stamp ball into water surface
+    stampBallIntoWater();
+  }
+
+  // Air drag
+  if (subDepth <= 0) {
+    ballVel.x *= 0.998;
+    ballVel.z *= 0.998;
+  }
+
+  // Integrate
+  ball.position.addScaledVector(ballVel, dt);
+
+  // Wall collisions
+  const wX = TANK.w / 2 - BALL_R, wZ = TANK.d / 2 - BALL_R;
+  if (ball.position.x < -wX) { ball.position.x = -wX; ballVel.x =  Math.abs(ballVel.x) * 0.5; }
+  if (ball.position.x >  wX) { ball.position.x =  wX; ballVel.x = -Math.abs(ballVel.x) * 0.5; }
+  if (ball.position.z < -wZ) { ball.position.z = -wZ; ballVel.z =  Math.abs(ballVel.z) * 0.5; }
+  if (ball.position.z >  wZ) { ball.position.z =  wZ; ballVel.z = -Math.abs(ballVel.z) * 0.5; }
+
+  // Floor bounce
+  if (ball.position.y < -TANK.h / 2 + BALL_R) {
+    ball.position.y = -TANK.h / 2 + BALL_R;
+    ballVel.y = Math.abs(ballVel.y) * 0.4;
+  }
+}
+
+// Directly depress the water surface under the ball.
+// The wave solver's volume conservation step ensures this displaced water
+// raises the level elsewhere (exactly like a real ball pushing water aside).
+function stampBallIntoWater() {
+  const bx = ball.position.x, bz = ball.position.z, by = ball.position.y;
+  if (by > WATER_Y + BALL_R + 0.3) return;
+  if (Math.abs(bx) > TANK.w / 2 || Math.abs(bz) > TANK.d / 2) return;
+
+  const [ci, cj] = worldToGrid(bx, bz);
+  const r = 5;
+
+  // How deep the ball pushes into the water
+  const penetration = Math.max(0, WATER_Y + BALL_R - by);
+  if (penetration < 0.01) return;
+
+  const depression = -Math.min(penetration * 0.08, 0.25);
+
+  for (let dj = -r; dj <= r; dj++) {
+    for (let di = -r; di <= r; di++) {
+      const ni = ci + di, nj = cj + dj;
+      if (ni < 0 || ni >= GRID || nj < 0 || nj >= GRID) continue;
+      const d2 = di * di + dj * dj;
+      if (d2 > r * r) continue;
+      const w = Math.exp(-d2 / 3.0);
+      const k = idx(ni, nj);
+      const target = depression * w;
+      if (target < hA[k]) {
+        hA[k] = THREE.MathUtils.lerp(hA[k], target, 0.25);
+      }
+    }
+  }
+}
+
+// ─── ANIMATE ─────────────────────────────────────────────────────────
+let lastTime = 0;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const t  = now * 0.001;
+  const dt = Math.min(t - lastTime, 0.033);
+  lastTime = t;
+  if (dt <= 0) return;
+
+  // 1. Wave equation
+  stepWave();
+
+  // 2. Ambient micro-disturbances
+  if (Math.random() < 0.05) {
+    const rx = (Math.random() - 0.5) * (TANK.w - 4);
+    const rz = (Math.random() - 0.5) * (TANK.d - 4);
+    triggerRipple(rx, rz, -(0.01 + Math.random() * 0.015));
+  }
+
+  // 3. Ball physics
+  updateBallPhysics(dt);
+
+  // 4. Sync water mesh
+  syncWaterMesh();
+
+  // 5. Fish AI
+  fishes.forEach(f => f.update(t));
+
+  // 6. Seaweed sway with vertex-level bending
+  seaweeds.forEach(s => {
+    s.rotation.z = Math.sin(t * 1.1 + s.userData.offset) * 0.14
+                 + Math.cos(t * 1.9 + s.userData.offset * 0.5) * 0.05;
+    s.rotation.x = Math.sin(t * 0.8 + s.userData.offset) * 0.07;
+  });
+
+  // 7. Bubbles
+  bubbles.forEach(b => {
+    b.position.y += b.userData.speed;
+    b.position.x += Math.sin(t * 2.5 + b.userData.speed * 20) * 0.012;
+    b.position.z += Math.cos(t * 2.0 + b.userData.speed * 20) * 0.012;
+    // Bubbles stay below water and pop at surface
+    if (b.position.y > WATER_Y - 0.2) {
+      b.position.y = -TANK.h / 2 + 0.5;
+      b.position.x = (Math.random() - 0.5) * (TANK.w - 4);
+      b.position.z = (Math.random() - 0.5) * (TANK.d - 4);
+      triggerRipple(b.position.x, b.position.z, -0.005);
+    }
+  });
+
+  // 8. Animated caustic light — drifts gently through the tank
+  if (causticLight) {
+    causticLight.position.x = Math.sin(t * 0.4) * 10;
+    causticLight.position.z = Math.cos(t * 0.3) * 8;
+    causticLight.position.y = -2 + Math.sin(t * 0.7) * 3;
+    causticLight.intensity = 0.4 + Math.sin(t * 1.5) * 0.2;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initScene();
+  initWater();
+  initFishes();
+  initSeaweeds();
+  initBubbles();
+  initBall();
+  setupInteraction();
+  requestAnimationFrame(animate);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,716 @@
+{
+  "aggregate": {
+    "cluster_count": 8,
+    "combo_count": 64,
+    "expected_combo_count": 64,
+    "best_overall_combo": "Plan: Cluster 06 \u2192 Build: Cluster 02",
+    "best_overall_combo_hwus": 25.9,
+    "best_plan_cluster": "cluster6",
+    "best_plan_cluster_avg_hwus": 20.1,
+    "best_build_cluster": "cluster1",
+    "best_build_cluster_avg_hwus": 23.3,
+    "self_pair_coverage": 8,
+    "self_pair_expected": 8,
+    "combos_beating_their_cluster": [
+      {
+        "combo": "Plan: Cluster 03 \u2192 Build: Cluster 01",
+        "combo_hwus": 23.8,
+        "cluster": "cluster3",
+        "cluster_hwus": 22.5
+      },
+      {
+        "combo": "Plan: Cluster 04 \u2192 Build: Cluster 05",
+        "combo_hwus": 25.7,
+        "cluster": "cluster4",
+        "cluster_hwus": 10.7
+      },
+      {
+        "combo": "Plan: Cluster 06 \u2192 Build: Cluster 02",
+        "combo_hwus": 25.9,
+        "cluster": "cluster6",
+        "cluster_hwus": 20.4
+      },
+      {
+        "combo": "Plan: Cluster 08 \u2192 Build: Cluster 02",
+        "combo_hwus": 24.6,
+        "cluster": "cluster8",
+        "cluster_hwus": 9.2
+      }
+    ]
+  },
+  "per_cluster": [
+    {
+      "report_id": "01",
+      "registry_id": "cluster1",
+      "cluster_key": "01-gemma-4-base-qat-hyper-opt",
+      "title": "Gemma 4 Base QAT INT4 (Stack Hyper-Opt + Python LoRA)",
+      "cluster_hwus": 29.7,
+      "selfpair_hwus": 21.6,
+      "delta_hwus": 8.1,
+      "best_plan_combo": "Plan: Cluster 01 \u2192 Build: Cluster 07",
+      "best_plan_hwus": 25.6,
+      "best_build_combo": "Plan: Cluster 08 \u2192 Build: Cluster 01",
+      "best_build_hwus": 24.4
+    },
+    {
+      "report_id": "02",
+      "registry_id": "cluster2",
+      "cluster_key": "02-qwen-2.5-coder-3b-spec-task-graph",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Spec Task-Graph)",
+      "cluster_hwus": 24.0,
+      "selfpair_hwus": 20.7,
+      "delta_hwus": 3.3,
+      "best_plan_combo": "Plan: Cluster 02 \u2192 Build: Cluster 01",
+      "best_plan_hwus": 23.6,
+      "best_build_combo": "Plan: Cluster 06 \u2192 Build: Cluster 02",
+      "best_build_hwus": 25.9
+    },
+    {
+      "report_id": "03",
+      "registry_id": "cluster3",
+      "cluster_key": "03-qwen-2.5-coder-3b-baremetal-mcts",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Bare-Metal MCTS)",
+      "cluster_hwus": 22.5,
+      "selfpair_hwus": 22.0,
+      "delta_hwus": 0.5,
+      "best_plan_combo": "Plan: Cluster 03 \u2192 Build: Cluster 01",
+      "best_plan_hwus": 23.8,
+      "best_build_combo": "Plan: Cluster 08 \u2192 Build: Cluster 03",
+      "best_build_hwus": 23.7
+    },
+    {
+      "report_id": "04",
+      "registry_id": "cluster4",
+      "cluster_key": "04-qwen-3.6-4b-gdn-linear",
+      "title": "Qwen 3.6 4B Instruct Q4_K_M (GDN Linear + Q8_0 KV)",
+      "cluster_hwus": 10.7,
+      "selfpair_hwus": 17.9,
+      "delta_hwus": -7.2,
+      "best_plan_combo": "Plan: Cluster 04 \u2192 Build: Cluster 05",
+      "best_plan_hwus": 25.7,
+      "best_build_combo": "Plan: Cluster 04 \u2192 Build: Cluster 04",
+      "best_build_hwus": 17.9
+    },
+    {
+      "report_id": "05",
+      "registry_id": "cluster5",
+      "cluster_key": "05-gemma-4-e2b-e4b-ple-qat",
+      "title": "Gemma 4 E2B/E4B Instruct INT4 QAT (PLE Low-Latency)",
+      "cluster_hwus": 30.0,
+      "selfpair_hwus": 20.0,
+      "delta_hwus": 10.0,
+      "best_plan_combo": "Plan: Cluster 05 \u2192 Build: Cluster 01",
+      "best_plan_hwus": 24.0,
+      "best_build_combo": "Plan: Cluster 04 \u2192 Build: Cluster 05",
+      "best_build_hwus": 25.7
+    },
+    {
+      "report_id": "06",
+      "registry_id": "cluster6",
+      "cluster_key": "06-qwen-2.5-coder-3b-w4a16-q8-0",
+      "title": "Qwen 2.5-Coder 3B Instruct W4A16 Q8_0 (Q8_0 KV Cache)",
+      "cluster_hwus": 20.4,
+      "selfpair_hwus": 19.2,
+      "delta_hwus": 1.2,
+      "best_plan_combo": "Plan: Cluster 06 \u2192 Build: Cluster 02",
+      "best_plan_hwus": 25.9,
+      "best_build_combo": "Plan: Cluster 02 \u2192 Build: Cluster 06",
+      "best_build_hwus": 22.5
+    },
+    {
+      "report_id": "07",
+      "registry_id": "cluster7",
+      "cluster_key": "07-qwen-2.5-coder-3b-low-engine-tax",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Low Engine Tax)",
+      "cluster_hwus": 26.4,
+      "selfpair_hwus": 21.3,
+      "delta_hwus": 5.1,
+      "best_plan_combo": "Plan: Cluster 07 \u2192 Build: Cluster 01",
+      "best_plan_hwus": 22.8,
+      "best_build_combo": "Plan: Cluster 01 \u2192 Build: Cluster 07",
+      "best_build_hwus": 25.6
+    },
+    {
+      "report_id": "08",
+      "registry_id": "cluster8",
+      "cluster_key": "08-qwen-3.6-4b-dense-yarn",
+      "title": "Qwen 3.6 4B Instruct Q4_K_M (Dense YaRN 32K-256K)",
+      "cluster_hwus": 9.2,
+      "selfpair_hwus": 13.2,
+      "delta_hwus": -4.0,
+      "best_plan_combo": "Plan: Cluster 08 \u2192 Build: Cluster 02",
+      "best_plan_hwus": 24.6,
+      "best_build_combo": "Plan: Cluster 07 \u2192 Build: Cluster 08",
+      "best_build_hwus": 15.9
+    }
+  ],
+  "combos": [
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster2",
+      "hwus_score": 25.9,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster5",
+      "hwus_score": 25.7,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster7",
+      "hwus_score": 25.6,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster2",
+      "hwus_score": 24.6,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster1",
+      "hwus_score": 24.4,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster1",
+      "hwus_score": 24.0,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster1",
+      "hwus_score": 23.8,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster3",
+      "hwus_score": 23.7,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster1",
+      "hwus_score": 23.6,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster5",
+      "hwus_score": 23.5,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster5",
+      "hwus_score": 23.4,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster1",
+      "hwus_score": 23.3,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster7",
+      "hwus_score": 23.2,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster7",
+      "hwus_score": 23.1,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster7",
+      "hwus_score": 23.0,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster7",
+      "hwus_score": 22.9,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster1",
+      "hwus_score": 22.8,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster5",
+      "hwus_score": 22.7,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster1",
+      "hwus_score": 22.6,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster6",
+      "hwus_score": 22.5,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster3",
+      "hwus_score": 22.4,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster7",
+      "hwus_score": 22.3,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster3",
+      "hwus_score": 22.0,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster2",
+      "hwus_score": 21.9,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster5",
+      "hwus_score": 21.8,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster1",
+      "hwus_score": 21.6,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 01"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster7",
+      "hwus_score": 21.3,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster7",
+      "hwus_score": 21.2,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 07"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster3",
+      "hwus_score": 21.1,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster2",
+      "hwus_score": 21.0,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster3",
+      "hwus_score": 20.9,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster5",
+      "hwus_score": 20.8,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster2",
+      "hwus_score": 20.7,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster3",
+      "hwus_score": 20.2,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster5",
+      "hwus_score": 20.0,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster2",
+      "hwus_score": 19.4,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster6",
+      "hwus_score": 19.2,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster6",
+      "hwus_score": 18.7,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster3",
+      "hwus_score": 18.6,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster5",
+      "hwus_score": 18.5,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 05"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster6",
+      "hwus_score": 18.2,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster2",
+      "hwus_score": 18.1,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster2",
+      "hwus_score": 18.0,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 02"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster4",
+      "hwus_score": 17.9,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster6",
+      "hwus_score": 17.7,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster6",
+      "hwus_score": 17.5,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster6",
+      "hwus_score": 16.7,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster6",
+      "hwus_score": 16.6,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 06"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster3",
+      "hwus_score": 16.5,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 03"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster8",
+      "hwus_score": 15.9,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster8",
+      "hwus_score": 13.2,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster4",
+      "hwus_score": 12.9,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster8",
+      "hwus_score": 12.8,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster7",
+      "build_cluster": "cluster4",
+      "hwus_score": 12.5,
+      "label": "Plan: Cluster 07 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster5",
+      "build_cluster": "cluster8",
+      "hwus_score": 12.4,
+      "label": "Plan: Cluster 05 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster8",
+      "hwus_score": 12.3,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster4",
+      "hwus_score": 12.2,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster2",
+      "build_cluster": "cluster4",
+      "hwus_score": 12.1,
+      "label": "Plan: Cluster 02 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster1",
+      "build_cluster": "cluster8",
+      "hwus_score": 12.0,
+      "label": "Plan: Cluster 01 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster6",
+      "build_cluster": "cluster4",
+      "hwus_score": 11.9,
+      "label": "Plan: Cluster 06 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster4",
+      "build_cluster": "cluster8",
+      "hwus_score": 11.6,
+      "label": "Plan: Cluster 04 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster4",
+      "hwus_score": 11.0,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 04"
+    },
+    {
+      "plan_cluster": "cluster3",
+      "build_cluster": "cluster8",
+      "hwus_score": 10.9,
+      "label": "Plan: Cluster 03 \u2192 Build: Cluster 08"
+    },
+    {
+      "plan_cluster": "cluster8",
+      "build_cluster": "cluster4",
+      "hwus_score": 10.1,
+      "label": "Plan: Cluster 08 \u2192 Build: Cluster 04"
+    }
+  ],
+  "registry_clusters": [
+    {
+      "id": "cluster1",
+      "key": "01-gemma-4-base-qat-hyper-opt",
+      "title": "Gemma 4 Base QAT INT4 (Stack Hyper-Opt + Python LoRA)",
+      "paper_file": "researches/01-gemma-4-hyper-opt/1. Gemma 4 Stack Hyper-Optimization.txt",
+      "readme_file": "researches/01-gemma-4-hyper-opt/README.md",
+      "progress_file": "progress/01-gemma-4-hyper-opt.md",
+      "model_family": "Gemma 4",
+      "builder_model": "gemma4-qat-builder.gguf",
+      "planner_model": "gemma4-e4b-tuned:latest",
+      "vram_headroom_target": "3.1 GB (51.6% Free - Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8080,
+        "context_length": 4096,
+        "n_gpu_layers": 99,
+        "flash_attn": "on",
+        "parallel_slots": 1,
+        "lora_enabled": true,
+        "lora_path": "assets/gemma4-python-lora-adapter.gguf",
+        "lora_adapters": [
+          {
+            "id": 0,
+            "scale": 1.0
+          }
+        ],
+        "harness_script": "bin/c01_aider_tree_search.py",
+        "tree_sitter_db": "/dev/shm/c01_call_graph.db",
+        "linter_harness": "bin/c01_context_sieve_harness.py"
+      }
+    },
+    {
+      "id": "cluster2",
+      "key": "02-qwen-2.5-coder-3b-spec-task-graph",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Spec Task-Graph)",
+      "paper_file": "researches/02-qwen-2.5-coder-3b/2. Edge LLM Architecture Blueprint.txt",
+      "readme_file": "researches/02-qwen-2.5-coder-3b/README.md",
+      "progress_file": "progress/02-qwen-2.5-coder-3b.md",
+      "model_family": "Qwen 2.5-Coder",
+      "builder_model": "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
+      "planner_model": "qwen2.5-coder-3b-instruct:latest",
+      "vram_headroom_target": "2.02 GB to 2.82 GB (Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8090,
+        "context_length": 16384,
+        "n_gpu_layers": 99,
+        "flash_attn": "on",
+        "parallel_slots": 1,
+        "cache_type_k": "q8_0",
+        "lora_enabled": false,
+        "harness_script": "bin/c02_spec_task_graph.py"
+      }
+    },
+    {
+      "id": "cluster3",
+      "key": "03-qwen-2.5-coder-3b-baremetal-mcts",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Bare-Metal MCTS)",
+      "paper_file": "researches/03-qwen-baremetal-mcts/3. Edge LLM Architecture Blueprint.txt",
+      "readme_file": "researches/03-qwen-baremetal-mcts/README.md",
+      "progress_file": "progress/03-qwen-baremetal-mcts.md",
+      "model_family": "Qwen 2.5-Coder",
+      "builder_model": "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
+      "planner_model": "qwen2.5-coder-3b-instruct:latest",
+      "vram_headroom_target": "1.425 GB to 2.62 GB (Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8092,
+        "context_length": 16384,
+        "n_gpu_layers": 99,
+        "flash_attn": "on",
+        "parallel_slots": 1,
+        "lora_enabled": false,
+        "harness_script": "bin/c03_mcts_tree_search.py"
+      }
+    },
+    {
+      "id": "cluster4",
+      "key": "04-qwen-3.6-4b-gdn-linear",
+      "title": "Qwen 3.6 4B Instruct Q4_K_M (GDN Linear + Q8_0 KV)",
+      "paper_file": "researches/04-qwen-3.6-gdn-linear/4. Qwen 3.6 Edge Optimization Research.txt",
+      "readme_file": "researches/04-qwen-3.6-gdn-linear/README.md",
+      "progress_file": "progress/04-qwen-3.6-gdn-linear.md",
+      "model_family": "Qwen 3.6 4B",
+      "builder_model": "qwen3.6-4b-instruct-q4_k_m.gguf",
+      "planner_model": "qwen3.6-4b-instruct:latest",
+      "vram_headroom_target": "2.80 GB to 3.30 GB (Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8091,
+        "context_length": 16384,
+        "n_gpu_layers": 99,
+        "flash_attn": "on",
+        "parallel_slots": 1,
+        "cache_type_k": "q8_0",
+        "cache_type_v": "q8_0",
+        "lora_enabled": false,
+        "harness_script": "bin/c04_gdn_linear_harness.py"
+      }
+    },
+    {
+      "id": "cluster5",
+      "key": "05-gemma-4-e2b-e4b-ple-qat",
+      "title": "Gemma 4 E2B/E4B Instruct INT4 QAT (PLE Low-Latency)",
+      "paper_file": "researches/05-gemma-4-ple-qat/1. Gemma 4 Stack Optimization.txt",
+      "readme_file": "researches/05-gemma-4-ple-qat/README.md",
+      "progress_file": "progress/05-gemma-4-ple-qat.md",
+      "model_family": "Gemma 4",
+      "builder_model": "gemma4-qat-builder.gguf",
+      "planner_model": "gemma4-e4b-tuned:latest",
+      "vram_headroom_target": "3.841 GB (62.5% Free - Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8093,
+        "context_length": 4096,
+        "lora_enabled": true,
+        "lora_path": "assets/gemma4-python-lora-adapter.gguf",
+        "harness_script": "bin/c05_ple_qat_harness.py"
+      }
+    },
+    {
+      "id": "cluster6",
+      "key": "06-qwen-2.5-coder-3b-w4a16-q8-0",
+      "title": "Qwen 2.5-Coder 3B Instruct W4A16 Q8_0 (Q8_0 KV Cache)",
+      "paper_file": "researches/06-qwen-2.5-w4a16/2. Edge AI Coding Agent Blueprint.txt",
+      "readme_file": "researches/06-qwen-2.5-w4a16/README.md",
+      "progress_file": "progress/06-qwen-2.5-w4a16.md",
+      "model_family": "Qwen 2.5-Coder",
+      "builder_model": "qwen2.5-coder-3b-instruct-q8_0.gguf",
+      "planner_model": "qwen2.5-coder-3b-instruct:latest",
+      "vram_headroom_target": "2.041 GB to 2.941 GB (Exceeds 1.3 GB Target)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8094,
+        "context_length": 32768,
+        "cache_type_k": "q8_0",
+        "cache_type_v": "q8_0",
+        "lora_enabled": false,
+        "harness_script": "bin/c06_w4a16_harness.py"
+      }
+    },
+    {
+      "id": "cluster7",
+      "key": "07-qwen-2.5-coder-3b-low-engine-tax",
+      "title": "Qwen 2.5-Coder 3B Instruct Q4_K_M (Low Engine Tax)",
+      "paper_file": "researches/07-sub4b-engine-tax/3. Edge LLM Coding Agent Blueprint.txt",
+      "readme_file": "researches/07-sub4b-engine-tax/README.md",
+      "progress_file": "progress/07-sub4b-engine-tax.md",
+      "model_family": "Qwen 2.5-Coder",
+      "builder_model": "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
+      "planner_model": "qwen2.5-coder-3b-instruct:latest",
+      "vram_headroom_target": "2.02 GB Free Headroom (3.98 GB Total Utilized)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8095,
+        "context_length": 16384,
+        "lora_enabled": false,
+        "harness_script": "bin/c07_engine_tax_harness.py"
+      }
+    },
+    {
+      "id": "cluster8",
+      "key": "08-qwen-3.6-4b-dense-yarn",
+      "title": "Qwen 3.6 4B Instruct Q4_K_M (Dense YaRN 32K-256K)",
+      "paper_file": "researches/08-qwen-3.6-dense-yarn/4. Qwen Edge System Architecture.txt",
+      "readme_file": "researches/08-qwen-3.6-dense-yarn/README.md",
+      "progress_file": "progress/08-qwen-3.6-dense-yarn.md",
+      "model_family": "Qwen 3.6 4B",
+      "builder_model": "qwen3.6-4b-instruct-q4_k_m.gguf",
+      "planner_model": "qwen3.6-4b-instruct:latest",
+      "vram_headroom_target": "3.30 GB Free KV Cache Headroom (2.70 GB Static)",
+      "benchmark_env": {
+        "engine": "llama-server",
+        "port": 8096,
+        "context_length": 32768,
+        "cache_type_k": "q8_0",
+        "cache_type_v": "q8_0",
+        "lora_enabled": false,
+        "harness_script": "bin/c08_yarn_harness.py"
+      }
+    }
+  ]
+}

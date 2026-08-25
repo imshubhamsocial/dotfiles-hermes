@@ -1,0 +1,19 @@
+0.00.017.943 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.083.449 W srv  llama_server: -----------------
+0.00.083.451 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.083.451 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.083.451 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.083.451 W srv  llama_server: -----------------
+0.00.084.717 I srv    load_model: loading model '/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/assets/gemma4-qat-builder.gguf'
+0.00.536.682 W load: control-looking token:    213 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.893.392 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 4096, kv_unified = 'false'
+0.00.894.424 I srv  llama_server: model loaded
+0.00.894.428 I srv  llama_server: listening on http://127.0.0.1:8080
+0.03.642.116 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.03.642.147 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.07.030.538 I slot print_timing: id  0 | task 0 | n_decoded =    185, tg =  61.35 t/s, tg_3s =  61.35 t/s
+0.07.692.185 I slot print_timing: id  0 | task 0 | prompt eval time =     372.66 ms /   563 tokens (    0.66 ms per token,  1510.77 tokens per second)
+0.07.692.189 I slot print_timing: id  0 | task 0 |        eval time =    3677.35 ms /   225 tokens (   16.34 ms per token,    61.19 tokens per second)
+0.07.692.189 I slot print_timing: id  0 | task 0 |       total time =    4050.01 ms /   788 tokens
+0.07.692.193 I slot print_timing: id  0 | task 0 |    graphs reused =        223
+0.07.692.231 I slot      release: id  0 | task 0 | stop processing: n_tokens = 787, truncated = 0

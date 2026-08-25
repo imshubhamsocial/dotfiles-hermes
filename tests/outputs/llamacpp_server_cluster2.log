@@ -1,0 +1,13 @@
+0.00.016.335 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.080.839 W srv  llama_server: -----------------
+0.00.080.841 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.080.841 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.080.841 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.080.842 W srv  llama_server: -----------------
+0.00.082.217 I srv    load_model: loading model '/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/assets/qwen2.5-coder-3b-instruct-q4_k_m.gguf'
+0.00.371.231 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.476.501 W warning: failed to mlock 255254528-byte buffer (after previously locking 0 bytes): Cannot allocate memory
+Try increasing RLIMIT_MEMLOCK ('ulimit -l' as root).
+0.00.817.027 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 16384, kv_unified = 'false'
+0.00.818.198 I srv  llama_server: model loaded
+0.00.818.202 I srv  llama_server: listening on http://127.0.0.1:8090

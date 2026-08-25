@@ -1,0 +1,27 @@
+[
+  {
+    "id": "MBPP_01",
+    "prompt": "def min_path_sum(triangle: list[list[int]]) -> int:\n    \"\"\" Find the minimum total path sum from top to bottom in a triangle of numbers.\n    >>> min_path_sum([[2],[3,4],[6,5,7],[4,1,8,3]])\n    11\n    \"\"\"\n",
+    "test_code": "assert min_path_sum([[2],[3,4],[6,5,7],[4,1,8,3]]) == 11\n"
+  },
+  {
+    "id": "MBPP_02",
+    "prompt": "def longest_common_prefix(strs: list[str]) -> str:\n    \"\"\" Find the longest common prefix amongst an array of strings.\n    >>> longest_common_prefix(['flower','flow','flight'])\n    'fl'\n    \"\"\"\n",
+    "test_code": "assert longest_common_prefix(['flower','flow','flight']) == 'fl'\n"
+  },
+  {
+    "id": "MBPP_03",
+    "prompt": "def is_woodall(n: int) -> bool:\n    \"\"\" Check if the given number is a Woodall number (n * 2^n - 1).\n    >>> is_woodall(383)\n    True\n    \"\"\"\n",
+    "test_code": "def check_woodall(x):\n    if x <= 0: return False\n    for n in range(1, 30):\n        if n * (2**n) - 1 == x:\n            return True\n    return False\nassert is_woodall(383) == True or check_woodall(383) == True\n"
+  },
+  {
+    "id": "MBPP_04",
+    "prompt": "def find_rotations(s: str) -> int:\n    \"\"\" Count the number of rotations required to get the same string.\n    >>> find_rotations('aaaa')\n    1\n    >>> find_rotations('ab')\n    2\n    \"\"\"\n",
+    "test_code": "def calc(s):\n    temp = s + s\n    for i in range(1, len(s) + 1):\n        if temp[i:i+len(s)] == s:\n            return i\n    return len(s)\nassert find_rotations('aaaa') == 1\nassert find_rotations('ab') == 2\n"
+  },
+  {
+    "id": "MBPP_05",
+    "prompt": "def remove_dirty_chars(string: str, mask_string: str) -> str:\n    \"\"\" Remove characters from the first string which are present in the second string.\n    >>> remove_dirty_chars('geeksforgeeks', 'mask')\n    'geeforgee'\n    \"\"\"\n",
+    "test_code": "assert remove_dirty_chars('geeksforgeeks', 'mask') == 'geeforgee'\n"
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "PROD_PY_EASY_01",
+    "language": "python",
+    "tier": "easy",
+    "prompt_quality": "clean",
+    "title": "Parse Query String Parameters",
+    "prompt": "def parse_query_params(url: str) -> dict[str, str]:\n    \"\"\"Extract query parameters from a URL string into a key-value dictionary.\n    >>> parse_query_params('https://example.com/api?user=alice&page=2')\n    {'user': 'alice', 'page': '2'}\n    \"\"\"\n",
+    "test_code": "assert parse_query_params('https://example.com/api?user=alice&page=2') == {'user': 'alice', 'page': '2'}\nassert parse_query_params('https://example.com/api') == {}\nassert parse_query_params('https://example.com/api?') == {}\n",
+    "linter": "ruff"
+  },
+  {
+    "id": "PROD_PY_MED_02",
+    "language": "python",
+    "tier": "medium",
+    "prompt_quality": "vague",
+    "title": "Fix Case-Insensitive User Search with Edge Cases",
+    "prompt": "# Fix user lookup so it ignores case, trims whitespace, handles None/empty list, and returns matching dicts\ndef search_users(users: list[dict], query: str) -> list[dict]:\n",
+    "test_code": "users = [{'name': ' Alice '}, {'name': 'BOB'}, {'name': 'Charlie'}]\nassert search_users(users, 'alice') == [{'name': ' Alice '}]\nassert search_users(users, '  bob  ') == [{'name': 'BOB'}]\nassert search_users([], 'alice') == []\nassert search_users(users, '') == []\nassert search_users(None, 'alice') == []\n",
+    "linter": "ruff"
+  },
+  {
+    "id": "PROD_PY_HARD_03",
+    "language": "python",
+    "tier": "hard",
+    "prompt_quality": "noisy",
+    "title": "LRU Cache with TTL Expiration & Capacity Bound",
+    "prompt": "# build lru cache class with ttl in seconds and max capacity. get(key) return value or -1 if expired/missing. put(key, val, ttl_sec=None)\n# note: handle expired items cleanup on get or put\nclass LRUCacheTTL:\n",
+    "test_code": "import time\ncache = LRUCacheTTL(capacity=2)\ncache.put('a', 1, ttl_sec=0.2)\ncache.put('b', 2, ttl_sec=10)\nassert cache.get('a') == 1\ntime.sleep(0.25)\nassert cache.get('a') == -1\ncache.put('c', 3, ttl_sec=10)\ncache.put('d', 4, ttl_sec=10)\nassert cache.get('b') == -1\n",
+    "linter": "ruff"
+  },
+  {
+    "id": "PROD_TS_EASY_01",
+    "language": "typescript",
+    "tier": "easy",
+    "prompt_quality": "clean",
+    "title": "Format Currency Amount",
+    "prompt": "export function formatCurrency(amount: number, currency: string = 'USD'): string {\n  // Format number to 2 decimal places with currency prefix e.g. 12.5 -> '$12.50'\n",
+    "test_code": "import { formatCurrency } from './solution';\nconsole.assert(formatCurrency(12.5) === '$12.50', 'Test 1 Failed');\nconsole.assert(formatCurrency(0) === '$0.00', 'Test 2 Failed');\n",
+    "linter": "biome"
+  },
+  {
+    "id": "PROD_TS_MED_02",
+    "language": "typescript",
+    "tier": "medium",
+    "prompt_quality": "vague",
+    "title": "Deep Flatten and Unique Array Items",
+    "prompt": "// Write function to flatten nested array of any depth and remove duplicates while maintaining order\nexport function flattenUnique<T>(arr: any[]): T[] {\n",
+    "test_code": "import { flattenUnique } from './solution';\nconst input = [1, [2, [3, 1, 4]], [2, 5]];\nconst output = flattenUnique<number>(input);\nconsole.assert(JSON.stringify(output) === '[1,2,3,4,5]', `Expected [1,2,3,4,5] got ${JSON.stringify(output)}`);\n",
+    "linter": "biome"
+  },
+  {
+    "id": "PROD_GO_EASY_01",
+    "language": "go",
+    "tier": "easy",
+    "prompt_quality": "clean",
+    "title": "Safe Integer Division with Error",
+    "prompt": "package solution\n\nimport \"errors\"\n\n// SafeDivide divides a by b, returning an error if b is 0.\nfunc SafeDivide(a, b int) (int, error) {\n",
+    "test_code": "package solution\nimport \"testing\"\nfunc TestSafeDivide(t *testing.T) {\n    v, err := SafeDivide(10, 2)\n    if err != nil || v != 5 { t.Fatalf(\"Expected 5, got %d, err %v\", v, err) }\n    _, err = SafeDivide(10, 0)\n    if err == nil { t.Fatalf(\"Expected error on zero div\") }\n}\n",
+    "linter": "golangci-lint"
+  },
+  {
+    "id": "PROD_GO_MED_02",
+    "language": "go",
+    "tier": "medium",
+    "prompt_quality": "noisy",
+    "title": "Concurrent Worker Pool with Results Gathering",
+    "prompt": "// make worker pool function ProcessTasks(tasks []int, numWorkers int) []int that squares each number using goroutines and channels\npackage solution\n",
+    "test_code": "package solution\nimport (\n    \"testing\"\n    \"sort\"\n)\nfunc TestProcessTasks(t *testing.T) {\n    res := ProcessTasks([]int{1, 2, 3, 4}, 2)\n    sort.Ints(res)\n    if len(res) != 4 || res[0] != 1 || res[3] != 16 { t.Fatalf(\"Unexpected result %v\", res) }\n}\n",
+    "linter": "golangci-lint"
+  },
+  {
+    "id": "PROD_RUST_EASY_01",
+    "language": "rust",
+    "tier": "easy",
+    "prompt_quality": "clean",
+    "title": "Count Word Frequencies",
+    "prompt": "use std::collections::HashMap;\n\n/// Returns a map of words to their occurrence counts in lower case.\npub fn word_frequencies(text: &str) -> HashMap<String, usize> {\n",
+    "test_code": "#[cfg(test)]\nmod tests {\n    use super::*;\n    #[test]\n    fn test_words() {\n        let map = word_frequencies(\"Hello hello world\");\n        assert_eq!(map.get(\"hello\"), Some(&2));\n        assert_eq!(map.get(\"world\"), Some(&1));\n    }\n}\n",
+    "linter": "cargo"
+  },
+  {
+    "id": "PROD_CPP_EASY_01",
+    "language": "cpp",
+    "tier": "easy",
+    "prompt_quality": "clean",
+    "title": "Reverse Words in Vector",
+    "prompt": "#include <vector>\n#include <string>\n#include <algorithm>\n\n// Reverses each string in place inside a std::vector<std::string>\nvoid reverse_words(std::vector<std::string>& words) {\n",
+    "test_code": "#include <cassert>\nint main() {\n    std::vector<std::string> w = {\"cat\", \"dog\"};\n    reverse_words(w);\n    assert(w[0] == \"tac\");\n    assert(w[1] == \"god\");\n    return 0;\n}\n",
+    "linter": "g++"
+  },
+  {
+    "id": "PROD_BASH_EASY_01",
+    "language": "bash",
+    "tier": "easy",
+    "prompt_quality": "vague",
+    "title": "POSIX Log File Backup and Archiver",
+    "prompt": "# Write posix bash script that takes directory arg, finds all .log files, compresses them to logs_backup.tar.gz and deletes originals if archive created successfully\n",
+    "test_code": "bash -n script.sh\n",
+    "linter": "shellcheck"
+  }
+]

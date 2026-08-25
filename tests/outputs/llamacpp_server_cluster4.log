@@ -1,0 +1,18 @@
+0.00.020.767 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.101.838 W srv  llama_server: -----------------
+0.00.101.839 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.101.840 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.101.840 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.101.840 W srv  llama_server: -----------------
+0.00.103.095 I srv    load_model: loading model '/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/assets/qwen3.6-4b-instruct-q4_k_m.gguf'
+0.00.763.361 W load: control-looking token: 248064 '<|repo_name|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.763.365 W load: control-looking token: 248061 '<|fim_middle|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.765.246 W load: control-looking token: 248065 '<|file_sep|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.768.839 W load: control-looking token: 248060 '<|fim_prefix|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.778.982 W load: control-looking token: 248062 '<|fim_suffix|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.780.181 W load: control-looking token: 248063 '<|fim_pad|>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.01.004.830 W warning: failed to mlock 521474048-byte buffer (after previously locking 0 bytes): Cannot allocate memory
+Try increasing RLIMIT_MEMLOCK ('ulimit -l' as root).
+0.01.503.116 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 16384, kv_unified = 'false'
+0.01.505.534 I srv  llama_server: model loaded
+0.01.505.538 I srv  llama_server: listening on http://127.0.0.1:8091

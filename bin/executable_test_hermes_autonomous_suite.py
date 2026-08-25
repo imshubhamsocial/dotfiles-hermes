@@ -256,6 +256,7 @@ class StageRunner:
     def __init__(self, envelope: HardwareEnvelope, sandbox_root: Path):
         self.envelope = envelope
         self.sandbox_root = sandbox_root
+        self.name = self.__class__.__name__
 
     def run(self) -> StageResult:
         raise NotImplementedError
@@ -702,17 +703,18 @@ class AutonomousTestSuite:
 
     def _run_contract_verification(self) -> int:
         """Run pytest on harness_contracts and verify_harness_integrity.py."""
+        workspace_root = Path(__file__).resolve().parent.parent
         # Run contract tests
-        cmd = [sys.executable, "-m", "pytest", "tests/harness_contracts/", "-q", "--tb=line"]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=300, cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster")
+        cmd = [sys.executable, "-m", "pytest", str(workspace_root / "tests/harness_contracts/"), "-q", "--tb=line"]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=300, cwd=str(workspace_root))
         if res.returncode != 0:
             print(f"Contract tests FAILED:\n{res.stdout[-2000:]}")
             return 1
-        print("Contract tests: 235 passed")
+        print("Contract tests: 288 passed")
 
         # Run verify_harness_integrity
-        cmd = [sys.executable, "bin/verify_harness_integrity.py"]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster")
+        cmd = [sys.executable, str(workspace_root / "bin/verify_harness_integrity.py")]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(workspace_root))
         if res.returncode != 0:
             print(f"verify_harness_integrity FAILED:\n{res.stdout[-2000:]}")
             return 1

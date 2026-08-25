@@ -1,0 +1,9 @@
+report_id	registry_id	cluster_key	title	cluster_hwus	selfpair_hwus	delta_hwus	best_plan_combo	best_plan_hwus	best_build_combo	best_build_hwus
+01	cluster1	01-gemma-4-base-qat-hyper-opt	Gemma 4 Base QAT INT4 (Stack Hyper-Opt + Python LoRA)	29.7	21.6	8.1	Plan: Cluster 01 → Build: Cluster 07	25.6	Plan: Cluster 08 → Build: Cluster 01	24.4
+02	cluster2	02-qwen-2.5-coder-3b-spec-task-graph	Qwen 2.5-Coder 3B Instruct Q4_K_M (Spec Task-Graph)	24.0	20.7	3.3	Plan: Cluster 02 → Build: Cluster 01	23.6	Plan: Cluster 06 → Build: Cluster 02	25.9
+03	cluster3	03-qwen-2.5-coder-3b-baremetal-mcts	Qwen 2.5-Coder 3B Instruct Q4_K_M (Bare-Metal MCTS)	22.5	22.0	0.5	Plan: Cluster 03 → Build: Cluster 01	23.8	Plan: Cluster 08 → Build: Cluster 03	23.7
+04	cluster4	04-qwen-3.6-4b-gdn-linear	Qwen 3.6 4B Instruct Q4_K_M (GDN Linear + Q8_0 KV)	10.7	17.9	-7.2	Plan: Cluster 04 → Build: Cluster 05	25.7	Plan: Cluster 04 → Build: Cluster 04	17.9
+05	cluster5	05-gemma-4-e2b-e4b-ple-qat	Gemma 4 E2B/E4B Instruct INT4 QAT (PLE Low-Latency)	30.0	20.0	10.0	Plan: Cluster 05 → Build: Cluster 01	24.0	Plan: Cluster 04 → Build: Cluster 05	25.7
+06	cluster6	06-qwen-2.5-coder-3b-w4a16-q8-0	Qwen 2.5-Coder 3B Instruct W4A16 Q8_0 (Q8_0 KV Cache)	20.4	19.2	1.2	Plan: Cluster 06 → Build: Cluster 02	25.9	Plan: Cluster 02 → Build: Cluster 06	22.5
+07	cluster7	07-qwen-2.5-coder-3b-low-engine-tax	Qwen 2.5-Coder 3B Instruct Q4_K_M (Low Engine Tax)	26.4	21.3	5.1	Plan: Cluster 07 → Build: Cluster 01	22.8	Plan: Cluster 01 → Build: Cluster 07	25.6
+08	cluster8	08-qwen-3.6-4b-dense-yarn	Qwen 3.6 4B Instruct Q4_K_M (Dense YaRN 32K-256K)	9.2	13.2	-4.0	Plan: Cluster 08 → Build: Cluster 02	24.6	Plan: Cluster 07 → Build: Cluster 08	15.9

@@ -9,8 +9,9 @@ sudo dnf install -y gcc gcc-c++ make cmake clang ripgrep fd-find fzf tree htop n
     bubblewrap e2fsprogs nodejs22 clang-tools-extra gdb valgrind \
     python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs chezmoi jq curl wget
 
-echo "==> Ensuring pip toolchain..."
+echo "==> Ensuring pip toolchain & build tools..."
 python3.13 -m ensurepip --upgrade
+python3.13 -m pip install --break-system-packages setuptools wheel
 
 echo "==> Installing Python & Hermes dependencies..."
 python3.13 -m pip install --break-system-packages \
@@ -20,6 +21,10 @@ python3.13 -m pip install --break-system-packages \
     uvloop watchfiles cffi cryptography croniter psutil pillow pathspec ruamel.yaml uv \
     fastembed fastmcp mcp mcp-agent-gate mnemory chromadb qdrant-client \
     nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13
+
+echo "==> Installing Playwright Chromium browser & headless Linux runtime libs..."
+sudo dnf install -y alsa-lib libX11 libXcomposite libXdamage libXext libXfixes libXrandr libgbm libxkbcommon pango cairo nss nss-util nspr atk at-spi2-atk dbus-glib libdrm mesa-libgbm cups-libs
+python3.13 -m playwright install chromium
 
 echo "==> Installing Node.js CLI tools..."
 mkdir -p "$HOME/.local/bin" "$HOME/.local/lib"

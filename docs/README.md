@@ -4,17 +4,20 @@ This directory organizes all architectural roadmaps, research specifications, op
 
 ---
 
-## Directory Structure
+## Directory Organization
 
 ```
 docs/
-├── roadmaps/             # Sequential architectural roadmaps (Roadmap 1 to 4)
-│   ├── roadmap1_master_test_plan.md
-│   ├── roadmap2_agent_os_substrate.md
-│   ├── roadmap3_production_graduation.md
-│   └── roadmap4_frontier_cognitive_os.md
+├── roadmaps/             # Architectural roadmaps organized by lifecycle state
+│   ├── active/           # 🟢 CURRENT WORK: Roadmap 4 (U45–U60)
+│   │   └── roadmap4_frontier_cognitive_os.md
+│   ├── completed/        # 🔒 CERTIFIED & CLOSED: Roadmaps 1, 2, and 3
+│   │   ├── roadmap1_master_test_plan.md
+│   │   ├── roadmap2_agent_os_substrate.md
+│   │   └── roadmap3_production_graduation.md
+│   └── README.md         # Roadmaps index & state overview
 │
-├── operations/           # Practical guides for running, monitoring, and debugging
+├── operations/           # Practical manuals for running, monitoring, and debugging
 │   ├── agent_environment_context.md
 │   ├── agent_operations_guide.md
 │   └── agent_milestones_and_gaps.md
@@ -26,14 +29,16 @@ docs/
 │   ├── benchmark_parity_specification.md
 │   └── hardware_calibrated_test_runners.md
 │
-├── knowledge/            # Cognitive codebooks, orchestrator ledgers, and reference guides
+├── knowledge/            # Cognitive codebooks, reference guides, and archives
 │   ├── cognitive_process_codebook.md
-│   ├── orchestrator_ledger.md
 │   ├── process_knowledge_base.md
-│   └── research_index.md
+│   ├── research_index.md
+│   └── archive/          # Historical orchestration logs & raw transcripts
+│       └── orchestrator_ledger.md
 │
-├── migration/            # Container and environment migration records
-│   └── migration_history.md
+├── migration/            # Container migration records & history
+│   └── archive/
+│       └── migration_history.md
 │
 └── prompts/              # System prompts and baseline persona definitions
     └── codex_system_prompt.md
@@ -41,15 +46,17 @@ docs/
 
 ---
 
-## Quick Navigation
+## Quick State Navigation for AI Agents
 
-* **Roadmaps**:
-  * [Roadmap 1: Master Test Plan](./roadmaps/roadmap1_master_test_plan.md) (U1–U20)
-  * [Roadmap 2: Agent OS Substrate](./roadmaps/roadmap2_agent_os_substrate.md) (U21–U35)
-  * [Roadmap 3: Production Graduation](./roadmaps/roadmap3_production_graduation.md) (U36–U44)
-  * [Roadmap 4: Frontier Cognitive OS](./roadmaps/roadmap4_frontier_cognitive_os.md) (U45–U60)
+* **Active Engineering Focus**:
+  * 🟢 **[Roadmap 4: Frontier Cognitive OS (U45–U60)](./roadmaps/active/roadmap4_frontier_cognitive_os.md)**
 
-* **Operations**:
-  * [Environment Context](./operations/agent_environment_context.md)
-  * [Operations Guide](./operations/agent_operations_guide.md)
-  * [Milestones & Gaps](./operations/agent_milestones_and_gaps.md)
+* **Completed & Certified Baselines (Reference Only)**:
+  * 🔒 **[Roadmap 1: Master Test Plan (U1–U20)](./roadmaps/completed/roadmap1_master_test_plan.md)**
+  * 🔒 **[Roadmap 2: Agent OS Substrate (U21–U35)](./roadmaps/completed/roadmap2_agent_os_substrate.md)**
+  * 🔒 **[Roadmap 3: Production Graduation (U36–U44)](./roadmaps/completed/roadmap3_production_graduation.md)**
+
+* **Operations & Runtime Manuals**:
+  * 📘 **[Environment Context](./operations/agent_environment_context.md)**
+  * 📘 **[Operations Guide](./operations/agent_operations_guide.md)**
+  * 📘 **[Milestones & Gaps](./operations/agent_milestones_and_gaps.md)**

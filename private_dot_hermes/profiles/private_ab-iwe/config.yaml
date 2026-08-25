@@ -11,20 +11,20 @@ skills:
 _config_version: 33
 mcp_servers:
   codebase-memory:
-    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/codebase-memory-mcp
+    command: ~/.local/bin/codebase-memory-mcp
     enabled: true
     env:
-      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
-      HOME: /var/home/imshubhamsocial
+      PATH: ~/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: ~
   mnemory:
-    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/mnemory"
+    command: "~/.local/bin/mnemory"
     args: ['serve']
     enabled: True
     env:
       LLM_API_KEY: "dummy"
       LLM_BASE_URL: "http://127.0.0.1:8138/v1"
-      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      PATH: "~/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "~"
 
   # 2026-08-16 (Batch-J A/B card 3): IWE knowledge-graph memory layer — the
   # candidate memory component vs the AMD bank. iwec serves the vault dir it
@@ -32,19 +32,19 @@ mcp_servers:
   # AMD rail injects — see .scratch/seed_iwe_vault.py). A/B run: profile
   # ab-iwe + HILO_AMD_ENABLED=0 (AMD rail off) on the P5 probe.
   iwec:
-    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/iwec"
+    command: "~/.local/bin/iwec"
     enabled: True
-    cwd: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/profiles/ab-iwe/vault"
+    cwd: "~/.hermes/profiles/ab-iwe/vault"
     env:
-      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      PATH: "~/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "~"
 
   letta:
-    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/letta"
+    command: "~/.local/bin/letta"
     enabled: False
     env:
-      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      PATH: "~/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "~"
 
   exa:
     command: "exa-mcp-server"
@@ -52,14 +52,14 @@ mcp_servers:
     env:
       EXA_API_KEY: "${EXA_API_KEY}"
       PATH: "/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      HOME: "~"
 
   claude-context:
     command: "claude-context"
     enabled: False
     env:
       PATH: "/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      HOME: "~"
 
 # LEVER: FRONTIER-STACK (T2 combo) — ALL levers: memory (mnemory on, letta parked), curated MCP (exa/claude-context disabled until keys/bin validated), adaptive thinking (plugins/adaptive_thinking.py). Compound tools are harness-side (E3/E4 prototypes).
 

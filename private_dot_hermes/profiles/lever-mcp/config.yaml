@@ -11,25 +11,25 @@ skills:
 _config_version: 33
 mcp_servers:
   codebase-memory:
-    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/codebase-memory-mcp
+    command: ~/.local/bin/codebase-memory-mcp
     enabled: true
     env:
-      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
-      HOME: /var/home/imshubhamsocial
+      PATH: ~/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: ~
   exa:
     command: "exa-mcp-server"
     enabled: False
     env:
       EXA_API_KEY: "${EXA_API_KEY}"
       PATH: "/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      HOME: "~"
 
   claude-context:
     command: "claude-context"
     enabled: False
     env:
       PATH: "/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      HOME: "~"
 
 # LEVER: curated MCP external reach (E1 Exa web search — network-gated, needs EXA_API_KEY; E7 Claude Context code search — feasibility only, binary not installed). Both DISABLED until validated at test time; research rule: expose <=3-4 tools for the 4B (tool-selection drift).
 

@@ -11,27 +11,27 @@ skills:
 _config_version: 33
 mcp_servers:
   codebase-memory:
-    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/codebase-memory-mcp
+    command: ~/.local/bin/codebase-memory-mcp
     enabled: true
     env:
-      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
-      HOME: /var/home/imshubhamsocial
+      PATH: ~/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: ~
   mnemory:
-    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/mnemory"
+    command: "~/.local/bin/mnemory"
     args: ['serve']
     enabled: True
     env:
       LLM_API_KEY: "dummy"
       LLM_BASE_URL: "http://127.0.0.1:8138/v1"
-      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      PATH: "~/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "~"
 
   letta:
-    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/letta"
+    command: "~/.local/bin/letta"
     enabled: False
     env:
-      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
-      HOME: "/var/home/imshubhamsocial"
+      PATH: "~/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "~"
 
 # LEVER: persistent memory (B1 mnemory on; B6 Letta parked — GPU-gated, enabled at test time after validation). .agent_memory rails live in the repo (researches/09-agent-arena-bench/harness/prototypes/agent_memory/).
 

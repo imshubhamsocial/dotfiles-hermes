@@ -1,0 +1,110 @@
+model:
+  provider: custom
+  base_url: http://127.0.0.1:8138/v1
+  # iteration-3 model A/B (2026-08-11): backend swapped to Qwen 3.8 4B (profile sweep 2026-08-22). The
+  # llama-server on :8138 serves whatever the driver loads; the request model
+  # id (driver E20_HERMES_MODEL) is forwarded through the gateway unchanged.
+  default: gemma-4-4b
+skills:
+  external_dirs:
+    - ~/.hermes/skills
+_config_version: 33
+mcp_servers:
+  codebase-memory:
+    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/codebase-memory-mcp
+    enabled: true
+    env:
+      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+  mnemory:
+    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/mnemory"
+    args: ['serve']
+    enabled: True
+    env:
+      LLM_API_KEY: "dummy"
+      LLM_BASE_URL: "http://127.0.0.1:8138/v1"
+      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "/var/home/imshubhamsocial"
+
+  # 2026-08-16 (Batch-J A/B card 3): IWE knowledge-graph memory layer — the
+  # candidate memory component vs the AMD bank. iwec serves the vault dir it
+  # runs in (cwd); vault seeded from the repo memory-bank (same knowledge the
+  # AMD rail injects — see .scratch/seed_iwe_vault.py). A/B run: profile
+  # ab-iwe + HILO_AMD_ENABLED=0 (AMD rail off) on the P5 probe.
+  iwec:
+    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/iwec"
+    enabled: True
+    cwd: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/profiles/ab-iwe/vault"
+    env:
+      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "/var/home/imshubhamsocial"
+
+  letta:
+    command: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/letta"
+    enabled: False
+    env:
+      PATH: "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      HOME: "/var/home/imshubhamsocial"
+
+  exa:
+    command: "exa-mcp-server"
+    enabled: False
+    env:
+      EXA_API_KEY: "${EXA_API_KEY}"
+      PATH: "/usr/local/bin:/usr/bin:/bin"
+      HOME: "/var/home/imshubhamsocial"
+
+  claude-context:
+    command: "claude-context"
+    enabled: False
+    env:
+      PATH: "/usr/local/bin:/usr/bin:/bin"
+      HOME: "/var/home/imshubhamsocial"
+
+# LEVER: FRONTIER-STACK (T2 combo) — ALL levers: memory (mnemory on, letta parked), curated MCP (exa/claude-context disabled until keys/bin validated), adaptive thinking (plugins/adaptive_thinking.py). Compound tools are harness-side (E3/E4 prototypes).
+
+# ── Security ──────────────────────────────────────────────────────────
+# Secret redaction is ON by default — strings that look like API keys,
+# tokens, and passwords are masked in tool output, logs, and chat
+# responses before the model or user ever sees them. Set redact_secrets
+# to false to disable (e.g. when developing the redactor itself).
+# tirith pre-exec scanning is enabled by default when the tirith binary
+# is available. Configure via security.tirith_* keys or env vars
+# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
+#
+# security:
+#   redact_secrets: true
+#   tirith_enabled: true
+#   tirith_path: "tirith"
+#   tirith_timeout: 5
+#   tirith_fail_open: true
+
+# ── Fallback Model ────────────────────────────────────────────────────
+# Automatic provider failover when primary is unavailable.
+# Uncomment and configure to enable. Triggers on rate limits (429),
+# overload (529), service errors (503), or connection failures.
+#
+# Supported providers:
+#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
+#   openai-codex (OAuth — hermes auth) — OpenAI Codex
+#   nous         (OAuth — hermes auth) — Nous Portal
+#   zai          (ZAI_API_KEY)         — Z.AI / GLM
+#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
+#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
+#   minimax      (MINIMAX_API_KEY)     — MiniMax
+#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
+#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
+#
+# For custom OpenAI-compatible endpoints, add base_url and key_env.
+#
+# fallback_model:
+#   provider: openrouter
+#   model: anthropic/claude-sonnet-4
+
+# ── LEVER middleware plugins (installed by bin/sync_lever_plugins.sh) ──
+plugins:
+  enabled:
+    - amd-memory
+    - adaptive-thinking
+    - frontier-levers
+    - compound-tools

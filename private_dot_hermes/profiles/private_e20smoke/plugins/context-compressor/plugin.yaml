@@ -1,0 +1,4 @@
+name: context-compressor
+version: 1.0.0
+description: "Enhanced context-token reduction (#4e2 + #4j)"
+kind: standalone

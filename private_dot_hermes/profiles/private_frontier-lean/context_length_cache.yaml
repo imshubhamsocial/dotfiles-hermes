@@ -1,0 +1,2 @@
+context_lengths:
+  qwen3.6-4b-instruct@http://127.0.0.1:8138/v1: 65536

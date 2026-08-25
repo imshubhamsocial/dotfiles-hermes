@@ -1,0 +1,1 @@
+User prefers TDD workflow for Python module development: BLUEPRINT → TESTS → IMPLEMENT → VERIFY with targeted patching.

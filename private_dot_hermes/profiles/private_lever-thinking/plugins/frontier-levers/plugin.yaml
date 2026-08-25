@@ -1,0 +1,4 @@
+name: frontier-levers
+version: 1.0.0
+description: "HILO lever middleware plugin (synced by bin/sync_lever_plugins.sh)"
+kind: standalone

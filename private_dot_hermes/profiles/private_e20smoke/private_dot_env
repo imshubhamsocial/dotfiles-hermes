@@ -1,0 +1,5 @@
+# Per-profile secrets for this Hermes profile.
+# API keys and tokens set here override the shell environment.
+# Behavioral settings belong in config.yaml, not here.
+API_SERVER_ENABLED=true
+API_SERVER_KEY=e20-bench-local-key-9f3k2m1q

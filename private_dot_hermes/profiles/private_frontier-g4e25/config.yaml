@@ -1,0 +1,51 @@
+model:
+  provider: custom
+  base_url: http://127.0.0.1:8138/v1
+  default: gemma-4-4b
+skills:
+  external_dirs:
+    - ~/.hermes/skills
+_config_version: 33
+mcp_servers:
+  codebase-memory:
+    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/codebase-memory-mcp
+    enabled: true
+    env:
+      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+  mnemory:
+    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/mnemory
+    args:
+    - serve
+    enabled: true
+    env:
+      LLM_API_KEY: dummy
+      LLM_BASE_URL: http://127.0.0.1:8138/v1
+      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+  letta:
+    command: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/letta
+    enabled: false
+    env:
+      PATH: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+  exa:
+    command: exa-mcp-server
+    enabled: false
+    env:
+      EXA_API_KEY: ${EXA_API_KEY}
+      PATH: /usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+  claude-context:
+    command: claude-context
+    enabled: false
+    env:
+      PATH: /usr/local/bin:/usr/bin:/bin
+      HOME: /var/home/imshubhamsocial
+plugins:
+  enabled:
+  - amd-memory
+  - adaptive-thinking
+  - frontier-levers
+  - compound-tools
+  - recency-zone

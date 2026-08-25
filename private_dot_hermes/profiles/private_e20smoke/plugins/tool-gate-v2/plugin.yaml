@@ -1,0 +1,4 @@
+name: tool-gate-v2
+version: 1.0.0
+description: "Phase-aware tool filtering (replaces v1 directive-based gate)"
+kind: standalone

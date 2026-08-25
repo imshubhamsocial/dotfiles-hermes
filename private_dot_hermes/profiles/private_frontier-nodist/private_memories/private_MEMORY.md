@@ -1,0 +1,3 @@
+TDD int('') edge case: When writing tests before implementation, test expectations must match desired behavior. If test expects int('') == 0 but implementation raises ValueError, you must handle empty string specially: try int() first, catch ValueError, check if empty -> 0, else raise. Pattern: parse_value(v) -> try: int(v); except ValueError: return 0 if v=='' else raise. This appeared in three-step pipeline parse.py implementation.
+§
+Checkout module bug fix pattern: Original checkout.py summed all coupons (best += c) instead of using min() for best single discount. Coupon values are negative (e.g., -20 = 20 off). Fix: best = min(coupons) if coupons else 0, return max(0, cart_total + best) + shipping_cost.

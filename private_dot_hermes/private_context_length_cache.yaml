@@ -1,0 +1,2 @@
+context_lengths:
+  gemma-4-4b@http://127.0.0.1:8138/v1: 65536

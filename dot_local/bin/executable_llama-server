@@ -1,8 +1,32 @@
 #!/usr/bin/env bash
-USER_SITE="$(python3.13 -m site --user-site)"
-CUDA_LIB_DIR="${USER_SITE}/nvidia/cu13/lib"
-CUBLAS_LIB_DIR="${USER_SITE}/nvidia/cublas/lib"
-NVRTC_LIB_DIR="${USER_SITE}/nvidia/cuda_nvrtc/lib"
-NCCL_LIB_DIR="${USER_SITE}/nvidia/nccl/lib"
-export LD_LIBRARY_PATH="${CUDA_LIB_DIR}:${CUBLAS_LIB_DIR}:${NVRTC_LIB_DIR}:${NCCL_LIB_DIR}:${LD_LIBRARY_PATH}"
-exec "$HOME/.local/bin/llama-server.bin" "$@"
+# Hardware-Optimized llama-server Launcher for Gemma-4-4B
+# GPU: NVIDIA RTX 3050 Laptop (6GB VRAM)
+# Features: Flash Attention ON, MTP Speculative Draft (3 tokens), 100% GPU Offload
+
+USER_SITE="$(python3.13 -m site --user-site 2>/dev/null || echo "$HOME/.local/lib/python3.13/site-packages")"
+export LD_LIBRARY_PATH="${USER_SITE}/nvidia/cu13/lib:${USER_SITE}/nvidia/cublas/lib:${USER_SITE}/nvidia/cuda_nvrtc/lib:${USER_SITE}/nvidia/nccl/lib:${LD_LIBRARY_PATH}"
+
+MODEL_MAIN="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf"
+MODEL_DRAFT="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf"
+SERVER_BIN="/var/home/imshubhamsocial/Projects/Workspace/Personal/LLMs/Cluster/llama.cpp/build/bin/llama-server"
+
+exec "$SERVER_BIN" \
+    --model "$MODEL_MAIN" \
+    --model-draft "$MODEL_DRAFT" \
+    --spec-draft-n-max 3 \
+    --spec-draft-n-min 1 \
+    -ngl 99 \
+    --spec-draft-ngl 99 \
+    --flash-attn on \
+    --jinja \
+    -c 32768 \
+    --cache-type-k q4_0 \
+    --cache-type-v q4_0 \
+    --threads 6 \
+    --threads-batch 6 \
+    --cpu-range 0-11 \
+    --cpu-strict 1 \
+    --host 127.0.0.1 \
+    --port 8138 \
+    --metrics \
+    "$@"

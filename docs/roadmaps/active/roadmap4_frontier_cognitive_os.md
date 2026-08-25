@@ -13,7 +13,7 @@
 
 ### 1.1 The Core Architecture: Google Antigravity & ADK 2.0 as the Master Blueprint
 * **Google Antigravity & ADK 2.0 (`Brief 12`)** provides the **master operating blueprint**: a hierarchical, reactive state machine operating over an asynchronous execution graph with multi-tier memory, thought-signature propagation, and continuous self-evolution (`/learn`).
-* **The Specialized Open-Source Tools & Engines (`Briefs 01–11, 13`)** provide the **concrete, battle-tested implementations** that fill each specific slot in that blueprint without ad-hoc custom script bloat:
+* **The Specialized Open-Source Tools & Engines (`Briefs 01–11, 13, Reflect System`)** provide the **concrete, battle-tested implementations** that fill each specific slot in that blueprint, replacing legacy ad-hoc scripts:
   * *Intake & Persona Boundaries* ➔ **Anthropic System Prompts (`Brief 01`)**
   * *Skill Package Management & Lifecycle* ➔ **OpenSkills (`Brief 13`)** & **Universal Skills (`Brief 02`)**
   * *Context Database & Long-Term Memory* ➔ **OpenViking VFS (`Brief 09/13`)** & **OpenCode-Mem (`Brief 03`)**
@@ -21,6 +21,7 @@
   * *Coding Standards & Two-Tier Rules* ➔ **Agent-OS (`Brief 04`)** & **COG Vault (`Brief 05`)**
   * *Inference Quality & Benchmarking* ➔ **NVIDIA SkillEvaluator (`Brief 07`)** & **DeepMind Recirculation (`Brief 08`)**
   * *Verification & AST Gating* ➔ **`ast-grep` / Draft-Detective (`Brief 11`)** & **Schema.org JSON-LD (`Brief 10`)**
+  * *Reflective Learning & Evolution* ➔ **Claude-Reflect-System Pattern + NVIDIA SkillEvaluator Gate (`U56/U59`)** (Replaces legacy `experience_store.py`)
 
 ---
 
@@ -55,11 +56,13 @@ flowchart TD
         DRAFT --> COG["U49: COG Closed-Loop Verifier Agent"]
     end
 
-    subgraph EVOLUTION ["5. Learning & Continuous Skill Lift"]
+    subgraph EVOLUTION ["5. Reflective Learning & Continuous Skill Lift"]
         VERIFICATION -->|Pass| DELIVER["Deliver Verified Code & Git Commit"]
-        VERIFICATION -->|Correction / Feedback| LEARN["U56: Autonomous /learn Rule Synthesizer"]
-        LEARN --> LIFT["U51: NVIDIA SkillEvaluator A/B Skill Lift Audit"]
-        LIFT --> CATALOG["Promote to Permanent .hermes/skills/ via OpenSkills"]
+        VERIFICATION -->|User Correction / Tool Failure| REFLECT["U56: Reflective Learning Subsystem (Capture Hook)"]
+        REFLECT --> SYNTH["Auto-Synthesize Candidate OpenSkills Package"]
+        SYNTH --> LIFT["U51/U59: NVIDIA SkillEvaluator A/B Skill Lift Gate (>= +15%)"]
+        LIFT -->|Certified| CATALOG["Promote to Permanent .hermes/skills/ via OpenSkills"]
+        LIFT -->|Uncertified| PRUNE["Prune Candidate to Prevent Prompt Drift"]
     end
 ```
 
@@ -106,8 +109,8 @@ flowchart TD
 │ **U55**│ **ast-grep & Draft-Detective Gates**   │ Replaces ad-hoc `observer_gate.py` with native Rust     │
 │        │ (`ast-grep` + `draft-detective`)       │ AST validation and adversarial fact-checking.           │
 ├────────┼────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ **U56**│ **Google ADK 2.0 & /learn Substrate**  │ Master coordination: TaskDAG subagents, reactive bus,   │
-│        │ (`google/adk-python`, `antigravity`)   │ thought signatures, and autonomous rule synthesis.      │
+│ **U56**│ **ADK 2.0 & Reflective Learning Loop** │ Replaces legacy `experience_store.py` with full SQLite  │
+│        │ (`ADK 2.0` + `claude-reflect-system`)  │ correction capture, thought signatures, & /learn hooks. │
 └────────┴────────────────────────────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
@@ -127,8 +130,8 @@ flowchart TD
 │ **U58**│ **Closed-Loop Dual-Agent Verification**   │ Links `ast-grep` (Rust AST) + Draft-Detective       │
 │        │ **Matrix**                                │ (Fact-Check) + COG Verifier into pre-flight audit.  │
 ├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-│ **U59**│ **Autonomous `/learn` & Skill Evolution**  │ Autonomous user correction ➔ rule synthesis ➔       │
-│        │ **Substrate**                             │ NVIDIA SkillEvaluator A/B Lift ➔ OpenSkills deploy. │
+│ **U59**│ **Autonomous Reflective Skill Evolution** │ Full cycle: user correction ➔ SQLite capture ➔       │
+│        │ **Substrate**                             │ OpenSkills draft ➔ NVIDIA SkillEvaluator A/B Gate.  │
 ├────────┼───────────────────────────────────────────┼─────────────────────────────────────────────────────┤
 │ **U60**│ **Master Grand Prix Production**          │ Comprehensive 10-tier end-to-end evaluation suite   │
 │        │ **Certification**                         │ validating 100% autonomy, safety, and test passes.  │
@@ -152,7 +155,7 @@ tests/harness_contracts/
 ├── test_roadmap4_u53_openviking_context_vfs.py          # U53: OpenViking L0/L1/L2 context database
 ├── test_roadmap4_u54_schema_structured_data.py          # U54: JSON-LD metadata generation & validation
 ├── test_roadmap4_u55_ast_grep_and_draft_detective.py    # U55: Rust AST gate & adversarial fact-check
-├── test_roadmap4_u56_adk_task_and_learn.py              # U56: Reactive subagents & /learn rule synthesis
+├── test_roadmap4_u56_reflective_learning_and_adk.py     # U56: Correction capture & ADK TaskDAG execution
 ├── test_roadmap4_u57_u59_synergy_bus.py                 # U57-U59: Systemic event bus & evolution loop
 └── test_roadmap4_u60_grand_prix_certification.py        # U60: Full autonomous end-to-end graduation exam
 ```

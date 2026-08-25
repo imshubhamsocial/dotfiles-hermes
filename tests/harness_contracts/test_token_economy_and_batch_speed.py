@@ -65,6 +65,11 @@ def _load(name: str, path: Path):
 
 
 def load_hermes_sdk():
+    try:
+        import hermes_core.sdk as sdk_mod
+        return sdk_mod
+    except Exception:
+        pass
     p = ROOT / "sdk" / "hermes_sdk.py"
     if not p.exists():
         p = ROOT / "ws-ai" / "sdk" / "hermes_sdk.py"

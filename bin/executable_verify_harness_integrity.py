@@ -37,10 +37,11 @@ CHAMPION_BASELINE_TOTAL = 108
 
 def _module(name: str, relpath: str):
     path = ROOT / relpath
-    if not path.exists() and relpath.startswith("ws-ai/sdk/"):
-        alt = ROOT / "sdk" / Path(relpath).name
-        if alt.exists():
-            path = alt
+    if not path.exists() and "sdk" in relpath:
+        try:
+            return importlib.import_module("hermes_core.sdk")
+        except Exception:
+            pass
     if not path.exists():
         if relpath.startswith("src/hermes_core/"):
             mod_name = "hermes_core." + Path(relpath).stem
@@ -165,10 +166,10 @@ def detect_capabilities() -> dict:
     u20_evidence = []
     if ide is not None:
         try:
-            resolver = ide.TypeSignatureResolver(types_root=ROOT / "types")
+            resolver = ide.TypeSignatureResolver()
             cats = resolver.list_categories()
             bg_sig = resolver.resolve("BufferGeometry")
-            scaffold = ide.ScaffoldRegistry(templates_root=ROOT / "types" / "templates")
+            scaffold = ide.ScaffoldRegistry()
             templates = scaffold.list_templates()
             u20 = (
                 len(cats) >= 2

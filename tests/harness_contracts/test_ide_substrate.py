@@ -47,7 +47,8 @@ from hermes_core.ide_substrate import (  # noqa: E402
 @pytest.fixture()
 def types_root():
     """Point to the project's types/ directory."""
-    return ROOT / "types"
+    import hermes_core.ide_substrate as ide
+    return ide._TYPES_ROOT
 
 
 @pytest.fixture()
@@ -56,8 +57,8 @@ def resolver(types_root):
 
 
 @pytest.fixture()
-def scaffold_root():
-    return ROOT / "types" / "templates"
+def scaffold_root(types_root):
+    return types_root / "templates"
 
 
 @pytest.fixture()
@@ -127,8 +128,8 @@ class TestU20TypeResolver:
         assert sig is not None
         assert "Vector3" in sig
 
-    def test_load_type_file_directly(self):
-        path = ROOT / "types" / "threejs" / "threejs_types.types"
+    def test_load_type_file_directly(self, types_root):
+        path = types_root / "threejs" / "threejs_types.types"
         syms = _load_type_file(path)
         assert "BufferGeometry" in syms
         assert "Vector3" in syms

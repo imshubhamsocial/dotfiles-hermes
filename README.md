@@ -159,7 +159,7 @@ exec "$SERVER_BIN" \
 │   └── verify_harness_integrity.py     # Master capability audit & contract verification runner
 │
 ├── src/hermes_core/                    # Core Python library sources (installed via `pip install -e`)
-│   │                                   # (Note: Active development sources reside at `Projects/Workspace/Personal/LLMs/Cluster/src/hermes_core`)
+│   │                                   # (Self-contained active development sources reside at `Projects/Workspace/Personal/hermes/src/hermes_core`)
 │   ├── prompt_slotting.py              # U45: 4-slot modular system prompt engine (prefix-cache aligned)
 │   ├── context_compactor.py            # U45: Active context compactor gate (<4,000 token threshold)
 │   ├── openskills_manager.py           # U46: OpenSkills universal package manager & JIT lifecycle

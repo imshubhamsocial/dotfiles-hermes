@@ -39,6 +39,13 @@
    * Every new architectural file, rule, or launcher modification must be tracked cleanly in Chezmoi (`chezmoi add <path>`).
    * Working tree in Chezmoi should remain clean after completing milestones.
 
+9. **Mandatory 4-Step Milestone Verification Standard**:
+   * For every single completed milestone in Roadmap 4, execution MUST follow this strict 4-step verification lifecycle:
+     1. **Module Implementation**: Write the core subsystem in `src/hermes_core/<module>.py`.
+     2. **Contract Test Suite**: Author `tests/harness_contracts/test_roadmap4_<spec>.py` with 100% assertions.
+     3. **Pytest Regression Pass**: Execute `python3.13 -m pytest tests/harness_contracts/` to ensure zero regressions across all existing tests.
+     4. **End-to-End Native Upstream Hermes Prompt & Observation**: Execute a live task prompt directly through `hermes -z "<prompt>" --yolo`, observing the agent's real-time interaction with the new capability and recording telemetry.
+
 ---
 
 ## 2. Python & Code Quality Standards

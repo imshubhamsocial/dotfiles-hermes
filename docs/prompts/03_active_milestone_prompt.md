@@ -1,57 +1,60 @@
-# 03. Active Milestone Prompt: U53 (Volcengine OpenViking Hierarchical VFS Context Database)
+# 03. Active Milestone Prompt: U54 (Schema.org JSON-LD Semantic Structured Anchors Engine)
 
-> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U53`  
+> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U54`  
 > **Authoritative Roadmap**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
-> **Research Archive**: `docs/roadmaps/active/archive/09_openviking_context_database.md`  
+> **Research Archive**: `docs/roadmaps/active/archive/10_schema_org_structured_data.md`  
 > **Hardware Context**: `docs/prompts/01_environment_and_hardware.md`  
 > **Coding & Invariant Rules**: `docs/prompts/02_rules_conventions_and_standards.md`
 
 ---
 
-## 1. Milestone Objective (`U53`)
+## 1. Milestone Objective (`U54`)
 
-Implement the **Volcengine OpenViking Hierarchical Virtual Filesystem Context Database** (`src/hermes_core/openviking_vfs.py`):
+Implement the **Schema.org JSON-LD Semantic Structured Anchors Engine** (`src/hermes_core/schema_anchors.py`):
 
-1. **Hierarchical Virtual Filesystem (`viking://`)**:
-   * Replaces flat memory stores with a virtual directory tree (`viking://core/`, `viking://skills/`, `viking://plans/`).
-   * Supports standard POSIX-like operations (`ls`, `find`, `cat`, `tree`) across memory nodes.
+1. **Deterministic Entity Grounding (JSON-LD)**:
+   * Generates valid Schema.org JSON-LD payloads (`SoftwareSourceCode`, `SoftwareApplication`, `HowTo`, `TechArticle`, `TaskSpecification`).
+   * Eliminates entity ambiguity across multi-file agent architectures.
 
-2. **3-Tier Context Representation (L0 / L1 / L2)**:
-   * **L0 (Abstract)**: $\le 100\text{ tokens}$ ultra-compact discovery summary for fast routing.
-   * **L1 (Overview)**: $\le 2,000\text{ tokens}$ structural outline for architectural planning.
-   * **L2 (Full Detail)**: Unabridged node content loaded JIT on demand.
+2. **Plan & Plan.json Structured Anchor Injection**:
+   * Automatically formats `.hermes/plan.json` and artifact headers with machine-readable `@context: "https://schema.org"` graphs.
+   * Links entities via `isPartOf`, `isBasedOn`, `programmingLanguage`, `targetPlatform`, and `codeRepository`.
 
 3. **Strict Hardware Envelope Bounds**:
-   * Pure CPU / RAMDisk execution with **$0\text{ MB GPU VRAM}$** overhead.
+   * Pure CPU RAMDisk execution ($0\text{ MB GPU VRAM}$) with sub-millisecond serialization latency.
 
 ---
 
 ## 2. Implementation Deliverables
 
-* `src/hermes_core/openviking_vfs.py`: OpenViking VFS database engine and 3-tier retrieval subsystem.
-* Integration into the Hermes context retrieval pipeline.
+* `src/hermes_core/schema_anchors.py`: Schema.org JSON-LD structured anchor builder and validator.
+* Integration into the Spec-First Planner and Artifact Generator.
 
 ---
 
 ## 3. Dedicated Contract Test Suite
 
-Author `tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py` asserting:
-1. `test_openviking_vfs_mount_and_navigation()`: Validates `viking://` URI routing, `ls`, `tree`, and `find`.
-2. `test_openviking_three_tier_resolution()`: Validates L0 ($\le 100\text{ tok}$), L1 ($\le 2,000\text{ tok}$), and L2 on-demand resolution.
-3. `test_openviking_directory_recursive_search()`: Validates subtree pruning and token-efficient search.
-4. `test_openviking_zero_gpu_vram()`: Enforces pure CPU RAMDisk execution ($0\text{ MB GPU VRAM}$).
+Author `tests/harness_contracts/test_roadmap4_u54_schema_anchors.py` asserting:
+1. `test_schema_jsonld_software_source_code_generation()`: Validates `SoftwareSourceCode` schema conformance.
+2. `test_schema_jsonld_task_specification_graph()`: Validates multi-entity connected graph (`@graph` layout).
+3. `test_schema_anchor_plan_injection()`: Validates `.hermes/plan.json` structured grounding anchor injection.
+4. `test_schema_anchors_zero_gpu_vram()`: Enforces pure CPU RAMDisk execution ($0\text{ MB GPU VRAM}$).
 
 ---
 
-## 4. Execution & Verification Directives
+## 4. Execution & Verification Directives (4-Step Lifecycle)
 
 1. Execute and verify inside `ws-hermes`:
    ```bash
-   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py -v
+   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u54_schema_anchors.py -v
    distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
    ```
-2. Ensure **100% pass rate** across all 528 existing tests + new U53 tests.
-3. Stage and commit changes cleanly in Chezmoi:
+2. Execute live native upstream Hermes verification turn:
    ```bash
-   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/openviking_vfs.py tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U53 OpenViking hierarchical VFS context database'"
+   distrobox enter ws-hermes -- hermes -z "Hermes Schema.org JSON-LD verification turn" --yolo --usage-file /dev/shm/usage.json
+   ```
+3. Ensure **100% pass rate** across all 536 existing tests + new U54 tests.
+4. Stage and commit changes cleanly in Chezmoi:
+   ```bash
+   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/schema_anchors.py tests/harness_contracts/test_roadmap4_u54_schema_anchors.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U54 Schema.org JSON-LD structured anchors engine'"
    ```

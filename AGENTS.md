@@ -107,6 +107,9 @@ python3.13 -m pytest tests/harness_contracts/ -v
 
 # 3. Execute master capability audit probe
 python3.13 bin/verify_harness_integrity.py
+
+# 4. Execute live native upstream Hermes verification turn
+hermes -z "<test_prompt>" --yolo --usage-file /dev/shm/usage.json
 ```
 
 ### Phase 5: Version Control & Chezmoi Synchronization

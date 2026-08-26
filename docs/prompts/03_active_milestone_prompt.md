@@ -1,44 +1,45 @@
-# 03. Active Milestone Prompt: U52 (Google DeepMind Recirculation Inference-Time Dynamical System-2 Engine)
+# 03. Active Milestone Prompt: U53 (Volcengine OpenViking Hierarchical VFS Context Database)
 
-> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U52`  
+> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U53`  
 > **Authoritative Roadmap**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
-> **Research Archive**: `docs/roadmaps/active/archive/08_deepmind_recirculation.md`  
+> **Research Archive**: `docs/roadmaps/active/archive/09_openviking_context_database.md`  
 > **Hardware Context**: `docs/prompts/01_environment_and_hardware.md`  
 > **Coding & Invariant Rules**: `docs/prompts/02_rules_conventions_and_standards.md`
 
 ---
 
-## 1. Milestone Objective (`U52`)
+## 1. Milestone Objective (`U53`)
 
-Implement the **Google DeepMind Recirculation Inference-Time Dynamical System-2 Engine** (`src/hermes_core/recirculation.py`):
+Implement the **Volcengine OpenViking Hierarchical Virtual Filesystem Context Database** (`src/hermes_core/openviking_vfs.py`):
 
-1. **Training-Free Recurrent State Tracking**:
-   * Operates directly on frozen models (Gemma-4-4B) during prefill and planning steps.
-   * Multi-pass hidden state feedback loop propagating latent representations across recurrent planning iterations ($K \ge 2$).
+1. **Hierarchical Virtual Filesystem (`viking://`)**:
+   * Replaces flat memory stores with a virtual directory tree (`viking://core/`, `viking://skills/`, `viking://plans/`).
+   * Supports standard POSIX-like operations (`ls`, `find`, `cat`, `tree`) across memory nodes.
 
-2. **System-2 Dynamic Planning Loop**:
-   * Intercepts pre-execution prompts to refine speculative hypotheses and eliminate hallucinated AST branches before token generation.
-   * Recirculates intermediate latent embeddings to achieve $\ge 20\%$ reasoning quality lift on complex multi-file tasks.
+2. **3-Tier Context Representation (L0 / L1 / L2)**:
+   * **L0 (Abstract)**: $\le 100\text{ tokens}$ ultra-compact discovery summary for fast routing.
+   * **L1 (Overview)**: $\le 2,000\text{ tokens}$ structural outline for architectural planning.
+   * **L2 (Full Detail)**: Unabridged node content loaded JIT on demand.
 
 3. **Strict Hardware Envelope Bounds**:
-   * CPU ONNX / PyTorch vector recurrence math executing on RAMDisk with **$0\text{ MB GPU VRAM}$** contention.
+   * Pure CPU / RAMDisk execution with **$0\text{ MB GPU VRAM}$** overhead.
 
 ---
 
 ## 2. Implementation Deliverables
 
-* `src/hermes_core/recirculation.py`: DeepMind Recirculation state tracker and recurrent prefill hook.
-* Integration into the Hermes planning and hypothesis loop.
+* `src/hermes_core/openviking_vfs.py`: OpenViking VFS database engine and 3-tier retrieval subsystem.
+* Integration into the Hermes context retrieval pipeline.
 
 ---
 
 ## 3. Dedicated Contract Test Suite
 
-Author `tests/harness_contracts/test_roadmap4_u52_recirculation.py` asserting:
-1. `test_recirculation_state_initialization()`: Validates recurrent state container and hidden activation buffers.
-2. `test_recurrent_prefill_iteration_pass()`: Validates $K$-pass dynamic recurrence step transformation.
-3. `test_recirculation_reasoning_lift()`: Asserts $\ge 20\%$ variance reduction / belief convergence across recurrent iterations.
-4. `test_recirculation_zero_gpu_vram()`: Enforces pure CPU RAMDisk execution ($0\text{ MB GPU VRAM}$).
+Author `tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py` asserting:
+1. `test_openviking_vfs_mount_and_navigation()`: Validates `viking://` URI routing, `ls`, `tree`, and `find`.
+2. `test_openviking_three_tier_resolution()`: Validates L0 ($\le 100\text{ tok}$), L1 ($\le 2,000\text{ tok}$), and L2 on-demand resolution.
+3. `test_openviking_directory_recursive_search()`: Validates subtree pruning and token-efficient search.
+4. `test_openviking_zero_gpu_vram()`: Enforces pure CPU RAMDisk execution ($0\text{ MB GPU VRAM}$).
 
 ---
 
@@ -46,11 +47,11 @@ Author `tests/harness_contracts/test_roadmap4_u52_recirculation.py` asserting:
 
 1. Execute and verify inside `ws-hermes`:
    ```bash
-   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u52_recirculation.py -v
+   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py -v
    distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
    ```
-2. Ensure **100% pass rate** across all 520 existing tests + new U52 tests.
+2. Ensure **100% pass rate** across all 528 existing tests + new U53 tests.
 3. Stage and commit changes cleanly in Chezmoi:
    ```bash
-   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/recirculation.py tests/harness_contracts/test_roadmap4_u52_recirculation.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U52 Google DeepMind Recirculation inference-time dynamical system-2 engine'"
+   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/openviking_vfs.py tests/harness_contracts/test_roadmap4_u53_openviking_vfs.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U53 OpenViking hierarchical VFS context database'"
    ```

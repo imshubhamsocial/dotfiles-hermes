@@ -1,2 +1,0 @@
-hermes_core
-hermes_harness

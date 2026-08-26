@@ -1,0 +1,4 @@
+[console_scripts]
+hermes = hermes_harness.cli:main
+hermes-exam = hermes_harness.exam:main
+hermes-replay = hermes_harness.replay_cli:main

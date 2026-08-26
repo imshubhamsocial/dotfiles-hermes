@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-harness"
+version = "1.0.0"
+description = "Hermes Agent OS Harness -- deterministic agent orchestration with trajectory intelligence"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Hermes Harness Team", email = "hermes@local.dev"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.30.0",
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0", "pytest-asyncio>=0.21.0", "playwright>=1.40.0", "black>=23.0.0", "ruff>=0.1.0"]
+benchmark = ["numpy>=1.24.0", "matplotlib>=3.7.0"]
+
+[project.entry-points.console_scripts]
+hermes = "hermes_harness.cli:main"
+hermes-exam = "hermes_harness.exam:main"
+hermes-replay = "hermes_harness.replay_cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nousresearch/hermes-agent"
+Repository = "https://github.com/nousresearch/hermes-agent"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hermes_harness*", "hermes_core*", "hermes_sdk*"]
+
+[tool.setuptools.package-data]
+hermes_core = ["types/**/*", "types/*"]

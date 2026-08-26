@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
 # Hardware-Optimized llama-server Launcher for Gemma-4-4B
 # GPU: NVIDIA RTX 3050 Laptop (6GB VRAM)
-# Features: Flash Attention ON, MTP Speculative Draft (3 tokens), 100% GPU Offload
 
-USER_SITE="$(python3.13 -m site --user-site 2>/dev/null || echo "$HOME/.local/lib/python3.13/site-packages")"
-export LD_LIBRARY_PATH="${USER_SITE}/nvidia/cu13/lib:${USER_SITE}/nvidia/cublas/lib:${USER_SITE}/nvidia/cuda_nvrtc/lib:${USER_SITE}/nvidia/nccl/lib:${LD_LIBRARY_PATH}"
+HERMES_ROOT="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
+SITE_PACKAGES="${HERMES_ROOT}/.local/lib/python3.13/site-packages"
+LLAMA_LIB_DIR="${HERMES_ROOT}/bin/llama"
 
-MODEL_MAIN="${HOME}/assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf"
-MODEL_DRAFT="${HOME}/assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf"
-SERVER_BIN="${HOME}/bin/llama/llama-server.bin"
+export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${LD_LIBRARY_PATH:-}"
+
+MODEL_MAIN="${HERMES_ROOT}/assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf"
+SERVER_BIN="${HERMES_ROOT}/bin/llama/llama-server.bin"
 
 exec "$SERVER_BIN" \
     --model "$MODEL_MAIN" \
-    --model-draft "$MODEL_DRAFT" \
-    --spec-draft-n-max 3 \
-    --spec-draft-n-min 1 \
     -ngl 99 \
-    --spec-draft-ngl 99 \
     --flash-attn on \
     --jinja \
     -c 65536 \
@@ -24,8 +21,6 @@ exec "$SERVER_BIN" \
     --cache-type-v q4_0 \
     --threads 6 \
     --threads-batch 6 \
-    --cpu-range 0-11 \
-    --cpu-strict 1 \
     --host 127.0.0.1 \
     --port 8138 \
     --metrics \

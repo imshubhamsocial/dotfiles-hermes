@@ -117,6 +117,11 @@ class TestCLIUnifierU37:
     # ── TaskDAG Planner Tests ───────────────────────────────────────────
     def test_taskdag_planner_creates_dag(self, cli, temp_workspace):
         """Planner decomposes goal into TaskDAG with dependencies."""
+        for f in Path("/dev/shm").glob("harness_brain.db*"):
+            try:
+                f.unlink()
+            except Exception:
+                pass
         dag = TaskDAGPlanner.decompose("Create a REST API with tests", temp_workspace)
         
         assert dag is not None

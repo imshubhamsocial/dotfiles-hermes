@@ -1,0 +1,11 @@
+name: reflective_learner_adapter
+version: 1.0.0
+description: "Google ADK 2.0 TaskDAG & Reflective Learning Loop Plugin. Ingests user feedback into SQLite WAL and distills behavioral invariants."
+author: "Hermes Agent OS"
+kind: standalone
+platforms:
+  - linux
+  - macos
+hooks:
+  - on_session_start
+  - on_session_end

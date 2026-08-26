@@ -148,44 +148,43 @@ exec "$SERVER_BIN" \
 
 ---
 
-## 5. Repository Structure & Source Code Layout
+## 5. Repository Structure & Canonical Upstream Layout
 
 ```
 .
-├── bin/                                # CLI executables, observer gates, and test runners
-│   ├── hermes_os_cli.py                # Unified autonomous TaskDAG agent CLI
-│   ├── observer_gate.py                # Pre-commit 6-point verification gate
+├── bin/                                # Standalone CLI executables, observer gates & daemon scripts
+│   ├── observer_gate.py                # Pre-commit 6-point AST verification gate
 │   ├── visual_arbiter.py               # Headless Playwright WebGL kinematic validator
-│   └── verify_harness_integrity.py     # Master capability audit & contract verification runner
+│   ├── verify_harness_integrity.py     # Master capability audit & contract verification runner
+│   └── start_server_daemon.sh          # Local llama-server daemon launcher
 │
-├── src/hermes_core/                    # Core Python library sources (installed via `pip install -e`)
-│   │                                   # (Self-contained active development sources reside at `Projects/Workspace/Personal/hermes/src/hermes_core`)
-│   ├── prompt_slotting.py              # U45: 4-slot modular system prompt engine (prefix-cache aligned)
-│   ├── context_compactor.py            # U45: Active context compactor gate (<4,000 token threshold)
-│   ├── openskills_manager.py           # U46: OpenSkills universal package manager & JIT lifecycle
-│   ├── opencode_mem.py                 # U47: FastEmbed CPU episodic vector memory & SQLite WAL
-│   ├── agent_os_standards.py           # U48: Two-tier global/project rule hierarchy
-│   ├── spec_first_planner.py           # U48: Spec-first plan.json generator and gate
-│   ├── task_graph.py                   # Layer 1: SQLite WAL TaskDAG engine
-│   ├── token_engine.py                 # Layer 3: Differential token compactor & prefix cache
-│   └── sandbox.py                      # Layer 2: Bubblewrap bwrap jail isolation
-│
-├── docs/                               # Professional documentation hierarchy
-│   ├── README.md                       # Documentation navigation index
-│   ├── roadmaps/                       # Architectural roadmaps (Active Roadmap 4 + Completed 1-3)
-│   ├── operations/                     # Operational guides, environment context & milestones
-│   ├── research/                       # In-depth technical specifications & failure taxonomy
-│   ├── knowledge/                      # Cognitive codebooks & orchestrator ledgers
-│   ├── migration/                      # Container migration history
-│   └── prompts/                        # System prompts & active milestone execution prompts
+├── ~/.hermes/                          # Canonical Upstream Hermes Runtime Substrate
+│   ├── config.yaml                     # Hardware configurations, context engine & plugin toggles
+│   ├── rules/                          # Two-tier immutable kernel & project behavioral standards
+│   ├── skills/                         # OpenSkills progressive context stubs (L0/L1/L2)
+│   ├── bin/                            # Self-contained runtime binaries & execution bridges
+│   ├── plugins/                        # Native standalone plugins & lifecycle adapters
+│   │   ├── observer_gate/              # Pre-commit AST syntax & phantom citation interceptor
+│   │   ├── recirculation_adapter/      # Google DeepMind Recirculation System-2 prefill (+20% lift)
+│   │   ├── reflective_learner_adapter/ # Google ADK 2.0 TaskDAG SQLite /learn feedback loop
+│   │   └── synergy_bus_adapter/        # Unified reactive execution & memory event bus
+│   └── hermes-agent/                   # Upstream Hermes Agent engine
+│       ├── agent/core/                 # 16 in-tree cognitive OS subsystems
+│       └── plugins/
+│           ├── context_engine/         # OpenViking 3-tier VFS (<4k token sliding compaction)
+│           └── memory/                 # OpenCode-Mem pure CPU ONNX BGE vector store
 │
 ├── tests/                              # Comprehensive test suites & contract spikes
-│   ├── harness_contracts/              # 403+ unit & contract tests verifying all capabilities
+│   ├── harness_contracts/              # 567 passed contract tests verifying all capabilities
 │   └── oracle_references/              # Gold-standard baseline benchmarks (Aquarium 3D, etc.)
 │
-├── packages.json                       # System package manifests for DNF, Python & Node CLI
-├── setup.sh                            # 100% turnkey bootstrap installer script
-└── pyproject.toml                      # Package configuration for hermes_core
+├── docs/                               # Professional documentation hierarchy
+│   ├── roadmaps/                       # Architectural roadmaps (Roadmaps 1-4 completed)
+│   ├── operations/                     # Operational guides & environment context
+│   └── prompts/                        # System prompts & Claude evaluation prompts
+│
+├── pyproject.toml                      # Package build configuration
+└── packages.json                       # System package manifests for DNF, Python & Node CLI
 ```
 
 ---

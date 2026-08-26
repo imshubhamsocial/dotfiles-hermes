@@ -123,10 +123,11 @@ chezmoi git -- commit -m "<type>(<scope>): <summary>"
 
 | Action | Primary Command | Validation / Expected Exit |
 | :--- | :--- | :--- |
-| **Run Hermes Agent Turn** | `hermes chat -q "<prompt>" --yolo` | Exit Code `0`, Clean Output |
-| **Run Unified TaskDAG Engine** | `python3.13 bin/hermes_os_cli.py -z "<prompt>" --yolo` | Dynamic DAG milestones completed |
+| **Run Hermes Agent Task (Oneshot)** | `hermes -z "<prompt>" --yolo` | Exit Code `0`, Clean Output |
+| **Run Interactive Hermes Chat** | `hermes` | Live interactive TUI / REPL |
+| **Run Live Validation with Telemetry** | `hermes -z "<prompt>" --yolo --usage-file /dev/shm/usage.json` | Exit Code `0`, Valid JSON telemetry |
 | **Run Pre-Commit Observer Gate** | `python3.13 bin/observer_gate.py <file>` | `APPROVED: All 6 gates passed` |
-| **Run Full Contract Test Suite** | `python3.13 -m pytest tests/harness_contracts/ -v` | `309 passed` in $\approx 20\text{s}$ |
+| **Run Full Contract Test Suite** | `python3.13 -m pytest tests/harness_contracts/ -q` | `511 passed` in $\approx 25\text{s}$ |
 | **Run Master Self-Audit** | `python3.13 bin/verify_harness_integrity.py` | `APPROVED: 30/30 capabilities` |
 | **Inspect GPU VRAM Status** | `nvidia-smi` | $\le 4,812\text{ MiB}$ Memory Usage |
 | **Inspect Chezmoi State** | `chezmoi git -- status` | Working tree clean |

@@ -1,49 +1,49 @@
-# 03. Active Milestone Prompt: U48 (Agent-OS Two-Tier Standards & Spec-First Planner)
+# 03. Active Milestone Prompt: U49 (COG Second Brain Markdown Vault & Closed-Loop Verifier)
 
-> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U48`  
+> **Current Execution Target**: Milestone 4 Phase 1 — Specification `U49`  
 > **Authoritative Roadmap**: `docs/roadmaps/active/roadmap4_frontier_cognitive_os.md`  
-> **Research Archive**: `docs/roadmaps/active/archive/04_agent_os_architecture.md`  
+> **Research Archive**: `docs/roadmaps/active/archive/05_cog_second_brain.md` & `12_google_agent_architecture_and_workflows.md`  
 > **Hardware Context**: `docs/prompts/01_environment_and_hardware.md`  
 > **Coding & Invariant Rules**: `docs/prompts/02_rules_conventions_and_standards.md`
 
 ---
 
-## 1. Milestone Objective (`U48`)
+## 1. Milestone Objective (`U49`)
 
-Implement the **Agent-OS Two-Tier Standards & Spec-First Planning Subsystem** (`src/hermes_core/agent_os_standards.py` / `src/hermes_core/spec_first_planner.py`):
+Implement the **COG Second Brain Markdown Vault & Closed-Loop Dual-Agent Verifier Subsystem** (`src/hermes_core/cog_vault.py` / `src/hermes_core/cog_verifier.py`):
 
-1. **Two-Tier Hierarchical Standards Engine (`src/hermes_core/agent_os_standards.py`)**:
-   * **Global Standards (`~/.hermes/rules/` or `/var/home/imshubhamsocial/.hermes/rules/`)**: Immutable core rules (Btrfs NOCOW, RTX 3050 hardware ceiling, zero-sorry tests, relative paths).
-   * **Project Standards (`.hermes/rules/` or repo-local rules)**: Project-specific architectural conventions, stack requirements, and test commands.
-   * **Deterministic Precedence**: Project rules override defaults, but can NEVER violate Global hardware or safety constraints.
+1. **Human-Readable Markdown Vault (`src/hermes_core/cog_vault.py`)**:
+   * Pure Markdown-backed knowledge store under `.hermes/knowledge/` and `docs/knowledge/`.
+   * Auto-formats and organizes persistent architectural insights, decision records (ADRs), module contracts, and verification evidence into clean Markdown with YAML frontmatter.
+   * Eliminates opaque binary lock-in while providing sub-millisecond retrieval.
 
-2. **Pre-Implementation `plan.json` Spec Gate (`src/hermes_core/spec_first_planner.py`)**:
-   * Enforce that before modifying any file, the agent generates or updates a structured `.hermes/plan.json` file.
-   * Schema requires: `task_id`, `goal`, `steps` (with `id`, `description`, `status`), `constraints`, `affected_files`.
-   * The active plan state is verified and formatted into a machine-readable anchor for Slot 3 / User turns.
+2. **Dual-Agent Closed-Loop Audit (`src/hermes_core/cog_verifier.py`)**:
+   * Implements an asymmetric **Worker $\leftrightarrow$ Verifier** execution protocol:
+     * **Worker Stage**: Drafts code modifications according to active `plan.json`.
+     * **Verifier Stage**: Independent verification agent inspects AST syntax, executes contract test suites, asserts $0\text{ MB GPU VRAM}$ overhead, and records a structured Markdown verification receipt into `.hermes/knowledge/evidence/`.
+   * A task cannot complete without a cryptographic/hash-verified `VERIFIED` verdict receipt from the Verifier.
 
-3. **Strict Invariant Verification**:
-   * Fast load times ($<5\text{ ms}$ parsing).
+3. **Strict Hardware Envelope Bounds**:
    * Pure CPU / RAMDisk execution ($0\text{ MB GPU VRAM}$).
 
 ---
 
 ## 2. Implementation Deliverables
 
-* `src/hermes_core/agent_os_standards.py`: Two-tier hierarchical rule loader with inheritance and precedence rules.
-* `src/hermes_core/spec_first_planner.py`: Spec-first planner enforcing `plan.json` generation before execution.
-* Integration into Prompt Slotting (`src/hermes_core/prompt_slotting.py`) to inject combined two-tier rules into Slot 3.
+* `src/hermes_core/cog_vault.py`: Markdown knowledge vault manager with frontmatter indexing.
+* `src/hermes_core/cog_verifier.py`: Closed-loop dual-agent verifier with receipt generation.
+* Integration into the verification lifecycle.
 
 ---
 
 ## 3. Dedicated Contract Test Suite
 
-Author `tests/harness_contracts/test_roadmap4_u48_agent_os_specs.py` asserting:
-1. `test_two_tier_rules_inheritance_and_precedence()`: Validates project rules take precedence over defaults while respecting immutable global safety constraints.
-2. `test_spec_first_planner_plan_json_schema()`: Validates deterministic generation and JSON schema compliance of `.hermes/plan.json`.
-3. `test_pre_implementation_plan_gate()`: Validates that code edits are gated behind an active valid `plan.json`.
-4. `test_rules_token_budget_in_slot3()`: Validates that compiled two-tier rules stay within $<300\text{ tokens}$ in Slot 3.
-5. `test_agent_os_zero_gpu_vram()`: Validates $0\text{ MB GPU VRAM}$ overhead.
+Author `tests/harness_contracts/test_roadmap4_u49_cog_verifier.py` asserting:
+1. `test_cog_markdown_vault_storage_and_indexing()`: Validates Markdown vault read/write/indexing with YAML frontmatter.
+2. `test_dual_agent_worker_verifier_protocol()`: Validates that code edits require Verifier receipt before closing task.
+3. `test_verifier_evidence_receipt_generation()`: Validates deterministic formatting of Markdown verification receipts.
+4. `test_verification_failure_rejects_and_reverts()`: Validates that test failures trigger rejection and prevent commit.
+5. `test_cog_vault_zero_gpu_vram()`: Validates $0\text{ MB GPU VRAM}$ overhead.
 
 ---
 
@@ -51,11 +51,11 @@ Author `tests/harness_contracts/test_roadmap4_u48_agent_os_specs.py` asserting:
 
 1. Execute and verify inside `ws-hermes`:
    ```bash
-   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u48_agent_os_specs.py -v
+   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u49_cog_verifier.py -v
    distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
    ```
-2. Ensure **100% pass rate** across all 403 existing tests + new U48 tests.
+2. Ensure **100% pass rate** across all 445 existing tests + new U49 tests.
 3. Stage and commit changes cleanly in Chezmoi:
    ```bash
-   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/agent_os_standards.py src/hermes_core/spec_first_planner.py tests/harness_contracts/test_roadmap4_u48_agent_os_specs.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U48 Agent-OS two-tier standards and spec-first planner'"
+   distrobox enter ws-hermes -- bash -c "chezmoi add src/hermes_core/cog_vault.py src/hermes_core/cog_verifier.py tests/harness_contracts/test_roadmap4_u49_cog_verifier.py docs/prompts/03_active_milestone_prompt.md && chezmoi git -- add -A && chezmoi git -- commit -m 'feat(roadmap4): implement U49 COG second brain markdown vault and closed-loop verifier'"
    ```

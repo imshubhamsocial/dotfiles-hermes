@@ -148,7 +148,7 @@ exec "$SERVER_BIN" \
 
 ---
 
-## 5. Repository Structure
+## 5. Repository Structure & Source Code Layout
 
 ```
 .
@@ -158,17 +158,29 @@ exec "$SERVER_BIN" \
 │   ├── visual_arbiter.py               # Headless Playwright WebGL kinematic validator
 │   └── verify_harness_integrity.py     # Master capability audit & contract verification runner
 │
+├── src/hermes_core/                    # Core Python library sources (installed via `pip install -e`)
+│   │                                   # (Note: Active development sources reside at `Projects/Workspace/Personal/LLMs/Cluster/src/hermes_core`)
+│   ├── prompt_slotting.py              # U45: 4-slot modular system prompt engine (prefix-cache aligned)
+│   ├── context_compactor.py            # U45: Active context compactor gate (<4,000 token threshold)
+│   ├── openskills_manager.py           # U46: OpenSkills universal package manager & JIT lifecycle
+│   ├── opencode_mem.py                 # U47: FastEmbed CPU episodic vector memory & SQLite WAL
+│   ├── agent_os_standards.py           # U48: Two-tier global/project rule hierarchy
+│   ├── spec_first_planner.py           # U48: Spec-first plan.json generator and gate
+│   ├── task_graph.py                   # Layer 1: SQLite WAL TaskDAG engine
+│   ├── token_engine.py                 # Layer 3: Differential token compactor & prefix cache
+│   └── sandbox.py                      # Layer 2: Bubblewrap bwrap jail isolation
+│
 ├── docs/                               # Professional documentation hierarchy
 │   ├── README.md                       # Documentation navigation index
-│   ├── roadmaps/                       # Architectural roadmaps (Roadmap 1 to 4)
+│   ├── roadmaps/                       # Architectural roadmaps (Active Roadmap 4 + Completed 1-3)
 │   ├── operations/                     # Operational guides, environment context & milestones
 │   ├── research/                       # In-depth technical specifications & failure taxonomy
 │   ├── knowledge/                      # Cognitive codebooks & orchestrator ledgers
 │   ├── migration/                      # Container migration history
-│   └── prompts/                        # System prompts & persona definitions
+│   └── prompts/                        # System prompts & active milestone execution prompts
 │
 ├── tests/                              # Comprehensive test suites & contract spikes
-│   ├── harness_contracts/              # 309+ unit & contract tests verifying all capabilities
+│   ├── harness_contracts/              # 403+ unit & contract tests verifying all capabilities
 │   └── oracle_references/              # Gold-standard baseline benchmarks (Aquarium 3D, etc.)
 │
 ├── packages.json                       # System package manifests for DNF, Python & Node CLI

@@ -7,7 +7,7 @@ echo 'max_parallel_downloads=20' | sudo tee -a /etc/dnf/dnf.conf > /dev/null
 echo "==> Installing base tools & compilers..."
 sudo dnf install -y gcc gcc-c++ make cmake clang ripgrep fd-find fzf tree htop nvtop \
     bubblewrap e2fsprogs nodejs22 clang-tools-extra gdb valgrind \
-    python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs chezmoi jq curl wget
+    python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs chezmoi jq curl wget ksshaskpass
 
 echo "==> Ensuring pip toolchain & build tools..."
 python3.13 -m ensurepip --upgrade

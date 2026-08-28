@@ -193,8 +193,15 @@ The harness is engineered to be 100% portable across machines (Fedora Workstatio
 ### Fresh Machine Bootstrap in 2 Commands:
 
 ```bash
+# Preliminary bootstrap packages (on a fresh PC)
+sudo dnf install -y git chezmoi git-lfs ksshaskpass
+
 # 1. Initialize and apply dotfiles & harness configurations
-chezmoi init --apply https://github.com/imshubhamsocial/dotfiles-hermes.git
+# Recommended (uses SSH key with zero prompt timeout):
+chezmoi init --apply git@github.com:imshubhamsocial/dotfiles-hermes.git
+
+# Or via HTTPS (requires GitHub credentials / PAT):
+# chezmoi init --apply https://github.com/imshubhamsocial/dotfiles-hermes.git
 
 # 2. Run automated turnkey installer (DNF packages, Python toolchains, Playwright, Node CLIs, model download, SearXNG autostart)
 bash setup.sh

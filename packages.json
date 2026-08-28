@@ -25,6 +25,7 @@
     "git-lfs",
     "htop",
     "jq",
+    "ksshaskpass",
     "libX11",
     "libXcomposite",
     "libXdamage",

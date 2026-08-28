@@ -17,7 +17,8 @@ import json
 import urllib.request
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LLAMA_BIN_DIR = os.path.join(ROOT_DIR, ".hermes", "bin", "llama")
+LLAMA_BIN_DIR = os.path.expanduser("~/.local/bin")
+LLAMA_LIB_DIR = os.path.expanduser("~/.local/lib")
 TEST_PORT = 8138
 HF_HUB_DIR = os.environ.get("HF_HUB_DIR", os.path.expanduser("~/.cache/huggingface/hub"))
 MODEL_PATH = os.path.join(HF_HUB_DIR, "models--bartowski--gemma-4-E4B-it-GGUF", "snapshots", "main", "gemma-4-E4B-it-Q4_K_M.gguf")
@@ -27,13 +28,13 @@ def log(msg):
     print(f"[ARBITER] {msg}")
 
 def check_binaries():
-    log("Checking compiled binaries & shared libraries...")
+    log("Checking compiled binaries & shared libraries in standard ~/.local...")
     server_bin = os.path.join(LLAMA_BIN_DIR, "llama-server")
-    ppl_bin = os.path.join(LLAMA_BIN_DIR, "llama-perplexity")
-    cuda_lib = os.path.join(LLAMA_BIN_DIR, "libggml-cuda.so")
+    server_raw = os.path.join(LLAMA_BIN_DIR, "llama-server.bin")
+    cuda_lib = os.path.join(LLAMA_LIB_DIR, "libggml-cuda.so")
     
-    assert os.path.exists(server_bin), f"Missing binary: {server_bin}"
-    assert os.path.exists(ppl_bin), f"Missing binary: {ppl_bin}"
+    assert os.path.exists(server_bin), f"Missing launcher: {server_bin}"
+    assert os.path.exists(server_raw), f"Missing binary: {server_raw}"
     assert os.path.exists(cuda_lib), f"Missing shared library: {cuda_lib}"
     log("Binary and CUDA shared library checks: PASSED")
 

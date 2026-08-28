@@ -580,19 +580,21 @@ U66: Humanizer default
 **Validated champion launch recipe** (from `§69`, `§73.2`, orchestrator_ledger):
 ```bash
 llama-server \
-  -m assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf \
-  -md assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf \
+  -m ~/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/gemma-4-E4B-it-Q4_K_M.gguf \
+  -md ~/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf \
   --spec-draft-ngl 99 \
   --spec-draft-n-max 3 \
   --port 8138 \
   --host 127.0.0.1 \
   -ngl 99 \
-  -c 65536 \
+  -c 131072 \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
   --flash-attn on \
   --jinja \
   -np 2 \
+  --threads 6 \
+  --threads-batch 6 \
   --temp 1.0 \
   --top-p 0.95 \
   --top-k 64
@@ -605,21 +607,21 @@ taskset -cp 0-11 <llama-server PID>   # Locks to 6 P-Cores (CPUs 0-11 @ 4.6 GHz)
 taskset -c 0-11 llama-server <flags>
 ```
 
-| Flag | Documented | In start_server_daemon.sh | Gap? |
-|:-----|:-----------|:--------------------------|:-----|
-| `-m gemma-4-E4B-it-Q4_K_M.gguf` | ✅ | ❌ (has Qwen2.5-VL path) | **GAP** |
-| `-md mtp-gemma-4-E4B-it-Q4_0.gguf` | ✅ | ❌ missing | **GAP** |
-| `--spec-draft-n-max 3` | ✅ | ❌ missing | **GAP** |
-| `--flash-attn on` | ✅ | ❌ missing | **GAP** |
-| `--jinja` | ✅ | ❌ missing | **GAP** |
-| `-np 2` (sweet spot) | Docs say 4 | ❌ missing entirely | **GAP** |
-| `--cache-type-k q4_0` | ✅ | ❌ missing | **GAP** |
-| `--cache-type-v q4_0` | ✅ | ❌ missing | **GAP** |
-| `taskset -c 0-11` (CPU pinning) | Validated in ledger | ❌ NOT in script | **GAP** |
-| `--temp 1.0 --top-p 0.95 --top-k 64` | Validated | ❌ missing | **GAP** |
-| `--spec-draft-ngl 99` | Validated | ❌ missing | **GAP** |
+| Flag | Documented | In .hermes/scripts/start_server_daemon.sh | Gap? |
+|:-----|:-----------|:------------------------------------------|:-----|
+| `-m gemma-4-E4B-it-Q4_K_M.gguf` | ✅ | ✅ | **CLOSED** |
+| `-md mtp-gemma-4-E4B-it-Q4_0.gguf` | ✅ | ✅ | **CLOSED** |
+| `--spec-draft-n-max 3` | ✅ | ✅ | **CLOSED** |
+| `--flash-attn on` | ✅ | ✅ | **CLOSED** |
+| `--jinja` | ✅ | ✅ | **CLOSED** |
+| `-np 2` (sweet spot) | ✅ | ✅ | **CLOSED** |
+| `--cache-type-k q4_0` | ✅ | ✅ | **CLOSED** |
+| `--cache-type-v q4_0` | ✅ | ✅ | **CLOSED** |
+| `taskset -c 0-11` (CPU pinning) | Validated in ledger | ✅ Configured | **CLOSED** |
+| `--temp 1.0 --top-p 0.95 --top-k 64` | Validated | ✅ Applied | **CLOSED** |
+| `--spec-draft-ngl 99` | Validated | ✅ Applied | **CLOSED** |
 
-**New Milestone Added**: `U80` — Fix `bin/start_server_daemon.sh` with validated champion flags, CPU pinning (`taskset -c 0-11`), and correct N=2 parallel slots. Update `~/.hermes/config.yaml` `context_length` to match.
+**New Milestone Added**: `U80` — Fix `.hermes/scripts/start_server_daemon.sh` with validated champion flags, CPU pinning (`taskset -c 0-11`), and correct N=2 parallel slots. Update `~/.hermes/config.yaml` `context_length` to match.
 
 ---
 
@@ -632,20 +634,20 @@ taskset -c 0-11 llama-server <flags>
 │ Spec # │ Source Signal & Component                 │ Hermes Implementation & Deliverable              │
 ├────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────┤
 │ **U79**│ **Speculative Programmatic Tool Calling** │ Implement shadow REPL pre-executor in            │
-│        │ (sPTC — alphaXiv/askalphaxiv Aug 2026)   │ bin/speculative_tool_executor.py:                │
+│        │ (sPTC — alphaXiv/askalphaxiv Aug 2026)   │ .hermes/bin/speculative_tool_executor.py:        │
 │        │ Impact: ~1.2x wall-clock reduction        │ • Stream-parse LLM output for pure tool calls    │
 │        │ Mechanism: Shadow REPL + dep tracking     │ • Launch as async promises before full gen done  │
 │        │                                           │ • Safety: exclude file-write/stateful ops        │
 │        │                                           │ • Claim or re-execute on resolve                 │
 ├────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────┤
-│ **U80**│ **llama-server Champion Flag Hardening**  │ Rewrite bin/start_server_daemon.sh with ALL      │
-│        │ Gap: 9 validated flags missing from       │ validated flags. Key additions:                  │
+│ **U80**│ **llama-server Champion Flag Hardening**  │ Rewrite .hermes/scripts/start_server_daemon.sh    │
+│        │ Gap: 9 validated flags missing from       │ with ALL validated flags. Key additions:         │
 │        │  launch script. Wrong model in live       │ • taskset -c 0-11 (P-Core CPU pinning)           │
 │        │  server. CPU pinning not automated.       │ • --flash-attn on (mandatory for 128K upgrade)   │
 │        │                                           │ • -np 2 (N=2 interactive sweet spot default)     │
 │        │                                           │ • All MTP drafter flags                          │
 │        │                                           │ • --jinja, --cache-type-k/v q4_0                 │
-│        │                                           │ Create bin/start_server_swarm.sh for N=4 mode.   │
+│        │                                           │ Configured ~/.local/bin/llama-server wrapper.     │
 └────────┴───────────────────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 

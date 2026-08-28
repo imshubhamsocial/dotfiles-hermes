@@ -89,5 +89,5 @@ When writing code for domain-specific frameworks, invoke `skills` or query the c
 
 Before claiming completion on any turn:
 1. **Syntax Gate**: Verify that JavaScript imports use `<script type="module">`, Python passes `ruff check`, and C++ compiles with `gcc -Wall`.
-2. **Observer Gate**: Run `python3.13 bin/observer_gate.py <file>` to certify AST cleanliness.
+2. **Observer Gate**: Run `python3.13 .hermes/bin/observer_gate.py <file>` to certify AST cleanliness.
 3. **Evidence-Based Reporting**: State actions, diagnostics, and test metrics clearly. Never assert code works without showing raw command output and gate verdicts.

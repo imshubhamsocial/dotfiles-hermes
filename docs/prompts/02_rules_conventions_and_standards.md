@@ -10,9 +10,9 @@
    * All task execution, live validations, CI pipelines, and agent runs MUST execute through the native upstream binary `hermes -z "<prompt>" --yolo`.
    * **Zero Custom Wrappers**: Never create sidecar runner scripts (e.g. `hermes_os_cli.py`) to bypass upstream behavior or make tests artificially pass. If an upstream run fails, diagnose and fix the root cause in the harness, tool schemas, or system prompts directly.
 
-2. **Full 64K Context Window Guarantee**:
-   * The local inference host (`llama-server` on `:8138`) MUST always operate with full `-c 65536` and `--cache-type-k q4_0 --cache-type-v q4_0` enabled.
-   * Never reduce context lengths based on assumptions; 64k context fits safely in $\approx 3,745\text{ MiB}$ VRAM.
+2. **Full Context Window & Dual-Slot Guarantee**:
+   * The local inference host (`llama-server` on `:8138`) operates with `-c 131072 -np 2` (65,536 context per slot) and `--cache-type-k q4_0 --cache-type-v q4_0` enabled.
+   * Total context across both slots fits safely in $\approx 4,234\text{ MiB}$ VRAM.
 
 3. **Zero GPU VRAM Contention for Semantic Search & Tools**:
    * All embedding models (`BAAI/bge-small-en-v1.5` via FastEmbed/ONNX), Tree-sitter AST queries, and schema validators MUST run exclusively on **host CPU / RAMDisk**.
@@ -40,8 +40,8 @@
    * Working tree in Chezmoi should remain clean after completing milestones.
 
 9. **Mandatory 4-Step Milestone Verification Standard**:
-   * For every single completed milestone in Roadmap 4, execution MUST follow this strict 4-step verification lifecycle:
-     1. **Module Implementation**: Write the core subsystem in `src/hermes_core/<module>.py`.
+   * For every single completed milestone, execution MUST follow this strict 4-step verification lifecycle:
+     1. **Module Implementation**: Write the core subsystem in `.hermes/src/hermes_core/<module>.py`.
      2. **Contract Test Suite**: Author `tests/harness_contracts/test_roadmap4_<spec>.py` with 100% assertions.
      3. **Pytest Regression Pass**: Execute `python3.13 -m pytest tests/harness_contracts/` to ensure zero regressions across all existing tests.
      4. **End-to-End Native Upstream Hermes Prompt & Observation**: Execute a live task prompt directly through `hermes -z "<prompt>" --yolo`, observing the agent's real-time interaction with the new capability and recording telemetry.

@@ -110,31 +110,18 @@ for filename, desc in models:
         print(f'✓ {filename} already present in standard cache.')
 "
 
-echo "==> Ensuring upstream standard ~/.hermes/bin runtime..."
-mkdir -p "$HOME/.hermes/bin"
-if [[ -d "$SCRIPT_DIR/.hermes/bin/llama" && "$SCRIPT_DIR/.hermes/bin/llama" != "$HOME/.hermes/bin/llama" ]]; then
-    cp -rn "$SCRIPT_DIR/.hermes/bin/llama" "$HOME/.hermes/bin/" 2>/dev/null || true
-fi
-chmod +x "$HOME/.hermes/bin/llama/llama-server.bin" 2>/dev/null || true
-chmod +x "$SCRIPT_DIR/.hermes/bin/llama/llama-server.bin" 2>/dev/null || true
-
 echo "==> Setting up production hardware-optimized llama-server wrapper..."
+chmod +x "$HOME/.local/bin/llama-server.bin" 2>/dev/null || true
+
 cat << 'LLAMA' > "$HOME/.local/bin/llama-server"
 #!/usr/bin/env bash
 # Hardware-Optimized llama-server Launcher for Gemma-4-E4B-it
 # Target GPU: NVIDIA RTX 3050 Laptop (6GB VRAM, <=4,812 MiB safety ceiling)
 set -euo pipefail
 
-HERMES_ROOT="${HERMES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 SITE_PACKAGES="$(python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.13/site-packages")"
-
-if [[ -x "${HOME}/.hermes/bin/llama/llama-server.bin" ]]; then
-    LLAMA_LIB_DIR="${HOME}/.hermes/bin/llama"
-    SERVER_BIN="${HOME}/.hermes/bin/llama/llama-server.bin"
-else
-    LLAMA_LIB_DIR="${HERMES_ROOT}/.hermes/bin/llama"
-    SERVER_BIN="${HERMES_ROOT}/.hermes/bin/llama/llama-server.bin"
-fi
+LLAMA_LIB_DIR="${HOME}/.local/lib"
+SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
 
 export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
 

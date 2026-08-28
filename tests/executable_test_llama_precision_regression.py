@@ -16,10 +16,10 @@ import time
 import json
 import urllib.request
 
-ROOT_DIR = "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LLAMA_BIN_DIR = os.path.join(ROOT_DIR, ".hermes", "bin", "llama")
 TEST_PORT = 8138
-HF_HUB_DIR = os.environ.get("HF_HUB_DIR", "/var/home/imshubhamsocial/.cache/huggingface/hub")
+HF_HUB_DIR = os.environ.get("HF_HUB_DIR", os.path.expanduser("~/.cache/huggingface/hub"))
 MODEL_PATH = os.path.join(HF_HUB_DIR, "models--bartowski--gemma-4-E4B-it-GGUF", "snapshots", "main", "gemma-4-E4B-it-Q4_K_M.gguf")
 DRAFT_PATH = os.path.join(HF_HUB_DIR, "models--bartowski--gemma-4-E4B-it-GGUF", "snapshots", "main", "mtp-gemma-4-E4B-it-Q4_0.gguf")
 

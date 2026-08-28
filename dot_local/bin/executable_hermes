@@ -1,6 +1,5 @@
-#!/usr/bin/python3.13
-import sys
-from hermes_harness.cli import main
-if __name__ == '__main__':
-    sys.argv[0] = sys.argv[0].removesuffix('.exe')
-    sys.exit(main())
+#!/usr/bin/env bash
+unset PYTHONPATH
+unset PYTHONHOME
+export PATH="$HOME/.local/bin:$PATH"
+exec python3.13 -m hermes_cli.main "$@"

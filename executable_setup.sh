@@ -110,6 +110,9 @@ for filename, desc in models:
         print(f'✓ {filename} already present in standard cache.')
 "
 
+echo "==> Ensuring execution permissions on patched llama runtime..."
+chmod +x "$SCRIPT_DIR/.hermes/bin/llama/llama-server.bin" 2>/dev/null || true
+
 echo "==> Setting up production hardware-optimized llama-server wrapper..."
 cat << 'LLAMA' > "$HOME/.local/bin/llama-server"
 #!/usr/bin/env bash

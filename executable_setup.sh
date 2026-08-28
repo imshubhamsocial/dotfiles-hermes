@@ -20,6 +20,7 @@ python3.13 -m pip install --break-system-packages \
     python-dotenv prompt_toolkit click requests aiohttp websockets \
     uvloop watchfiles cffi cryptography croniter psutil pillow pathspec ruamel.yaml uv \
     fastembed fastmcp mcp mcp-agent-gate mnemory chromadb qdrant-client \
+    tree-sitter==0.26.0 tree-sitter-language-pack==1.15.8 \
     nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13
 
 echo "==> Installing Playwright Chromium browser & headless Linux runtime libs..."
@@ -100,19 +101,28 @@ target_dir = os.path.join(hub_dir, 'models--bartowski--gemma-4-E4B-it-GGUF', 'sn
 os.makedirs(target_dir, exist_ok=True)
 
 models = [
-    ('gemma-4-E4B-it-Q4_K_M.gguf', 'champion Gemma-4 Q4_K_M model'),
-    ('mtp-gemma-4-E4B-it-Q4_0.gguf', 'speculative MTP Q4_0 draft model')
+    ('gemma-4-E4B-it-Q4_K_M.gguf', 'champion Gemma-4 Q4_K_M model', ['unsloth/gemma-4-E4B-it-GGUF', 'bartowski/gemma-4-E4B-it-GGUF']),
+    ('mtp-gemma-4-E4B-it-Q4_0.gguf', 'speculative MTP Q4_0 draft model', ['ggml-org/gemma-4-E4B-it-GGUF', 'bartowski/gemma-4-E4B-it-GGUF'])
 ]
 
-for filename, desc in models:
+for filename, desc, repo_candidates in models:
     dest = os.path.join(target_dir, filename)
     if not os.path.exists(dest):
         print(f'==> Downloading {desc} to standard cache...')
-        hf_hub_download(
-            repo_id='bartowski/gemma-4-E4B-it-GGUF',
-            filename=filename,
-            local_dir=target_dir
-        )
+        downloaded = False
+        for repo_id in repo_candidates:
+            try:
+                hf_hub_download(
+                    repo_id=repo_id,
+                    filename=filename,
+                    local_dir=target_dir
+                )
+                downloaded = True
+                break
+            except Exception as e:
+                print(f'   [INFO] Could not fetch from {repo_id}: {e}. Trying fallback...')
+        if not downloaded:
+            print(f'   [WARN] Could not automatically download {filename}. Place it manually in {target_dir}')
     else:
         print(f'✓ {filename} already present in standard cache.')
 "

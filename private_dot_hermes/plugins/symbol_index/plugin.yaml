@@ -1,0 +1,7 @@
+name: symbol_index
+version: "1.0.0"
+description: "Codebase Memory AST Indexer & Symbol Graph MCP Server. Enables fast lexical and AST-level symbol lookups."
+author: "Hermes Agent OS"
+tools:
+  - symbol_search
+  - codebase_graph

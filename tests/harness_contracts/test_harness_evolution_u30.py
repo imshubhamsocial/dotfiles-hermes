@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / ".hermes" / "src"))
 
 import pytest
 
@@ -99,3 +99,51 @@ def test_genetic_evolution_loop_and_pareto():
         loaded = json.loads(saved.read_text())
         assert "max_retries_per_node" in loaded
         assert "context_token_ceiling" in loaded
+
+
+def test_web_grounded_architectural_miner_and_full_system_evolution():
+    from hermes_core.harness_evolution import (
+        ArchitecturalHarnessState,
+        ToolRoutingPolicy,
+        WebGroundedArchitecturalMiner,
+        create_full_system_evolution_engine,
+    )
+
+    with tempfile.TemporaryDirectory() as td:
+        tpath = Path(td) / "trajectory_with_errors.jsonl"
+        events = [
+            {"event": "turn", "role": "coder", "prompt_tokens": 300},
+            {"event": "gate", "gate_status": "REJECT", "detail": "Script #1 SyntaxError: Cannot use import statement outside a module"},
+            {"event": "tool_result", "result_ok": False},
+        ]
+        tpath.write_text("\n".join(json.dumps(e) for e in events) + "\n")
+
+        # 1. Test Miner discovers recurring failure constraints
+        miner = WebGroundedArchitecturalMiner()
+        constraints = miner.mine_and_research_fixes([tpath])
+        assert len(constraints) >= 1
+        assert any("script type=\"module\"" in c for c in constraints)
+
+        # 2. Test Full-System Architectural Evolution Engine
+        full_engine = create_full_system_evolution_engine(
+            historical_trajectories=[tpath],
+            seed=42,
+        )
+        evolved_state, fitness = full_engine.evolve_architecture(
+            generations=3,
+            population_size=6,
+        )
+
+        assert isinstance(evolved_state, ArchitecturalHarnessState)
+        assert len(evolved_state.negative_constraints) >= 1
+        assert "syntax_gate" in evolved_state.active_ast_rules
+        assert evolved_state.execution_policy.enable_ast_gate is True
+
+        # 3. Test Export
+        out_arch = Path(td) / "evolved_architecture.json"
+        saved = full_engine.export_architecture(evolved_state, out_arch)
+        assert saved.exists()
+        reloaded = json.loads(saved.read_text())
+        assert "execution_policy" in reloaded
+        assert "tool_routing" in reloaded
+        assert "negative_constraints" in reloaded

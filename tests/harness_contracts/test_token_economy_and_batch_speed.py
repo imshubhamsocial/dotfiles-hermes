@@ -31,10 +31,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / ".hermes" / "src"))
 
 try:
-    from bin.extract_code_mode import extract_code_validated  # noqa: E402
+    from hermes_core.extract_code_mode import extract_code_validated  # noqa: E402
 except ImportError:
     from extract_code_mode import extract_code_validated  # noqa: E402
 from hermes_core.presets import (  # noqa: E402
@@ -77,7 +77,7 @@ def load_hermes_sdk():
 
 
 def load_observer_gate():
-    return _load("observer_gate_mod", ROOT / "bin" / "observer_gate.py")
+    return _load("observer_gate_mod", ROOT / ".hermes" / "bin" / "observer_gate.py")
 
 
 # ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ class TestU1CodeModeSDK:
         sdk.apply_patch(rel, "<h1>probe</h1>", "<h1>patched-probe</h1>")
         verdict = sdk.run_observer_gate(rel)
         assert verdict["passed"] is True
-        # Prove execution lands INSIDE the ws-ai distrobox container toolchain.
-        res = sdk.run_test('test "$CONTAINER_ID" = "ws-ai" && echo container-ok')
+        # Prove execution lands INSIDE the ws-hermes distrobox container toolchain.
+        res = sdk.run_test('test "$CONTAINER_ID" = "ws-hermes" && echo container-ok')
         assert res["passed"] is True and "container-ok" in res["output"]
 
         elapsed = time.time() - t0

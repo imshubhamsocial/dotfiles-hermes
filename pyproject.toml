@@ -33,7 +33,7 @@ Homepage = "https://github.com/nousresearch/hermes-agent"
 Repository = "https://github.com/nousresearch/hermes-agent"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [".hermes/src"]
 include = ["hermes_harness*", "hermes_core*", "hermes_sdk*"]
 
 [tool.setuptools.package-data]

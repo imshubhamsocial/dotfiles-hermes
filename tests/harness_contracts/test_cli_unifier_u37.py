@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / ".hermes" / "src"))
 
 from hermes_core.cli import (
     HermesCLI, CapabilitySelector, TaskDAGPlanner, Phase,
@@ -302,7 +302,7 @@ def process():
         """bin/hermes_os_cli.py shows help."""
         root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, str(root / "bin/hermes_os_cli.py"), "--help"],
+            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "--help"],
             capture_output=True, text=True,
             cwd=str(root)
         )
@@ -316,7 +316,7 @@ def process():
         root = Path(__file__).resolve().parents[2]
         
         result = subprocess.run(
-            [sys.executable, str(root / "bin/hermes_os_cli.py"), "Create", "a", "test", "file"],
+            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "Create", "a", "test", "file"],
             capture_output=True, text=True, timeout=60,
             cwd=str(root),
             env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
@@ -331,7 +331,7 @@ def process():
         root = Path(__file__).resolve().parents[2]
         
         result = subprocess.run(
-            [sys.executable, str(root / "bin/hermes_os_cli.py"), "--yolo", "-z", "Create", "a", "test", "file"],
+            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "--yolo", "-z", "Create", "a", "test", "file"],
             capture_output=True, text=True, timeout=60,
             cwd=str(root),
             env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
@@ -343,7 +343,7 @@ def process():
         """bin/hermes_os_cli.py doctor subcommand."""
         root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, str(root / "bin/hermes_os_cli.py"), "doctor"],
+            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "doctor"],
             capture_output=True, text=True, timeout=30,
             cwd=str(root)
         )
@@ -353,7 +353,7 @@ def process():
         """bin/hermes_os_cli.py status subcommand."""
         root = Path(__file__).resolve().parents[2]
         result = subprocess.run(
-            [sys.executable, str(root / "bin/hermes_os_cli.py"), "status"],
+            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "status"],
             capture_output=True, text=True, timeout=10,
             cwd=str(root)
         )

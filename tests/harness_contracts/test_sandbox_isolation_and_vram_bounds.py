@@ -26,7 +26,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / ".hermes" / "src"))
 
 from hermes_core.sandbox import (
     BWRAP_BIN,
@@ -286,8 +286,12 @@ def test_u10_group_member_scanner_detects_live_group():
     proc = subprocess.Popen(["bash", "-c", "sleep 20 & wait"],
                             stdout=subprocess.DEVNULL, start_new_session=True)
     try:
-        _time.sleep(0.3)
-        members = _group_members_alive(proc.pid)
+        members = []
+        for _ in range(10):
+            _time.sleep(0.1)
+            members = _group_members_alive(proc.pid)
+            if proc.pid in members and len(members) >= 2:
+                break
         assert proc.pid in members and len(members) >= 2  # leader + sleep child
     finally:
         proc.kill()

@@ -70,7 +70,7 @@ class TestRoadmap3Contracts:
     # ── U44: Spec-First Planner ──────────────────────────────────────────
     def test_u44_formal_spec_generation(self, tmp_path):
         plan_file = tmp_path / "plan.json"
-        planner = SpecFirstPlanner(plan_file=plan_file)
+        planner = SpecFirstPlanner(plan_path=plan_file)
         
         spec = planner.create_formal_spec("Create interactive 3D Three.js solar simulation")
         assert len(spec.interfaces) >= 2

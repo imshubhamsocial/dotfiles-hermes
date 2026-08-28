@@ -17,10 +17,11 @@ import json
 import urllib.request
 
 ROOT_DIR = "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
-LLAMA_BIN_DIR = os.path.join(ROOT_DIR, "bin", "llama")
+LLAMA_BIN_DIR = os.path.join(ROOT_DIR, ".hermes", "bin", "llama")
 TEST_PORT = 8138
-MODEL_PATH = os.path.join(ROOT_DIR, "assets", "gguf", "gemma-4-E4B-it-Q4_K_M.gguf")
-DRAFT_PATH = os.path.join(ROOT_DIR, "assets", "MTP", "mtp-gemma-4-E4B-it-Q4_0.gguf")
+HF_HUB_DIR = os.environ.get("HF_HUB_DIR", "/var/home/imshubhamsocial/.cache/huggingface/hub")
+MODEL_PATH = os.path.join(HF_HUB_DIR, "models--bartowski--gemma-4-E4B-it-GGUF", "snapshots", "main", "gemma-4-E4B-it-Q4_K_M.gguf")
+DRAFT_PATH = os.path.join(HF_HUB_DIR, "models--bartowski--gemma-4-E4B-it-GGUF", "snapshots", "main", "mtp-gemma-4-E4B-it-Q4_0.gguf")
 
 def log(msg):
     print(f"[ARBITER] {msg}")
@@ -43,8 +44,7 @@ def check_server_live_inference():
     time.sleep(1)
     
     cmd = [
-        "distrobox", "enter", "ws-ai", "--",
-        os.path.join(LLAMA_BIN_DIR, "llama-server"),
+        os.path.join(ROOT_DIR, ".local", "bin", "llama-server"),
         "-m", MODEL_PATH,
         "--model-draft", DRAFT_PATH,
         "--port", str(TEST_PORT),

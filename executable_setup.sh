@@ -42,6 +42,13 @@ if ! grep -q 'PYTHONPYCACHEPREFIX' "$HOME/.bashrc" 2>/dev/null; then
     echo 'export PYTHONPYCACHEPREFIX="$HOME/.cache/cpython"' >> "$HOME/.bashrc"
 fi
 
+echo "==> Ensuring upstream NousResearch/hermes-agent engine is available..."
+if [[ ! -d "$HOME/.hermes/hermes-agent" ]]; then
+    echo "==> Cloning upstream NousResearch/hermes-agent into ~/.hermes/hermes-agent..."
+    git clone --depth 1 https://github.com/NousResearch/hermes-agent.git "$HOME/.hermes/hermes-agent"
+fi
+python3.13 -m pip install -e "$HOME/.hermes/hermes-agent" --break-system-packages
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "==> Installing hermes-harness package from .hermes/src..."
 python3.13 -m pip install --break-system-packages "$SCRIPT_DIR"

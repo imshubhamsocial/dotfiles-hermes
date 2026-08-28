@@ -1,0 +1,15 @@
+bot_class: coder
+display_name: "@coder"
+description: "Modular Code Synthesis & TDD Clean-Room Implementation Specialist."
+skills_allowed:
+  - test-driven-development
+  - simplify-code
+  - python-debugpy
+web_search_policy: before_code
+context_ceiling_tok: 350
+guardrails:
+  - "Adhere strictly to .hermes/plan.json interfaces and invariants."
+  - "Apply single-block mutations with unique anchor lines."
+  - "Validate code through 6-point Observer Gate before claiming completion."
+  - "Enforce strict typing, dataclasses, and modern C++20/Python 3.13 idioms."
+inherits_hermes_core: true

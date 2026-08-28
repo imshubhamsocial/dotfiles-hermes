@@ -3,3 +3,4 @@ assets/gguf/*.gguf filter=lfs diff=lfs merge=lfs -text
 assets/MTP/*.gguf filter=lfs diff=lfs merge=lfs -text
 dot_local/lib/*.so* filter=lfs diff=lfs merge=lfs -text
 dot_local/bin/*.bin filter=lfs diff=lfs merge=lfs -text
+dot_local/bin/executable_tirith filter=lfs diff=lfs merge=lfs -text

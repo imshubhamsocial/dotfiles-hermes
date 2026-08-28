@@ -110,7 +110,12 @@ for filename, desc in models:
         print(f'✓ {filename} already present in standard cache.')
 "
 
-echo "==> Ensuring execution permissions on patched llama runtime..."
+echo "==> Ensuring upstream standard ~/.hermes/bin runtime..."
+mkdir -p "$HOME/.hermes/bin"
+if [[ -d "$SCRIPT_DIR/.hermes/bin/llama" && "$SCRIPT_DIR/.hermes/bin/llama" != "$HOME/.hermes/bin/llama" ]]; then
+    cp -rn "$SCRIPT_DIR/.hermes/bin/llama" "$HOME/.hermes/bin/" 2>/dev/null || true
+fi
+chmod +x "$HOME/.hermes/bin/llama/llama-server.bin" 2>/dev/null || true
 chmod +x "$SCRIPT_DIR/.hermes/bin/llama/llama-server.bin" 2>/dev/null || true
 
 echo "==> Setting up production hardware-optimized llama-server wrapper..."
@@ -122,14 +127,20 @@ set -euo pipefail
 
 HERMES_ROOT="${HERMES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 SITE_PACKAGES="$(python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.13/site-packages")"
-LLAMA_LIB_DIR="${HERMES_ROOT}/.hermes/bin/llama"
+
+if [[ -x "${HOME}/.hermes/bin/llama/llama-server.bin" ]]; then
+    LLAMA_LIB_DIR="${HOME}/.hermes/bin/llama"
+    SERVER_BIN="${HOME}/.hermes/bin/llama/llama-server.bin"
+else
+    LLAMA_LIB_DIR="${HERMES_ROOT}/.hermes/bin/llama"
+    SERVER_BIN="${HERMES_ROOT}/.hermes/bin/llama/llama-server.bin"
+fi
 
 export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
 
 HF_HUB_DIR="${HF_HUB_DIR:-${HOME}/.cache/huggingface/hub}"
 MODEL_MAIN="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/gemma-4-E4B-it-Q4_K_M.gguf"
 MODEL_DRAFT="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
-SERVER_BIN="${HERMES_ROOT}/.hermes/bin/llama/llama-server.bin"
 
 DRAFT_FLAGS=()
 if [[ -f "$MODEL_DRAFT" ]]; then

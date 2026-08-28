@@ -32,24 +32,27 @@ All code execution, model configurations, and test runners must respect strict p
   ```bash
   distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
   ```
-* **Status**: **567/567 PASS (100%)** in $28.59\text{s}$ when executed inside `ws-hermes`.
+* **Status**: **602/602 PASS (100%)** when executed inside `ws-hermes` or native host.
 
 ---
 
 ## 3. Local Inference Engine (`llama-server`)
 
-* **Self-Contained Launcher**: `~/.local/bin/llama-server` (or `bin/start_server_daemon.sh`).
+* **Self-Contained Launcher**: `~/.local/bin/llama-server` (or `.hermes/scripts/start_server_daemon.sh`).
 * **Endpoint**: `http://127.0.0.1:8138/v1`
-* **Target Model**: Gemma-4-E4B-it Q4_K_M (`assets/gguf/gemma-4-E4B-it-Q4_K_M.gguf`).
-* **Speculative Drafter**: MTP Q4_0 (`assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf`).
+* **Standard Model Cache**: `~/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/`
+* **Target Model**: Gemma-4-E4B-it Q4_K_M (`gemma-4-E4B-it-Q4_K_M.gguf`).
+* **Speculative Drafter**: MTP Q4_0 (`mtp-gemma-4-E4B-it-Q4_0.gguf`).
 * **Active Acceleration Flags**:
-  * `--port 8138 --host 127.0.0.1 -c 65536 -ngl 99`
-  * `--model-draft assets/MTP/mtp-gemma-4-E4B-it-Q4_0.gguf --spec-draft-n-max 3` (3 tokens ahead MTP speculative decoding)
-  * `--cache-type-k q4_0 --cache-type-v q4_0` (64k context in ~1.25 GB VRAM)
-  * `--parallel 4 --slots -s 4` (Parallel multi-turn slot isolation)
-  * `--jinja` (Gemma native tool-calling DSL)
-* **Measured Memory Footprint**: **$3,797\text{ MiB}$ VRAM** ($>2.3\text{ GB}$ safe headroom).
-* **Generation Speed**: **$48.0\text{ tok/s}$** with MTP drafter enabled ($1,350\text{--}1,690\text{ tok/s}$ prompt prefill).
+  * `--port 8138 --host 127.0.0.1 -c 131072 -ngl 99`
+  * `--model-draft .../mtp-gemma-4-E4B-it-Q4_0.gguf --spec-draft-ngl 99 --spec-draft-n-max 3` (3 tokens ahead MTP speculative decoding)
+  * `--cache-type-k q4_0 --cache-type-v q4_0` (65k context per slot in ~1.25 GB VRAM)
+  * `-np 2` (2 parallel slots isolated context)
+  * `--flash-attn on --jinja` (Gemma native tool-calling DSL)
+  * `--temp 1.0 --top-p 0.95 --top-k 64` (Official Google Gemma-4 sampling distribution)
+  * `taskset -c 0-11` (P-Core CPU affinity pinning on 13th Gen Intel)
+* **Measured Memory Footprint**: **$4,234\text{ MiB}$ VRAM** (safe below $4,812\text{ MiB}$ ceiling).
+* **Generation Speed**: **$28\text{--}48\text{ tok/s}$** with MTP drafter enabled ($1,410\text{ tok/s}$ prompt prefill).
 
 ---
 
@@ -58,31 +61,27 @@ All code execution, model configurations, and test runners must respect strict p
 All paths in scripts and configuration MUST be **100% relative** to repository root or resolve against `$HOME`:
 
 ```
-hermes/
-├── bin/                                # Standalone CLI executables, observer gates & daemon scripts
-│   ├── observer_gate.py                # Pre-commit 6-point AST verification gate
-│   ├── visual_arbiter.py               # Headless Playwright WebGL kinematic validator
-│   ├── verify_harness_integrity.py     # Master capability audit & contract verification runner
-│   └── start_server_daemon.sh          # Local llama-server daemon launcher
+~ (Host $HOME)
+├── ~/.local/
+│   ├── bin/                            # Standalone CLI executables (hermes, llama-server, llama-server.bin)
+│   └── lib/                            # Upstream shared libraries (libggml*.so, libllama*.so, libmtmd*.so)
+│
+├── ~/.cache/
+│   ├── huggingface/hub/                # Standard model weight cache (Gemma-4 + MTP drafter)
+│   └── cpython/                        # Centralized bytecode cache (zero repository pollution)
 │
 ├── ~/.hermes/                          # Canonical Upstream Hermes Runtime Substrate
 │   ├── config.yaml                     # Hardware configurations, context engine & plugin toggles
 │   ├── rules/                          # Two-tier immutable kernel & project behavioral standards
 │   ├── skills/                         # OpenSkills progressive context stubs (L0/L1/L2)
-│   ├── bin/                            # Self-contained runtime binaries & execution bridges
-│   ├── plugins/                        # Native standalone plugins & lifecycle adapters
-│   │   ├── observer_gate/              # Pre-commit AST syntax & phantom citation interceptor
-│   │   ├── recirculation_adapter/      # Google DeepMind Recirculation System-2 prefill (+20% lift)
-│   │   ├── reflective_learner_adapter/ # Google ADK 2.0 TaskDAG SQLite /learn feedback loop
-│   │   └── synergy_bus_adapter/        # Unified reactive execution & memory event bus
+│   ├── scripts/                        # Daemon scripts (start_server_daemon.sh)
+│   ├── bin/                            # Standalone verification & gate scripts (observer_gate.py, etc.)
+│   ├── plugins/                        # Native standalone plugins (agent_os, cog_verifier, symbol_index)
+│   ├── src/hermes_core/                # Cognitive OS subsystems & Python engine sources
 │   └── hermes-agent/                   # Upstream Hermes Agent engine
-│       ├── agent/core/                 # 16 in-tree cognitive OS subsystems
-│       └── plugins/
-│           ├── context_engine/         # OpenViking 3-tier VFS (<4k token sliding compaction)
-│           └── memory/                 # OpenCode-Mem pure CPU ONNX BGE vector store
 │
-├── tests/                              # Comprehensive test suites & contract spikes
-│   ├── harness_contracts/              # 567 passed contract tests verifying all capabilities
+└── tests/                              # Comprehensive test suites & contract spikes
+    ├── harness_contracts/              # 602 passed contract tests verifying all capabilities
 │   └── oracle_references/              # Gold-standard baseline benchmarks
 │
 ├── docs/                               # Professional documentation hierarchy

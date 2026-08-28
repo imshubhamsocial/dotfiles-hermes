@@ -151,56 +151,53 @@ exec "$SERVER_BIN" \
 ## 5. Repository Structure & Canonical Upstream Layout
 
 ```
-.
-├── bin/                                # Standalone CLI executables, observer gates & daemon scripts
-│   ├── observer_gate.py                # Pre-commit 6-point AST verification gate
-│   ├── visual_arbiter.py               # Headless Playwright WebGL kinematic validator
-│   ├── verify_harness_integrity.py     # Master capability audit & contract verification runner
-│   └── start_server_daemon.sh          # Local llama-server daemon launcher
+~ (Host $HOME)
+├── ~/.local/
+│   ├── bin/                            # Standalone CLI executables (hermes, llama-server, llama-server.bin)
+│   └── lib/                            # Upstream shared libraries (libggml*.so, libllama*.so, libmtmd*.so)
+│
+├── ~/.cache/
+│   ├── huggingface/hub/                # Standard model weight cache (Gemma-4 + MTP drafter)
+│   └── cpython/                        # Centralized bytecode cache (zero repository pollution)
 │
 ├── ~/.hermes/                          # Canonical Upstream Hermes Runtime Substrate
 │   ├── config.yaml                     # Hardware configurations, context engine & plugin toggles
 │   ├── rules/                          # Two-tier immutable kernel & project behavioral standards
 │   ├── skills/                         # OpenSkills progressive context stubs (L0/L1/L2)
-│   ├── bin/                            # Self-contained runtime binaries & execution bridges
-│   ├── plugins/                        # Native standalone plugins & lifecycle adapters
-│   │   ├── observer_gate/              # Pre-commit AST syntax & phantom citation interceptor
-│   │   ├── recirculation_adapter/      # Google DeepMind Recirculation System-2 prefill (+20% lift)
-│   │   ├── reflective_learner_adapter/ # Google ADK 2.0 TaskDAG SQLite /learn feedback loop
-│   │   └── synergy_bus_adapter/        # Unified reactive execution & memory event bus
+│   ├── scripts/                        # Daemon scripts (start_server_daemon.sh)
+│   ├── bin/                            # Verification & gate scripts (observer_gate.py, verify_harness_integrity.py)
+│   ├── plugins/                        # Native standalone plugins (agent_os, cog_verifier, symbol_index)
+│   ├── src/hermes_core/                # Cognitive OS subsystems & Python engine sources
 │   └── hermes-agent/                   # Upstream Hermes Agent engine
-│       ├── agent/core/                 # 16 in-tree cognitive OS subsystems
-│       └── plugins/
-│           ├── context_engine/         # OpenViking 3-tier VFS (<4k token sliding compaction)
-│           └── memory/                 # OpenCode-Mem pure CPU ONNX BGE vector store
 │
 ├── tests/                              # Comprehensive test suites & contract spikes
-│   ├── harness_contracts/              # 567 passed contract tests verifying all capabilities
-│   └── oracle_references/              # Gold-standard baseline benchmarks (Aquarium 3D, etc.)
+│   ├── harness_contracts/              # 602 passed contract tests verifying all capabilities
+│   └── oracle_references/              # Gold-standard baseline benchmarks
 │
 ├── docs/                               # Professional documentation hierarchy
-│   ├── roadmaps/                       # Architectural roadmaps (Roadmaps 1-4 completed)
+│   ├── roadmaps/                       # Architectural roadmaps (Roadmaps 1-5 completed)
 │   ├── operations/                     # Operational guides & environment context
 │   └── prompts/                        # System prompts & Claude evaluation prompts
 │
 ├── pyproject.toml                      # Package build configuration
-└── packages.json                       # System package manifests for DNF, Python & Node CLI
+├── packages.json                       # System package manifests for DNF, Python & Node CLI
+└── setup.sh                            # Turnkey installer (DNF, pip, Playwright, models, SearXNG)
 ```
 
 ---
 
 ## 6. Setup & Turnkey Portability
 
-The harness is engineered to be 100% portable across machines (Fedora Kinoite/Silverblue, standard Fedora, or remote Linux servers) without hardcoded paths.
+The harness is engineered to be 100% portable across machines (Fedora Workstation/KDE, Fedora Kinoite/Silverblue, or native Linux servers) without hardcoded paths.
 
 ### Fresh Machine Bootstrap in 2 Commands:
 
 ```bash
 # 1. Initialize and apply dotfiles & harness configurations
-chezmoi init --apply <repo-url-or-path>
+chezmoi init --apply https://github.com/imshubhamsocial/dotfiles-hermes.git
 
-# 2. Run automated turnkey installer (DNF packages, Python toolchains, Playwright, Node CLIs)
-./setup.sh
+# 2. Run automated turnkey installer (DNF packages, Python toolchains, Playwright, Node CLIs, model download, SearXNG autostart)
+bash setup.sh
 ```
 
 ---
@@ -208,17 +205,20 @@ chezmoi init --apply <repo-url-or-path>
 ## 7. Operational Commands & CLI Guide
 
 ```bash
+# Start background llama-server daemon locked to Intel P-Cores (0-11)
+bash .hermes/scripts/start_server_daemon.sh
+
 # Launch Hermes CLI with autonomous prompt execution
-hermes chat -q "Decompose and build a 3D Solar System simulation in index.html" --yolo
+hermes -z "Decompose and build a 3D Solar System simulation in index.html" --yolo
 
-# Run full harness capability and contract test audit
-python3.13 bin/verify_harness_integrity.py
+# Run full harness capability and contract test audit (30/30 capabilities)
+python3.13 .hermes/bin/verify_harness_integrity.py
 
-# Run all contract unit tests
+# Run all 602 contract unit tests
 python3.13 -m pytest tests/harness_contracts/ -v
 
 # Run pre-commit observer gate manually on a file
-python3.13 bin/observer_gate.py src/main.js
+python3.13 .hermes/bin/observer_gate.py src/main.js
 ```
 
 ---
@@ -227,7 +227,8 @@ python3.13 bin/observer_gate.py src/main.js
 
 Detailed specifications are organized in the [`docs/`](./docs/README.md) directory:
 
-* 🗺️ **[Roadmap 1: Master Autonomous Test Plan](./docs/roadmaps/roadmap1_master_test_plan.md)**: Baseline capabilities U1–U20.
-* 🗺️ **[Roadmap 2: Agent OS Substrate](./docs/roadmaps/roadmap2_agent_os_substrate.md)**: 7-Layer substrate U21–U35.
-* 🗺️ **[Roadmap 3: Production Graduation](./docs/roadmaps/roadmap3_production_graduation.md)**: Production parity U36–U44.
-* 🗺️ **[Roadmap 4: Frontier Cognitive OS](./docs/roadmaps/roadmap4_frontier_cognitive_os.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
+* 🗺️ **[Roadmap 1: Master Autonomous Test Plan](./docs/roadmaps/completed/roadmap1_master_test_plan.md)**: Baseline capabilities U1–U20.
+* 🗺️ **[Roadmap 2: Agent OS Substrate](./docs/roadmaps/completed/roadmap2_agent_os_substrate.md)**: 7-Layer substrate U21–U35.
+* 🗺️ **[Roadmap 3: Production Graduation](./docs/roadmaps/completed/roadmap3_production_graduation.md)**: Production parity U36–U44.
+* 🗺️ **[Roadmap 4: Frontier Cognitive OS](./docs/roadmaps/completed/roadmap4_frontier_cognitive_os.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
+* 🗺️ **[Roadmap 5: Multi-Agent Web Intelligence](./docs/roadmaps/completed/roadmap5_frontier_multiagent_web_intelligence.md)**: SearXNG grounding, Multi-Agent Swarm U61–U80.

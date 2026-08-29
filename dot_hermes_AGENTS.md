@@ -8,24 +8,35 @@
 
 # AGENTS.md — Autonomous Agent Operating Standard & Engineering Invariants
 
-## 1. MISSION & HIGH-LEVEL SYSTEM IDENTITY
+## 1. MISSION & SYSTEM IDENTITY
 
-You are operating within **Hermes Agent OS** (`ws-hermes`), a high-performance, deterministic execution substrate running on local silicon. This repository pairs local small language models (SLMs) and frontier reasoning models (Gemini 3.7 Pro / Flash) with an enterprise-grade agent harness.
+You are operating within **Hermes Agent OS**, an enterprise-grade agent orchestration substrate running on local silicon. This repository pairs local small language models (Gemma-4-E4B-it with MTP speculative decoding) and frontier reasoning models with a deterministic, test-driven engineering harness.
 
-Your objective is to execute complex multi-file engineering tasks with **mathematical rigor, zero token waste, strict prefix-cache alignment, and 100% turnkey reproducibility**.
+Your objective is to execute engineering tasks with **mathematical rigor, zero token waste, strict prefix-cache alignment, and 100% turnkey reproducibility**.
 
 ---
 
-## 2. HARDWARE BUDGETS & INFRASTRUCTURE INVARIANTS
+## 2. EXECUTION ENVIRONMENT & HOST VS. CONTAINER RULE
+
+> [!IMPORTANT]
+> **Host vs. Container Execution Context**:
+> * The host OS is **Fedora Kinoite (immutable OSTree)**. Python 3.13 and development libraries live inside the Distrobox container `ws-hermes`.
+> * **If you are running on the host**: Prefix all build, test, and Python commands with:
+>   ```bash
+>   distrobox enter ws-hermes -- <command>
+>   ```
+> * **If you are already inside `ws-hermes`**: Execute tools directly (e.g. `python3.13 ...`).
+> * Always check your shell environment with `command -v python3.13` to know if you need the wrapper.
 
 | Component | Target System / Value | Operational Boundary & Invariant |
 | :--- | :--- | :--- |
 | **Execution Sandbox** | Distrobox Container `ws-hermes` | Fedora Linux runtime; non-root user `imshubhamsocial`. |
 | **Workspace Root** | `~/Projects/Workspace/Personal/hermes` | **Strict Rule**: Always use relative paths or `$HOME` / `~`. Zero hardcoded canonical paths. |
 | **Python Toolchain** | Python `3.13.15` (User Site) | Invoke strictly via `python3.13` or `python3.13 -m <module>`. |
-| **Local Inference Host** | `http://127.0.0.1:8138/v1` | `llama-server` running `gemma-4-E4B-it-Q4_K_M.gguf` (`-c 131072 -np 2`, `q4_0` KV cache, MTP drafter). |
-| **GPU VRAM Ceiling** | NVIDIA RTX 3050 Laptop (6,144 MiB) | **Hard Guard**: Max allocation **$\le 4,812\text{ MiB}$** (live usage: $\approx 4,301\text{ MiB}$). Never spawn background GPU processes. |
-| **Vector & Neural Retrieval** | CPU ONNX (`fastembed` / BGE) | **Zero GPU Contention**: Dense embeddings run 100% on CPU RAMDisk. |
+| **Local Inference Host** | `http://127.0.0.1:8138/v1` | `llama-server` (`-c 131072 -np 2`, 65K/slot, `q4_0` KV cache, MTP drafter). |
+| **GPU VRAM Ceiling** | NVIDIA RTX 3050 Laptop (6,144 MiB) | **Hard Guard**: Max allocation **$\le 4,812\text{ MiB}$** (live usage: $\approx 4,281\text{ MiB}$). |
+| **Vector & Neural Retrieval** | CPU ONNX (`fastembed` / BGE) | **Zero GPU Contention**: Dense embeddings run 100% on CPU / RAMDisk. |
+| **Web Grounding** | Keyless SearXNG (`:8080`) / DDGS | Ground external library APIs and live facts in $\le 150\text{ tokens}$. |
 
 ---
 
@@ -80,21 +91,21 @@ graph TD
     F --> C
 ```
 
-### Phase 1: Spec-First Decomposition (Senior Engineer Protocol)
+### Phase 1: Spec-First Decomposition
 * Ingest user prompt and identify core domains (e.g. `webgl_kinematics`, `systems_cpp`, `ast_parsing`).
 * Persist formal engineering interfaces, boundary invariants, and milestones into [`.hermes/plan.json`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/plan.json).
 
 ### Phase 2: Context Sieve & Canonical Template Retrieval
 * Do not generate standard framework boilerplate from scratch.
-* Query `BGETemplateRetriever` (`src/hermes_core/template_retriever.py`) for verified canonical code skeletons (Three.js WebGL orbit loops, Python AST pre-commit guards, C++20 RAII wrappers).
+* Query `BGETemplateRetriever` (`.hermes/src/hermes_core/template_retriever.py`) for verified canonical code skeletons.
 * Restrict injected context to $<400\text{ tokens}$.
 
 ### Phase 3: Modular Code Synthesis
-* Apply concise, single-block changes.
+* Apply concise, single-block modifications.
 * Enforce modern language idioms:
-  * **Python**: Type hints, `dataclasses`, `asyncio`, `pathlib.Path`.
+  * **Python**: Strict type hints, `dataclasses`, `asyncio`, `pathlib.Path`.
   * **JavaScript / WebGL**: Strict ES-modules, explicit requestAnimationFrame loop lifecycle.
-  * **C++**: Modern C++20 concepts, RAII resource guards, zero raw memory allocation.
+  * **C++**: Modern C++20 concepts, RAII resource guards, zero raw pointers.
 
 ### Phase 4: Pre-Commit Observer Gate & Verification
 Execute the local verification pipeline before claiming completion:
@@ -102,10 +113,10 @@ Execute the local verification pipeline before claiming completion:
 # 1. Evaluate file through 6-point Observer Gate
 python3.13 .hermes/bin/observer_gate.py <modified_file>
 
-# 2. Run pytest contract test suite
-python3.13 -m pytest tests/harness_contracts/ -v
+# 2. Run pytest contract test suite (must be 602/602 green)
+python3.13 -m pytest tests/harness_contracts/ -q
 
-# 3. Execute master capability audit probe
+# 3. Execute master capability audit probe (10/10 green)
 python3.13 .hermes/bin/verify_harness_integrity.py
 
 # 4. Execute live native upstream Hermes verification turn
@@ -113,11 +124,12 @@ hermes -z "<test_prompt>" --yolo --usage-file /dev/shm/usage.json
 ```
 
 ### Phase 5: Version Control & Chezmoi Synchronization
-Track all config, script, and documentation updates in Chezmoi:
+Track all configuration, script, and documentation updates in Chezmoi:
 ```bash
-chezmoi add <changed_files>
-chezmoi git -- add -A
-chezmoi git -- commit -m "<type>(<scope>): <summary>"
+chezmoi add <changed_file>
+git -C ~/.local/share/chezmoi add -A
+git -C ~/.local/share/chezmoi commit -m "<type>(<scope>): <summary>"
+git -C ~/.local/share/chezmoi push origin master
 ```
 
 ---
@@ -126,20 +138,22 @@ chezmoi git -- commit -m "<type>(<scope>): <summary>"
 
 | Action | Primary Command | Validation / Expected Exit |
 | :--- | :--- | :--- |
-| **Run Hermes Agent Task (Oneshot)** | `hermes -z "<prompt>" --yolo` | Exit Code `0`, Clean Output |
+| **Check Local Server Health** | `curl -s http://127.0.0.1:8138/health` | `{"status":"ok"}` |
+| **Start Llama-Server Daemon** | `bash .hermes/scripts/start_server_daemon.sh` | Health check returns `ok` |
+| **Run Hermes Oneshot Prompt** | `hermes -z "<prompt>" --yolo` | Exit Code `0`, Final Output |
 | **Run Interactive Hermes Chat** | `hermes` | Live interactive TUI / REPL |
-| **Run Live Validation with Telemetry** | `hermes -z "<prompt>" --yolo --usage-file /dev/shm/usage.json` | Exit Code `0`, Valid JSON telemetry |
 | **Run Pre-Commit Observer Gate** | `python3.13 .hermes/bin/observer_gate.py <file>` | `APPROVED: All 6 gates passed` |
 | **Run Full Contract Test Suite** | `python3.13 -m pytest tests/harness_contracts/ -q` | `602 passed` in $\approx 26\text{s}$ |
-| **Run Master Self-Audit** | `python3.13 .hermes/bin/verify_harness_integrity.py` | `APPROVED: 30/30 capabilities` |
-| **Start Llama-Server Daemon** | `bash .hermes/scripts/start_server_daemon.sh` | Health check returns `{"status":"ok"}` |
+| **Run Master Self-Audit** | `python3.13 .hermes/bin/verify_harness_integrity.py` | `APPROVED: 10/10 capabilities` |
+| **Query Dynamic Skill Catalog** | `python3.13 .hermes/bin/skill_router.py "<query>"` | Skill matched in $\le 200\text{ tok}$ |
+| **Query Web Grounding Cache** | `python3.13 .hermes/bin/web_grounding.py "<query>"` | Grounding context in $\le 150\text{ tok}$ |
 | **Inspect GPU VRAM Status** | `nvidia-smi` | $\le 4,812\text{ MiB}$ Memory Usage |
-| **Inspect Chezmoi State** | `chezmoi git -- status` | Working tree clean |
+| **Inspect Chezmoi State** | `chezmoi status` | Working tree clean (0 lines) |
 
 ---
 
 ## 6. BEHAVIORAL DIRECTIVES & OUTPUT STYLE
 
-1. **Be Dense, Factual, and Direct**: State actions, diagnostics, and test metrics clearly without boilerplate conversational filler.
+1. **Be Dense, Factual, and Direct**: State actions, diagnostics, and test metrics clearly without conversational filler.
 2. **Prioritize Evidence Over Assumptions**: Never assert that code works without showing raw command output, test passes, and gate verdicts.
-3. **Protect System Health**: Monitor VRAM and process tables continuously. Kill dangling subprocesses immediately.
+3. **Protect System Health**: Monitor VRAM and process tables continuously. If `llama-server` is not running, launch it using `.hermes/scripts/start_server_daemon.sh` before executing inference.

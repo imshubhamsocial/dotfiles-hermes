@@ -1,6 +1,6 @@
 # Hermes Documentation Index
 
-This directory organizes all specifications, conventions, research papers, and roadmaps for Hermes Agent OS in a streamlined, 3-folder architecture.
+This directory organizes all specifications, operating standards, technical research, and roadmaps for Hermes Agent OS in a clean, intuitive structure.
 
 ---
 
@@ -9,44 +9,44 @@ This directory organizes all specifications, conventions, research papers, and r
 ```
 docs/
 ├── conventions/           # Authoritative rules, hardware defaults, and operational invariants
-│   ├── master_operating_standard.md  # Unified cognitive agent operating standard & lifecycle
-│   ├── defaults_and_hardware.md      # Physical hardware bounds, VRAM limits & paths
-│   └── rules_and_conventions.md      # Non-negotiable architectural rules & 4-step lifecycle
+│   ├── agent_operating_principles.md       # Master agent operating standard & cognitive hierarchy
+│   ├── coding_standards_and_invariants.md  # Non-negotiable architectural rules & quality gates
+│   └── system_hardware_and_environment.md  # Physical hardware bounds, VRAM limits & paths
 │
 ├── research/              # Consolidated technical deep dives, research briefs & knowledge bases
-│   ├── 01_anthropic_system_prompts.md ... 13_perplexity_local_first_and_openskills.md
-│   ├── single_binary_tool_calling.md
-│   ├── prompt_decomposition_and_dag.md
-│   ├── failure_modes_and_edge_cases.md
-│   ├── benchmark_parity_specification.md
-│   ├── hardware_calibrated_test_runners.md
-│   ├── cognitive_process_codebook.md
-│   ├── process_knowledge_base.md
-│   └── research_index.md
+│   ├── frontier_agent_design_compendium.md    # 13 foundational research briefs consolidated
+│   ├── local_tool_calling_mechanisms.md       # Single-binary tool execution architectures
+│   ├── multi_agent_task_decomposition.md      # Task graphs & topological DAG decomposition
+│   ├── system_failure_modes_and_resilience.md # Error recovery, loop prevention & Tabu rules
+│   ├── performance_benchmarks_and_parity.md   # Accuracy & throughput benchmarks
+│   ├── hardware_tuned_test_execution.md       # Hardware-calibrated test runners
+│   ├── cognitive_process_guide.md             # Cognitive codebook and reasoning flows
+│   ├── operational_knowledge_base.md          # Operational memory & process rules
+│   └── research_bibliography.md               # Curated research index & external references
 │
-└── roadmaps/              # Architectural roadmaps (Roadmaps 1–5 complete & certified)
-    ├── roadmap1_master_test_plan.md
-    ├── roadmap2_agent_os_substrate.md
-    ├── roadmap3_production_graduation.md
-    ├── roadmap4_frontier_cognitive_os.md
-    └── roadmap5_frontier_multiagent_web_intelligence.md
+└── roadmaps/              # Milestone roadmaps (Roadmaps 1–5 completed & certified)
+    ├── 01_master_verification_plan.md         # Roadmap 1: Master Autonomous Test Plan (U1–U20)
+    ├── 02_agent_system_foundation.md          # Roadmap 2: Agent OS Substrate (U21–U35)
+    ├── 03_production_engineering.md           # Roadmap 3: Production Graduation (U36–U44)
+    ├── 04_cognitive_architecture.md           # Roadmap 4: Frontier Cognitive OS (U45–U60)
+    └── 05_web_intelligence_and_swarms.md     # Roadmap 5: Multi-Agent Web Intelligence (U61–U80)
 ```
 
 ---
 
-## Quick Navigation for AI Agents
+## Quick Navigation
 
-* **Master Agent Operating Standard**:
-  * 📘 **[AGENTS.md](../AGENTS.md)** (Root authoritative prompt & single-source-of-truth for all agents)
-* **Conventions & System Defaults**:
-  * 📋 **[Rules & Conventions](./conventions/rules_and_conventions.md)**
-  * 🖥️ **[Defaults & Hardware Bounds](./conventions/defaults_and_hardware.md)**
-  * 📜 **[Master Operating Standard](./conventions/master_operating_standard.md)**
+* **Master Operating Standard**:
+  * 📘 **[AGENTS.md](../AGENTS.md)** (Root authoritative configuration & single-source-of-truth for all agents)
+* **System Conventions & Operating Principles**:
+  * 📋 **[Coding Standards & Invariants](./conventions/coding_standards_and_invariants.md)**
+  * 🖥️ **[System Hardware & Environment](./conventions/system_hardware_and_environment.md)**
+  * 📜 **[Agent Operating Principles](./conventions/agent_operating_principles.md)**
 * **Architectural Roadmaps**:
-  * 🗺️ **[Roadmap 5: Multi-Agent Web Intelligence (U61–U80)](./roadmaps/roadmap5_frontier_multiagent_web_intelligence.md)**
-  * 🗺️ **[Roadmap 4: Frontier Cognitive OS (U45–U60)](./roadmaps/roadmap4_frontier_cognitive_os.md)**
-  * 🗺️ **[Roadmap 3: Production Graduation (U36–U44)](./roadmaps/roadmap3_production_graduation.md)**
-  * 🗺️ **[Roadmap 2: Agent OS Substrate (U21–U35)](./roadmaps/roadmap2_agent_os_substrate.md)**
-  * 🗺️ **[Roadmap 1: Master Test Plan (U1–U20)](./roadmaps/roadmap1_master_test_plan.md)**
+  * 🗺️ **[05. Web Intelligence & Swarms](./roadmaps/05_web_intelligence_and_swarms.md)**
+  * 🗺️ **[04. Cognitive Architecture](./roadmaps/04_cognitive_architecture.md)**
+  * 🗺️ **[03. Production Engineering](./roadmaps/03_production_engineering.md)**
+  * 🗺️ **[02. Agent System Foundation](./roadmaps/02_agent_system_foundation.md)**
+  * 🗺️ **[01. Master Verification Plan](./roadmaps/01_master_verification_plan.md)**
 * **Technical Research**:
   * 🔬 **[Research Directory](./research/)**

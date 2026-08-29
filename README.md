@@ -234,8 +234,8 @@ python3.13 .hermes/bin/observer_gate.py src/main.js
 
 Detailed specifications are organized in the [`docs/`](./docs/README.md) directory:
 
-* 🗺️ **[Roadmap 1: Master Autonomous Test Plan](./docs/roadmaps/roadmap1_master_test_plan.md)**: Baseline capabilities U1–U20.
-* 🗺️ **[Roadmap 2: Agent OS Substrate](./docs/roadmaps/roadmap2_agent_os_substrate.md)**: 7-Layer substrate U21–U35.
-* 🗺️ **[Roadmap 3: Production Graduation](./docs/roadmaps/roadmap3_production_graduation.md)**: Production parity U36–U44.
-* 🗺️ **[Roadmap 4: Frontier Cognitive OS](./docs/roadmaps/roadmap4_frontier_cognitive_os.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
-* 🗺️ **[Roadmap 5: Multi-Agent Web Intelligence](./docs/roadmaps/roadmap5_frontier_multiagent_web_intelligence.md)**: SearXNG grounding, Multi-Agent Swarm U61–U80.
+* 🗺️ **[01. Master Verification Plan](./docs/roadmaps/01_master_verification_plan.md)**: Baseline capabilities U1–U20.
+* 🗺️ **[02. Agent System Foundation](./docs/roadmaps/02_agent_system_foundation.md)**: 7-Layer substrate U21–U35.
+* 🗺️ **[03. Production Engineering](./docs/roadmaps/03_production_engineering.md)**: Production parity U36–U44.
+* 🗺️ **[04. Cognitive Architecture](./docs/roadmaps/04_cognitive_architecture.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
+* 🗺️ **[05. Web Intelligence & Swarms](./docs/roadmaps/05_web_intelligence_and_swarms.md)**: SearXNG grounding, Multi-Agent Swarm U61–U80.

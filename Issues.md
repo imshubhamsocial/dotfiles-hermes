@@ -904,3 +904,62 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
      * In `tools.py:grep_search()`, dispatch directly to `subprocess.run(["rg", "--json", ...])`.
      * In `process_guard.py:run_with_group_teardown()`, use `psutil` to reap child process trees instantly.
   4. **Manual Verification**: Run repository-wide search across 10,000 files; assert `grep_search()` returns in $< 30\text{ms}$; verify memory footprint of the entire Hermes process stays $< 150\text{MB}$ RAM.
+
+---
+
+### Issue #42: Unified Database Governance via SQLModel & Alembic (Eliminating Scattered Storage & Schema Drift)
+* **Classification**: Database Architecture & Schema Evolution Invariant
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/experience_store.py`, `src/hermes_core/openviking_vfs.py`, `session_persistence.py`
+* **Symptom**: 
+  1. Data models are defined twice: once as Pydantic models for JSON validation/tool schemas and again as raw SQL `CREATE TABLE` strings for SQLite.
+  2. Modifying a field in `session_persistence.py` or `symbol_graph.py` causes silent schema drift, missing columns, or database corruption during harness upgrades because there is no schema migration engine.
+  3. Multiple scattered SQLite connection instances open the same database file without thread-safe connection pooling or shared WAL lifecycle handlers.
+* **Root Cause**: Ad-hoc raw SQL string concatenation instead of a unified, Pydantic-native ORM with schema migrations.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/database/` (New Subpackage), `src/hermes_core/database/engine.py`, `src/hermes_core/database/models.py`, `src/hermes_core/symbol_graph.py`, `src/hermes_core/experience_store.py`, `src/hermes_core/openviking_vfs.py`.
+  2. **Dependencies**: `sqlmodel` (FastAPI / Tiangolo — merges SQLAlchemy 2.0 and Pydantic v2), `alembic` (Schema migrations).
+  3. **Concrete Changes**:
+     * **Unified SQLModel Data Layer (`models.py`):**
+       * Define all database entities as unified `SQLModel, table=True` classes (`SymbolRecord`, `VFSNodeRecord`, `ExperienceEpisode`, `SessionCheckpoint`, `TaskNodeRecord`).
+       * The exact same class serves as: (a) LLM tool schema, (b) Pydantic input validator, and (c) SQLite table schema.
+     * **Central Database Engine (`engine.py`):**
+       ```python
+       from sqlmodel import SQLModel, create_engine, Session
+       from pathlib import Path
+
+       DB_PATH = Path.home() / ".hermes" / "state.db"
+       engine = create_engine(
+           f"sqlite:///{DB_PATH}",
+           connect_args={"check_same_thread": False, "timeout": 15.0},
+           execution_options={"schema_translate_map": None}
+       )
+       # Enforce WAL mode, busy timeout, and incremental auto-vacuum
+       with engine.connect() as conn:
+           conn.exec_driver_sql("PRAGMA journal_mode = WAL;")
+           conn.exec_driver_sql("PRAGMA synchronous = NORMAL;")
+           conn.exec_driver_sql("PRAGMA auto_vacuum = INCREMENTAL;")
+           conn.exec_driver_sql("PRAGMA wal_autocheckpoint = 1000;")
+       ```
+     * Consolidate all separate SQLite databases into a single, unified, auto-migrated `~/.hermes/state.db`.
+  4. **Manual Verification**: Add a new column to `ExperienceEpisode`; run startup check; assert table schema updates automatically via SQLModel metadata creation without data loss or SQLite errors.
+
+---
+
+### Issue #43: Total Elimination of Heuristic Shortcuts: Mathematical & Deterministic Grounding
+* **Classification**: Harness Invariant & Algorithmic Rigor
+* **Impact**: Critical
+* **Discovered In**: Entire Codebase Sweep (Configs, Tools, Prompts, Linters, Timeouts)
+* **Symptom**: Codebase previously contained 7 distinct heuristic shortcuts (character counting, raw brace balancing, fixed wall-clock timeouts, sleep spin-waits, linear context dropping, regex AST scraping, hardcoded `/dev/shm` workspace fallbacks) that produced intermittent test failures under varying CPU/GPU loads.
+* **Root Cause**: Relying on heuristic "guesses" rather than physical, mathematical, or AST-proven invariants.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/token_engine.py`, `src/hermes_core/openviking_vfs.py`, `private_dot_hermes/config.yaml`.
+  2. **Comprehensive Heuristics Elimination Matrix**:
+     * **Heuristic 1 (Token Estimation via `len(text) // 4`):** Replaced with exact Rust BPE tokenizer (`tiktoken` / HuggingFace `tokenizers`).
+     * **Heuristic 2 (Syntax Check via `count("{") != count("}")`):** Replaced with Tree-sitter AST syntax error node detection (`tree.root_node.has_error`).
+     * **Heuristic 3 (Subprocess Wall-Clock Timeouts `timeout=90s`):** Replaced with I/O stream byte activity heartbeats ($>15\text{s}$ zero-byte silence = true deadlock) and state-driven DAG completion verification.
+     * **Heuristic 4 (Context Dropping via 95% Slicing):** Replaced with Anthropic 3-slot prompt pinning (`<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>`).
+     * **Heuristic 5 (Artificial `time.sleep()` Delays):** Replaced with token-bucket rate limiters (`pyrate-limiter`) and async event listeners (`asyncio.Event`).
+     * **Heuristic 6 (Regex AST Extraction):** Replaced with official multi-language Tree-sitter grammars (`tree-sitter-languages`).
+     * **Heuristic 7 (Hardcoded `/dev/shm` Workspace Path):** Replaced with dynamic project workspace discovery (`Path.cwd().resolve()`).
+  3. **Manual Verification**: Run live adversarial suite `pytest tests/roadmap6_adversarial/`; verify 100% of tests pass deterministically across 10 repeated iterations with zero intermittent timeout or syntax false-positive failures.

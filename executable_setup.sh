@@ -21,6 +21,7 @@ python3.13 -m pip install --break-system-packages \
     uvloop watchfiles cffi cryptography croniter psutil pillow pathspec ruamel.yaml uv \
     fastembed fastmcp mcp mcp-agent-gate mnemory chromadb qdrant-client \
     tree-sitter==0.26.0 tree-sitter-language-pack==1.15.8 \
+    numpy sympy ruff polars pypdf trafilatura tiktoken gguf \
     nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13
 
 echo "==> Installing Playwright Chromium browser & headless Linux runtime libs..."
@@ -29,8 +30,7 @@ python3.13 -m playwright install chromium
 
 echo "==> Installing Node.js CLI tools..."
 mkdir -p "$HOME/.local/bin" "$HOME/.local/lib"
-npm config set prefix "$HOME/.local"
-npm install -g pyright typescript typescript-language-server prettier @ast-grep/cli pnpm \
+npm install -g --prefix "$HOME/.local" pyright typescript typescript-language-server prettier @ast-grep/cli pnpm \
     bash-language-server dockerfile-language-server-nodejs vscode-langservers-extracted \
     yaml-language-server eslint @biomejs/biome @tobilu/qmd
 
@@ -52,6 +52,7 @@ python3.13 -m pip install -e "$HOME/.hermes/hermes-agent" --break-system-package
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "==> Installing hermes-harness package from .hermes/src..."
+ln -sfn private_dot_hermes "$SCRIPT_DIR/.hermes" 2>/dev/null || true
 python3.13 -m pip install --break-system-packages "$SCRIPT_DIR"
 
 echo "==> Setting up official Hermes launcher wrapper..."

@@ -946,3 +946,53 @@ Where dynamic heuristics, adaptive context budgeting, or filtering policies are 
    Instead of forcing arbitrary static token ceilings, the **Google ADK Context Manager** calculates token allocations dynamically based on AST size, tool schema complexity, and remaining task depth.
 3. **Automated Skill Curation Rigor:**
    The **NVIDIA NeMo-Curator** filter pipeline evaluates code complexity metrics (cyclomatic complexity, comment density, AST depth) to ensure only clean, high-utility skills are promoted to active production.
+
+---
+
+## 7. Google, Anthropic, & NVIDIA Codebase, Symbol, & Graph Architecture
+
+To eliminate ad-hoc AST parsers and slow in-memory graph loops, Hermes adopts the official semantic code graph engines and repository inspection protocols from **Google**, **Anthropic**, and **NVIDIA**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 CODEBASE, SYMBOL, & GRAPH ARCHITECTURE (GOOGLE, ANTHROPIC, & NVIDIA)                                    │
+├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
+│ Functional Domain        │ First-Party Tool / Protocol         │ Upstream Lab & Package               │ Operational Role in Hermes      │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **1. Semantic Code Graph**│ Google Kythe Graph Engine           │ **Google Kythe** (`google/kythe`)    │ Enterprise-grade relational     │
+│    **& Call Topology**   │ & Tree-Sitter Polyglot Bindings     │ + `tree-sitter`                      │ call-graphs, definitions & refs │
+│                          │                                     │                                      │ across Python, TS, C++, Rust, Go│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **2. Workspace & Repo**  │ MCP Filesystem & Git Servers        │ **Anthropic MCP Servers**            │ Pinned workspace URI scoping,   │
+│    **Scoping Isolation** │ (`modelcontextprotocol/servers`)    │ (`filesystem`, `git`)                │ transactional staging & diffs.  │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **3. Graph Centrality &**│ cuGraph Topological Engine          │ **NVIDIA cuGraph** (`NVIDIA/cuGraph`)│ Computes PageRank centrality &  │
+│    **PageRank Spines**   │ & Claude Code Skeleton Pruning      │ + Anthropic PageRank Spines          │ extracts compressed (<800 tok)  │
+│                          │                                     │                                      │ architectural code spines.      │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **4. Semantic Symbol**   │ cuVS Vector Index for Identifiers   │ **NVIDIA cuVS** (`NVIDIA/cuVS`)      │ Sub-millisecond natural language│
+│    **Vector Retrieval**  │ & Docstring Embeddings              │ + `fastembed`                        │ symbol retrieval (e.g. "auth"). │
+└──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### Step-by-Step Integration Plan for Symbol & Codebase Graph Architecture
+
+#### 1. Semantic Symbol Extraction (`google/kythe` + `tree-sitter`)
+* **Files to Touch:** `src/hermes_core/symbol_graph.py`, `src/hermes_core/knowledge_graph.py`.
+* **Concrete Implementation:**
+  * Replace ad-hoc `ast.parse` and regex extractors with **Tree-Sitter** and **Google Kythe** schema conventions.
+  * Extract verifiable relational edges: `defines_binding` (declarations) and `ref_call` (actual invocations), completely eliminating the bug where local variables were confused for function calls.
+
+#### 2. Workspace Scoping Isolation (Anthropic MCP `filesystem` & `git`)
+* **Files to Touch:** `src/hermes_core/tools.py`, `src/hermes_core/git_engine.py`.
+* **Concrete Implementation:**
+  * Adopt Anthropic MCP's canonical URI pinning (`file:///workspace/...`).
+  * Ensure all file reads, writes, and git diffs are strictly relative to the active repository root with zero host filesystem leakage.
+
+#### 3. Compressed PageRank Code Spines (`NVIDIA/cuGraph` + Anthropic Spines)
+* **Files to Touch:** `src/hermes_core/codebase_memory_mcp.py`, `src/hermes_core/openviking_vfs.py`.
+* **Concrete Implementation:**
+  * Use `cuGraph` / `networkx` to compute PageRank centrality across the entire symbol graph.
+  * When ingesting a large codebase, extract only the top-ranked structural interfaces into a compressed `<|ARCHITECTURAL_SPINE|>` ($< 800\text{ tokens}$), allowing the agent to understand 50,000-line repositories without blowing token budgets.

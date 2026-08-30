@@ -904,3 +904,45 @@ To guarantee 100% turnkey reproducibility, zero missing dependency regressions, 
    * All Python dependencies must be declared under `[project.dependencies]` in `pyproject.toml`.
    * All Node / MCP tool packages must be declared in `package.json`.
    * Running `chezmoi apply --force` and `./setup.sh` on a fresh container must provision the entire Hermes harness with zero manual intervention.
+
+---
+
+## 6. Official Google & NVIDIA Heuristic Engines & Adaptive Policies
+
+Where dynamic heuristics, adaptive context budgeting, or filtering policies are necessary, **Hermes adopts the battle-tested, statistically calibrated heuristic engines provided directly by Google and NVIDIA packages** instead of maintaining limited, fragile handcrafted custom rules:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 OFFICIAL GOOGLE & NVIDIA HEURISTIC ENGINES & ADAPTIVE POLICIES                                          │
+├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
+│ Functional Domain        │ First-Party Heuristic Engine        │ Upstream Lab & Package               │ Operational Capability in Hermes│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **1. Dynamic Context &** │ Google ADK Adaptive Context Manager │ **Google ADK** (`google/adk-python`) │ Statistically profiles prompt   │
+│    **Token Budgeting**   │ & Vertex Agent Engine Heuristics    │                                      │ density to compute dynamic turn │
+│                          │                                     │                                      │ budgets instead of static limits│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **2. Hallucination &**   │ NeMo Self-Check & Entropy Scoring   │ **NVIDIA NeMo Guardrails**           │ Evaluates factual grounding and │
+│    **Alignment Scoring** │ Heuristics (`self_check_facts`)     │ (`nemoguardrails.library.self_check`)│ semantic consistency against VFS│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **3. Skill Quality &**   │ NeMo Min-Hash LSH & Code Complexity │ **NVIDIA NeMo-Curator**              │ Algorithmic AST complexity and  │
+│    **Complexity Filter** │ Heuristics (`nemo_curator.filters`) │ (`NVIDIA/NeMo-Curator`)              │ deduplication heuristics for    │
+│                          │                                     │                                      │ candidate skill evolution.      │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **4. Subagent Routing &**│ Google A2A Capability Matcher &     │ **Google A2A Protocol**              │ Heuristic graph topological     │
+│    **Task Graph Solving**│ Topological Dependency Solver       │ (`google/a2a`)                       │ scheduler for multi-bot fleets. │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **5. Adaptive Storage &**│ LevelDB LSM-Tree Write-Buffer &     │ **Google LevelDB**                   │ Dynamic disk compaction and page│
+│    **Cache Compaction**  │ SSTable Compaction Heuristics       │ (`google/leveldb`)                   │ cache eviction heuristics.      │
+└──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### Advantages of Adopting Google & NVIDIA Heuristics
+
+1. **Statistical Reliability over Ad-Hoc Rules:**
+   Handcrafted heuristics (e.g. naive character token division or string bracket counters) fail on edge cases. Google and NVIDIA heuristics are statistically calibrated across millions of code repositories and billions of inference tokens.
+2. **Adaptive Context & Budget Management:**
+   Instead of forcing arbitrary static token ceilings, the **Google ADK Context Manager** calculates token allocations dynamically based on AST size, tool schema complexity, and remaining task depth.
+3. **Automated Skill Curation Rigor:**
+   The **NVIDIA NeMo-Curator** filter pipeline evaluates code complexity metrics (cyclomatic complexity, comment density, AST depth) to ensure only clean, high-utility skills are promoted to active production.

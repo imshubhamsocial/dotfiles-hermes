@@ -621,3 +621,41 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
        * Slot 2 (Working Memory Anchor): `<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>` + completed task receipts (<800 tokens).
        * Slot 3 (Recent Window): Only the last 2 conversation turns.
   4. **Manual Verification**: Run a 5-turn session loading a skill `hermes -s polars-data-analysis`; exit; resume with `hermes -c "continue previous task"`; verify `llama-server` slot log shows `cache reuse: >95%` and `polars-data-analysis` tools are immediately available on Turn 1.
+
+---
+
+### Issue #30: Unbounded Database & Cache Growth, Missing Auto-Pruning, & WAL Bloat
+* **Classification**: Storage Management & Database Lifecycle Invariant
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`, `src/hermes_core/token_engine.py`
+* **Symptom**:
+  1. Ad-hoc JSON cache files (`web_grounding_cache.json`, `experiential.jsonl`) grow indefinitely without capacity bounds or TTL eviction, eventually consuming gigabytes of disk/RAMDisk.
+  2. SQLite databases (`symbol_graph.db`) accumulate dead pages and bloated WAL files (`.db-wal`) that never shrink or truncate after large symbol deletions.
+  3. No central database size manager exists to enforce global storage ceilings (e.g. max 500MB total agent footprint).
+* **Root Cause**:
+  1. Caches used custom dictionary dumps (`json.dump`) rather than an established disk cache manager with LRU/LFU eviction.
+  2. SQLite connections lacked `PRAGMA auto_vacuum = INCREMENTAL`, `PRAGMA wal_checkpoint(TRUNCATE)`, and `PRAGMA incremental_vacuum` cleanup routines.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/db_manager.py` (New File), `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`, `src/hermes_core/openviking_vfs.py`.
+  2. **Dependencies**: `diskcache` (`grantjenks/python-diskcache` PyPI), Standard Library `sqlite3`.
+  3. **Concrete Changes**:
+     * **DiskCache Migration for Transient Caching:**
+       * Replace `web_grounding_cache.json` and speculative caches with `diskcache.Cache(directory=Path.home() / ".hermes/cache/web", size_limit=256*1024*1024, evict="lru")`.
+       * Automatically evicts oldest entries when exceeding 256MB.
+     * **Unified SQLite Lifecycle & Auto-Pruning PRAGMAs (`db_manager.py`):**
+       * Create a standard database initializer for all SQLite databases (`symbol_graph.db`, `openviking_vfs.db`, `experience_store.db`):
+         ```python
+         def open_hardened_sqlite(db_path: Path) -> sqlite3.Connection:
+             conn = sqlite3.connect(db_path, timeout=10.0)
+             conn.execute("PRAGMA journal_mode = WAL;")
+             conn.execute("PRAGMA synchronous = NORMAL;")
+             conn.execute("PRAGMA auto_vacuum = INCREMENTAL;")
+             conn.execute("PRAGMA wal_autocheckpoint = 1000;")
+             return conn
+
+         def vacuum_and_truncate_wal(conn: sqlite3.Connection):
+             conn.execute("PRAGMA incremental_vacuum;")
+             conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+         ```
+       * Call `vacuum_and_truncate_wal(conn)` on session close / checkpoint to physically return freed disk space to the OS.
+  4. **Manual Verification**: Populate 500MB of temporary cache entries into `diskcache`; verify cache automatically prunes and stays $\le 256\text{MB}$. Run a heavy re-indexing cycle in `SymbolGraph`; call `vacuum_and_truncate_wal()`; verify `.db-wal` size shrinks to 0 bytes.

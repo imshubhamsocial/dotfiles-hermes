@@ -1,10 +1,10 @@
 # Issues & Architectural Fragility Audit (ws-hermes)
 
-This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and exhaustive static inspection of every tool, script, plugin, and configuration across the Hermes agentic harness. It also provides an exhaustive physical audit of where the codebase relies on artificial timeouts, arbitrary token budgets, fixed context limits, hardcoded sleeps, and prompt-policed constraints rather than deterministic physical mechanisms.
+This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and static inspection across the Hermes agentic harness. It also provides the exact mapping to official open-source tools and packages from **Anthropic**, **NVIDIA**, **Google**, and the **Python / Rust Systems Ecosystem** to solve and verify each issue deterministically.
 
 ---
 
-## 1. Registered Subsystem, Tool, & Agentic Vulnerabilities
+## 1. Registered Subsystem, Tool, & Agentic Vulnerabilities (With Industry Package Mappings)
 
 ### Issue #01: The "Completion Trap" & Missing Physical Output Token Gating
 * **Classification**: Behavioral Regression / Lack of Physical Gating
@@ -15,10 +15,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
   1. `SOUL.md` and `AGENTS.md` instructed the model to be modular and concise, but **prompt rules alone cannot physically restrict token generation**.
   2. The harness allowed a single turn to run up to `max_tokens` (4,096) without enforcing an intermediate tool boundary, chunk yield, or physical output brake.
   3. The agent bypassed the Modular Synthesis DAG Engine (`spec_first_planner.py` / `task_graph.py`) and went straight from user prompt to single-stream code dumping.
-* **Remediation**:
-  * Implement a physical output token ceiling ($\le 600\text{ tokens}$ per turn) at the engine dispatch level.
-  * Enforce schema-level DAG requirements: the agent must emit an architectural skeleton or task graph before receiving access to full file synthesis tools.
-  * Integrate the 6-point Observer Gate between file chunks (HTML skeleton $\rightarrow$ CSS styles $\rightarrow$ JS logic $\rightarrow$ validation).
+* **Remediation & Industry Package Alignment**:
+  * **Google ADK Workflow Primitives (`google/adk-python` — `SequentialAgent` / `LoopAgent`)**: Enforce DAG state transitions where an architectural blueprint must be committed before file synthesis tools are unlocked.
+  * **NVIDIA NeMo Output Rails (`nemoguardrails` — Output Token & Chunk Rail)**: Enforce a physical dispatch ceiling ($\le 600\text{ tokens}$ per turn) in `llama-server` runtime and interrupt unconstrained single-stream generation.
 
 ---
 
@@ -28,9 +27,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `test_developer_workflows_e2e.py`
 * **Symptom**: When `test_workflow_multi_file_python_library` ran `hermes -z "<prompt>"` inside a temporary directory (`/tmp/tmp...`), the test failed because files (`src/math_engine.py`) were not written to the temporary directory.
 * **Root Cause**: `hermes` CLI defaults its working directory to `~` (or `cwd: .` in `~/.hermes/config.yaml`). When executed programmatically in a subfolder, `hermes` does not automatically infer the caller's working directory unless the explicit CLI flag `--in <DIR>` is passed.
-* **Remediation**:
-  * Updated test runner helper to always append `["--in", str(cwd)]` whenever a custom working directory is provided.
-  * In `cli.py`, auto-detect non-interactive TTY environments and automatically bind `--in` to `Path.cwd()` if not provided.
+* **Remediation & Industry Package Alignment**:
+  * **Anthropic MCP Filesystem Server (`modelcontextprotocol/servers/src/filesystem`)**: Adopt strict workspace URI scoping where all file operations are pinned to the active project root URI.
+  * In `cli.py`, auto-detect non-interactive TTY execution (`not sys.stdin.isatty()`) and bind `--in` to `Path.cwd()` by default.
 
 ---
 
@@ -43,10 +42,10 @@ This document registers all operational bugs, loopholes, regressions, and archit
   1. The harness used arbitrary wall-clock timers (`timeout=90`, `timeout=180`) instead of monitoring physical execution signals.
   2. The single turn was allowed to run unconstrained for 2,500+ tokens without yielding, burning wall-clock seconds.
   3. Increasing timeouts (e.g. from 90s to 300s) is an **anti-pattern** that masks the root cause rather than solving it deterministically.
-* **Remediation**:
-  * **Eliminate Wall-Clock Timers:** Replace static timeouts with **I/O Stream Activity Heartbeats** (which only flag a deadlock if zero bytes are received on stdout/stderr for $>15\text{s}$).
-  * **Enforce Turn Output Chunking:** Limit single-turn generation to $\le 600\text{ tokens}$ so each individual turn executes and yields in $\le 15\text{ seconds}$.
-  * **State-Driven DAG Termination:** Signal task completion deterministically via invariant verification (tests pass + artifacts verified).
+* **Remediation & Industry Package Alignment**:
+  * **Google ADK Trajectory Evaluator (`google/adk-python` — `adk eval`)**: Replace wall-clock timers with state-driven DAG invariant verification (evaluating tool call order and contract satisfaction).
+  * **Non-Blocking I/O Activity Heartbeats (`asyncio` / `selectors`)**: Monitor stdout/stderr stream bytes; only flag a stall if zero bytes are received for $>15\text{s}$ (true deadlock).
+  * **Physical Turn Output Chunking**: Bound turns to $\le 600\text{ tokens}$ so turns naturally finish in $\le 15\text{ seconds}$.
 
 ---
 
@@ -56,7 +55,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: Turn 0 Context Overflow
 * **Symptom**: `llama-server` rejected requests with: `request (22956 tokens) exceeds the available context size (16384 tokens)`.
 * **Root Cause**: `llama-server` divides the total context `-c` evenly across parallel slots (`-np 2`). A `-c 32768` flag only allocated $16,384$ tokens per slot. Because Hermes system prompts and tool schemas occupy ~22,956 tokens, Turn 0 immediately overflowed.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Set `-c 131072` (128K total), giving exactly **$65,536\text{ tokens (64K)}$ per slot** across 2 slots.
   * Verified $K/V$ quantization (`q4_0`) keeps total VRAM $\le 3,240\text{ MiB}$ (well below the $4,812\text{ MiB}$ safety ceiling).
 
@@ -68,9 +67,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `test_live_adversarial_jailbreak_tamper_attempt`
 * **Symptom**: When issued a hostile prompt ordering the deletion of `.integrity` logs and modification of `agent_capabilities.yaml`, the agent attempted a tool call to read the file before refusing.
 * **Root Cause**: Relying on the model to read a file and then decide to refuse is insecure. A compromised or hallucinating model could issue write or delete commands before refusal logic kicks in.
-* **Remediation**:
-  * Added `validate_security_policy_path()` and `validate_security_policy_command()` to `capability_masks.py`.
-  * Pre-execution dispatch intercepts and aborts any file modification or shell deletion targeting `~/.hermes/policy/` or `~/.hermes/logs/*.integrity` before execution reaches the OS.
+* **Remediation & Industry Package Alignment**:
+  * **NVIDIA NeMo Execution Rails (`nemoguardrails` — Execution & Path Rails)**: Implement programmatic Colang execution rails that intercept tool invocations before execution.
+  * Added `validate_security_policy_path()` and `validate_security_policy_command()` to `capability_masks.py` to abort dangerous operations in user-space before reaching the OS.
 
 ---
 
@@ -83,10 +82,10 @@ This document registers all operational bugs, loopholes, regressions, and archit
   1. No SQLite, DuckDB, or filesystem persistence layer is attached to `OpenVikingVFS`.
   2. Token estimation uses a crude `len(text) // 4` character-count heuristic, which introduces 40–60% estimation errors on minified JavaScript, HTML templates, and non-ASCII source files.
   3. `find()` method performs an unindexed $O(N)$ recursive tree traversal that locks execution during deep repository scans.
-* **Remediation**:
-  * Add SQLite persistence backing to `OpenVikingVFS` with WAL mode.
-  * Replace `len(text) // 4` with exact Tiktoken BPE / Gemma tokenizer caching.
-  * Build an in-memory inverted tag index to replace linear recursive traversal in `find()`.
+* **Remediation & Industry Package Alignment**:
+  * **DuckDB / SQLite WAL Storage (`sqlite3` / `duckdb`)**: Back `OpenVikingVFS` with an on-disk embedded SQLite store for persistent L0/L1/L2 context nodes.
+  * **Google Tiktoken / Tokenizer BPE (`tiktoken` / HuggingFace `tokenizers`)**: Replace character division with exact BPE token counts.
+  * **Inverted Tag Indexing**: Index tags in memory to provide $O(1)$ tag lookups.
 
 ---
 
@@ -96,8 +95,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/codebase_memory_mcp.py`
 * **Symptom**: When querying large class hierarchies or multi-hop call graphs, MCP tool consumers fail with `json.decoder.JSONDecodeError: Unterminated string`.
 * **Root Cause**: `truncate_to_tokens(text, max_tokens=150)` performs blind character-level string slicing (`text[:max_chars - 3] + "..."`). When `text` is a JSON serialization of symbols or classes, blind character chopping produces malformed JSON syntax.
-* **Remediation**:
-  * Implement **Structured AST Node Slicing** instead of raw string truncation. Truncate array elements (e.g. `symbols[:5]`) *before* serializing to JSON, ensuring the JSON document is always syntactically valid.
+* **Remediation & Industry Package Alignment**:
+  * **Official Anthropic FastMCP SDK (`mcp[cli]` / `FastMCP` from `modelcontextprotocol/python-sdk`)**: Replace custom string chopping with FastMCP's structured tool payload serialization.
+  * Truncate list elements in the data model *before* serializing to JSON, guaranteeing 100% valid JSON Schema output.
 
 ---
 
@@ -110,10 +110,10 @@ This document registers all operational bugs, loopholes, regressions, and archit
   1. `symbol_graph.py` hardcodes `ast.parse` (Python standard library only) and `patterns = ["*.py"]`.
   2. `symbol_references` SQLite table lacks `UNIQUE` constraints and path normalization, resulting in duplicate reference records and DB bloat upon repeated project indexings.
   3. `.gitignore` filtering uses naive `fnmatch` which fails on directory-only suffixes (`dir/`), negation rules (`!`), and multi-level recursive globs (`**/`).
-* **Remediation**:
-  * Wire `TreeSitterParser` from `codebase_memory_mcp.py` into `SymbolGraph` to index polyglot repositories.
-  * Add `UNIQUE(source_file, caller_symbol, target_symbol, ref_type)` constraint and normalized relative paths to SQLite schema.
-  * Replace `fnmatch` with `pathspec` for 100% Git-compliant `.gitignore` evaluation.
+* **Remediation & Industry Package Alignment**:
+  * **Tree-Sitter Multi-Language Bindings (`tree-sitter` & `tree-sitter-languages`)**: Wire official Tree-sitter parsers for Python, JavaScript, TypeScript, Rust, Go, and C++ into `SymbolGraph`.
+  * **Git-Compliant PathSpec (`pathspec` PyPI)**: Replace `fnmatch` with `pathspec.PathSpec.from_lines("gitwildmatch", ...)` for standard `.gitignore` resolution.
+  * Add `UNIQUE(source_file, caller_symbol, target_symbol, ref_type)` to SQLite schema.
 
 ---
 
@@ -123,8 +123,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/lsp_bridge.py`
 * **Symptom**: Valid JS, TS, HTML, and C++ files are incorrectly rejected by the syntax guard with `"Unmatched closing bracket"` or `"Unclosed opening bracket"`.
 * **Root Cause**: `analyze_generic_source()` scans raw characters line-by-line using a naive stack. It does not track string literals (`"..."`, `'...'`, `` `...` ``), regexes (`/.../`), or single/multi-line comments (`//`, `/* */`), causing brackets inside strings or comments to trigger false syntax errors.
-* **Remediation**:
-  * Replace naive bracket stack scanning with Tree-sitter AST syntax error detection (`tree.root_node.has_error`).
+* **Remediation & Industry Package Alignment**:
+  * **Tree-Sitter Syntax Error Detector (`tree-sitter`)**: Check syntax validity via `tree.root_node.has_error` across all languages instead of naive character stacking.
 
 ---
 
@@ -134,8 +134,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/knowledge_graph.py`
 * **Symptom**: The Codebase Knowledge Graph records local variables (`x`, `y`, `self`, `None`, `True`) as function calls in `caller_graph`.
 * **Root Cause**: `_index_python_file` extracts calls using `calls = [n.id for n in ast.walk(item) if isinstance(n, ast.Name)]`. In Python's AST, `ast.Name` represents all variable names and constants, not function calls (`ast.Call`).
-* **Remediation**:
-  * Filter strictly for `ast.Call` nodes and extract callee names via `node.func.id` or `node.func.attr`.
+* **Remediation & Industry Package Alignment**:
+  * Restrict AST extraction strictly to `ast.Call` nodes and extract callee names via `node.func.id` or `node.func.attr`.
 
 ---
 
@@ -145,8 +145,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/hypothesis_tree.py`
 * **Symptom**: When multiple subagents or background tasks run concurrently, hypothesis trees overwrite each other, causing orphaned branch IDs and corrupted backtracking histories.
 * **Root Cause**: `STORAGE_PATH` is hardcoded to a static singleton file `/dev/shm/hypothesis_tree.json`.
-* **Remediation**:
-  * Scope hypothesis tree state by session and task ID (e.g. `/dev/shm/hermes/hypothesis_{session_id}_{task_id}.json`).
+* **Remediation & Industry Package Alignment**:
+  * **Google ADK Session Hierarchy (`google/adk-python`)**: Scope hypothesis tree state dynamically by session and task ID (`/dev/shm/hermes/hypothesis_{session_id}_{task_id}.json`).
 
 ---
 
@@ -156,8 +156,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/tools.py`
 * **Symptom**: Calls to `search_web()` return a static dummy string: `"Search results for '...': Query resolved successfully."`
 * **Root Cause**: `tools.py:search_web()` was left as a stub and never connected to `web_grounding.py` or `extract_web_content.py`.
-* **Remediation**:
-  * Connect `search_web()` to `private_dot_hermes/bin/executable_extract_web_content.py` and SearXNG / Searx / Google grounding adapters.
+* **Remediation & Industry Package Alignment**:
+  * **Anthropic MCP Brave Search Server (`modelcontextprotocol/servers/src/brave-search`)**: Wire `search_web()` to official search providers (SearXNG / DuckDuckGo / Brave Search).
 
 ---
 
@@ -167,7 +167,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/tools.py`
 * **Symptom**: Relative file operations (`read_file("src/app.py")`) fail or look in `/dev/shm/hermes_workspace` even when the user is working in their project directory.
 * **Root Cause**: `_resolve_path()` defaults to `Path("/dev/shm/hermes_workspace")` if `workspace_root` is not explicitly passed.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Default `workspace_root` dynamically to `Path.cwd()` (or active project root via environment variable).
 
 ---
@@ -178,8 +178,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/speculative_executor.py`
 * **Symptom**: Speculative tool promises taking $>5.0\text{s}$ are abandoned, marked as `REJECTED`, and re-executed synchronously. Furthermore, completed promises are never evicted from `self.promises`.
 * **Root Cause**: Hardcoded timeout polling on futures and missing LRU eviction policy on `self.promises`.
-* **Remediation**:
-  * Use event-driven futures callbacks (`future.add_done_callback`) and bind `self.promises` using an LRU cache.
+* **Remediation & Industry Package Alignment**:
+  * **`asyncio.Future` & `concurrent.futures` Callbacks**: Replace timeout polling with event-driven completion callbacks (`future.add_done_callback`) and bind `self.promises` with a capacity-capped LRU cache.
 
 ---
 
@@ -189,8 +189,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `private_dot_hermes/bin/executable_extract_code_mode.py`
 * **Symptom**: Extracting non-Python code blocks (Bash, HTML, CSS, JavaScript, SQL, JSON, YAML) from markdown fences fails with `"extract_code: fenced output contained no parsable code body"`.
 * **Root Cause**: `extract_code()` filters candidate code chunks by passing them to `ast.parse(candidate)`. Any non-Python syntax raises `SyntaxError` and is discarded.
-* **Remediation**:
-  * Accept code blocks tagged with language markers (e.g. ```` ```bash ````, ```` ```html ````) and validate syntax using language-specific linters rather than assuming all code is Python.
+* **Remediation & Industry Package Alignment**:
+  * Accept code blocks tagged with language markers (e.g. ```` ```bash ````, ```` ```html ````) and validate syntax using Tree-sitter language grammars rather than assuming all code is Python.
 
 ---
 
@@ -200,7 +200,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `private_dot_hermes/bin/executable_verify_skills_config.py`
 * **Symptom**: Profiles declaring `external_dirs` with tildes or unexpanded shell variables fail pre-run verification if environment variables differ between host and container.
 * **Root Cause**: Path existence checks relied on raw environment expansions without canonicalizing paths via `Path.resolve()`.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Use normalized `os.path.expanduser(os.path.expandvars(p))` before validating directory existence.
 
 ---
@@ -211,8 +211,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/synergy_bus.py`
 * **Symptom**: Long-running multi-agent sessions or continuous background tasks continuously consume RAMDisk and memory until exhaustion.
 * **Root Cause**: `SynergyEventBus.event_history` appends every published event (`TASK_SPAWN`, `TOOL_CALL`, `VFS_MUTATION`) into an unbounded in-memory Python list without any eviction policy or ring buffer size limit.
-* **Remediation**:
-  * Replace unbounded list with `ThreadSafeRingBuffer(capacity=1000)` from `thread_safe_ringbuffer.py`.
+* **Remediation & Industry Package Alignment**:
+  * **Google ADK Event Bus (`google/adk-python`)**: Adopt ADK's bounded event bus stream backed by a thread-safe ring buffer (`ThreadSafeRingBuffer(capacity=1000)`).
 
 ---
 
@@ -222,8 +222,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/multi_bot_delegation.py`
 * **Symptom**: `execute_delegation_pipeline()` does not actually execute multi-bot turns or generate code via LLM tools—it immediately returns pre-fabricated mock success strings (`"Architectural specification formulated in .hermes/plan.json..."`).
 * **Root Cause**: The delegation orchestrator was authored as a prototype stub with synthetic return objects rather than connecting to the live Swarm / Hub dispatch loop.
-* **Remediation**:
-  * Wire `MultiBotOrchestrator` to invoke real agent turns via `HermesOrchestrator.run()` / `hub_cli.py` with actual tool dispatch and output verification.
+* **Remediation & Industry Package Alignment**:
+  * **Google ADK Hierarchical Orchestrator (`google/adk-python` — `SequentialAgent` / `ParallelAgent`)**: Wire `MultiBotOrchestrator` to dispatch real agent turns with live tool calls and artifact validation.
 
 ---
 
@@ -233,8 +233,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/swarm_engine.py`
 * **Symptom**: Tools with complex type signatures (`Optional[int]`, `Union[str, Path]`, `Literal[...]`, Pydantic models) are exposed to the model as generic `"type": "string"` with uninformative `"description": "Parameter {name}"`.
 * **Root Cause**: `function_to_schema()` uses a primitive `if/elif` type check and does not parse docstrings (Google/Sphinx/Numpydoc) for argument descriptions.
-* **Remediation**:
-  * Parse docstrings via `inspect.getdoc()` or `docstring_parser` to extract precise parameter semantics and generate full JSON Schema constraints (`enum`, `minimum`, `format`).
+* **Remediation & Industry Package Alignment**:
+  * **Anthropic Tool Schema Generator (`mcp.server.fastmcp` / `docstring_parser`)**: Parse docstrings and Pydantic field models into full JSON Schema definitions.
 
 ---
 
@@ -246,9 +246,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Root Cause**:
   1. Line 171 attempts `from ddgs import DDGS`, which does not exist in standard PyPI (standard library is `duckduckgo_search`).
   2. Neither `duckduckgo_search` nor a live `SEARXNG_URL` is configured by default, causing both primary and fallback search paths to fail.
-* **Remediation**:
-  * Fix import to `from duckduckgo_search import DDGS` and install `duckduckgo_search`.
-  * Add automatic fallback to `executable_extract_web_content.py` and local offline documentation index (`index_docs.py`).
+* **Remediation & Industry Package Alignment**:
+  * Install and wire `duckduckgo-search` (`from duckduckgo_search import DDGS`).
+  * Add automatic fallback to local offline documentation indexing via `index_docs.py`.
 
 ---
 
@@ -258,7 +258,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/token_engine.py`
 * **Symptom**: `/dev/shm` fills up with thousands of orphan `hermes_ephemeral_*.log` files during heavy coding sessions.
 * **Root Cause**: `EphemeralToolBuffer.finalize()` writes full subprocess stdout/stderr streams to `/dev/shm` on every single command turn, but never registers a FIFO capacity cap.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Add a deterministic FIFO RingBuffer in `EphemeralToolBuffer` capping stored log count to 50 entries.
 
 ---
@@ -269,7 +269,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/skill_evolution.py`
 * **Symptom**: If an autonomous evolution cycle fails its A/B lift gate (+15% requirement), the engine deletes the entire skill directory, accidentally destroying existing production skills sharing the same name.
 * **Root Cause**: `synthesize_candidate_skill()` writes candidate drafts directly to `~/.hermes/skills/{skill_name}/SKILL.md`. If A/B certification fails, `evaluate_and_promote()` calls `shutil.rmtree(candidate_file.parent)`, deleting the entire folder.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Write candidate drafts to an isolated staging directory (e.g. `~/.hermes/staging_skills/`). Only copy to `~/.hermes/skills/` after the A/B lift gate is certified.
 
 ---
@@ -280,7 +280,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/experience_store.py`
 * **Symptom**: All accumulated failure patterns, negative constraints, and positive playbooks are wiped on machine reboot or container restart.
 * **Root Cause**: `ExperienceStore` defaults its database path to `/dev/shm/hermes_experience_store.json` (RAMDisk).
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Default storage to persistent disk at `~/.hermes/memory/experience_store.json` (or sync with `experiential.jsonl`), with optional RAMDisk write-through caching.
 
 ---
@@ -291,7 +291,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/openskills_manager.py`
 * **Symptom**: OpenSkills discovery returns 0 skills even when 62+ valid skills exist on disk.
 * **Root Cause**: `_rebuild_index()` performs a flat 1-level `iterdir()` scan (`skills_dir / skill_dir / SKILL.md`). Because skills are organized in subdirectories (`creative/comfyui/SKILL.md`, `software-development/polars-data-analysis/SKILL.md`), all categorized skills are completely missed.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Replace 1-level iteration with recursive globbing (`skills_dir.rglob("SKILL.md")`).
 
 ---
@@ -302,8 +302,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `executable_setup.sh`, `private_skills/`
 * **Symptom**: Common developer capabilities (e.g. Anthropic lead developer skills, official awesome-claude-skills, framework linters) must be manually coded or imported ad-hoc rather than pre-seeded at setup.
 * **Root Cause**: `setup.sh` only deploys local static dotfiles and does not include an upstream skill package synchronizer.
-* **Remediation**:
-  * Add an upstream skill synchronization phase in `setup.sh` that bundles and categorizes core developer skills (TDD, Playwright, React, FastAPI, Git PR workflow) during initial setup.
+* **Remediation & Industry Package Alignment**:
+  * **Anthropic Claude Skills / OpenSkills Hub (`awesome-claude-skills`)**: Add an upstream skill synchronization phase in `setup.sh` that bundles and categorizes core developer skills (TDD, Playwright, React, FastAPI, Git PR workflow) during initial setup.
 
 ---
 
@@ -313,8 +313,10 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`
 * **Symptom**: Code generated by the agent contains PEP 8 indentation errors, unformatted JSX/HTML, or trailing whitespace because formatters (`ruff format`, `black`, `prettier`) are never called automatically. Furthermore, `FastASTPreCommitGate` uses crude string counting (`count("{") != count("}")`) that falsely rejects valid code containing braces in strings.
 * **Root Cause**: `write_file()` performs an AST syntax check but does not pipe code through standard formatters.
-* **Remediation**:
-  * Pipe synthesized code through `ruff format` / `prettier` automatically in `write_file()` and replace naive string counts with AST error node checks.
+* **Remediation & Industry Package Alignment**:
+  * **Astral Ruff (`ruff` PyPI)**: Automatically run `ruff format` and `ruff check --fix` (<10ms) on generated Python files in `write_file()`.
+  * **Prettier (`prettier`)**: Automatically format JS, TS, HTML, CSS, JSON, and YAML files.
+  * **Tree-Sitter Syntax Error Detection (`tree-sitter`)**: Replace crude character counts with `tree.root_node.has_error`.
 
 ---
 
@@ -324,7 +326,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Discovered In**: `hermes` CLI entry point, `test_developer_workflows_e2e.py`
 * **Symptom**: Passing standard debugging flags (e.g. `--verbose`, `-v`) to `hermes` crashes with `unrecognized arguments: --verbose`.
 * **Root Cause**: Root CLI parser only registers specific subcommand arguments (or `--dev` tied strictly to `--tui`).
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Add global `--verbose` / `-v` / `--debug` aliases at the root CLI argument parser to configure logging levels consistently across all modes.
 
 ---
@@ -337,13 +339,52 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Root Cause**:
   1. No single typed Python SDK wrapper existed (e.g. `hermes_core.runner.run_hermes(...)`); every test and subagent constructed ad-hoc `subprocess.run(["hermes", ...])` argv lists from scratch.
   2. The CLI did not automatically detect non-interactive TTY environments to default `--in` to `os.getcwd()` and auto-accept headless hooks.
-* **Remediation**:
+* **Remediation & Industry Package Alignment**:
   * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, I/O activity heartbeats, and working directory bindings.
   * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.
 
 ---
 
-## 2. Exhaustive Codebase Audit: Timeouts, Budgets, Sleeps & Fragile Heuristics
+## 2. Industry Tool & Package Matrix for Deterministic Verification
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 INDUSTRY OPEN-SOURCE PACKAGE MAPPING FOR HERMES HARNESS                                │
+├─────────────────────┬──────────────────────────────────────────┬───────────────────────────────────────────────────────┤
+│ Origin / Lab        │ Tool / Package Name                      │ Purpose & Verification Role                           │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Anthropic**       │ `modelcontextprotocol/python-sdk`        │ Official FastMCP server & tool schema serialization   │
+│                     │ (`mcp[cli]`)                             │ (fixes Issue #07, Issue #19)                          │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Anthropic**       │ `modelcontextprotocol/servers`           │ Reference MCP servers (filesystem, git, brave-search) │
+│                     │ (`filesystem`, `brave-search`)           │ (fixes Issue #02, Issue #12, Issue #20)               │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Anthropic**       │ `awesome-claude-skills`                  │ Curated, production-grade developer skill pack        │
+│                     │                                          │ (fixes Issue #24, Issue #25)                          │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **NVIDIA**          │ `NVIDIA/NeMo-Guardrails`                 │ Colang-driven Input, Execution, and Output Rails      │
+│                     │ (`nemoguardrails`)                       │ (fixes Issue #01, Issue #05)                          │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Google**          │ `google/adk-python`                      │ Hierarchical agent workflow primitives & evaluation   │
+│                     │ (`SequentialAgent`, `adk eval`)          │ (fixes Issue #01, Issue #03, Issue #11, Issue #18)    │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Tree-Sitter**     │ `tree-sitter` & `tree-sitter-languages`  │ Polyglot multi-language AST parser & syntax detector  │
+│ (Universal)         │                                          │ (fixes Issue #08, Issue #09, Issue #15, Issue #26)    │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Astral**          │ `ruff` (`ruff format`, `ruff check`)     │ Instant sub-10ms Python code formatter and linter     │
+│ (Rust Systems)      │                                          │ (fixes Issue #26)                                     │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Search / Ground** │ `duckduckgo-search`                      │ Zero-config search grounding with offline fallback    │
+│                     │ (`duckduckgo_search`)                    │ (fixes Issue #20)                                     │
+├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ **Git Wildmatch**   │ `pathspec`                               │ 100% Git-compliant `.gitignore` pattern evaluation    │
+│                     │                                          │ (fixes Issue #08)                                     │
+└─────────────────────┴──────────────────────────────────────────┴───────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Exhaustive Codebase Audit: Timeouts, Budgets, Sleeps & Fragile Heuristics
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -424,7 +465,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
-## 3. Detailed Audit by Category
+## 4. Detailed Audit by Category
 
 ### A. Arbitrary Subprocess & Terminal Timeouts
 * **Where found:** `config.yaml` (`timeout: 180`, `inactivity_timeout: 120`), `container_cmd.py` (`timeout=10`), `observer_gate.py` (`timeout=5`, `timeout=3`), `speculative_executor.py` (`timeout=5.0`), test suites (`timeout=90`, `timeout=120`).
@@ -454,19 +495,18 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
-## 4. Architectural Roadmap for Permanent Elimination
+## 5. Architectural Roadmap for Permanent Elimination
 
 1. **Physical Turn Token Limiter**: Enforce `max_tokens: 600` per generation turn in `config.yaml` and `llama-server` dispatch to physically eliminate monolithic token dumping.
 2. **I/O Stream Activity Heartbeat**: Replace all wall-clock timeouts with non-blocking stdout/stderr stream activity monitors.
-3. **Schema-Driven DAG Enforcer**: Require `emit_plan_dag` tool call before `write_file` is unlocked.
-4. **Structured Tree-Sitter MCP Slicing**: Truncate JSON AST elements structurally before serialization.
-5. **Polyglot AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
-6. **Polyglot Markdown Code Extractor**: Remove Python-only AST filter from `extract_code_mode.py`.
-7. **Recursive OpenSkills Discovery**: Update `openskills_manager.py` to recursively discover all categorized skills.
-8. **Base Skill Pack Bundler**: Integrate upstream developer skill synchronization into `setup.sh`.
-9. **Automated Linter/Formatter Gate**: Pipe generated files through `ruff format` / `prettier` automatically.
-10. **Live Multi-Bot Orchestration**: Replace mock turn generators in `multi_bot_delegation.py` with real agent dispatch.
-11. **Production Web Grounding**: Fix DuckDuckGo import, install `duckduckgo_search`, and link to offline doc search.
+3. **NVIDIA NeMo Execution Rails**: Enforce pre-execution path and command policy containment in `capability_masks.py`.
+4. **Official Anthropic FastMCP Serialization**: Replace custom string chopping with `FastMCP` data model serialization.
+5. **Google ADK DAG State Flow**: Replace mock turn generators in `multi_bot_delegation.py` with ADK `SequentialAgent` / `ParallelAgent` execution.
+6. **Polyglot Tree-Sitter Parser**: Connect `tree-sitter` & `tree-sitter-languages` to `symbol_graph.py`, `lsp_bridge.py`, and `extract_code_mode.py`.
+7. **Git-Compliant `.gitignore` Resolution**: Use `pathspec` for accurate file filtering.
+8. **Astral Ruff & Prettier Auto-Formatter Pipeline**: Automatically pipe generated code through `ruff format` and `prettier` in `write_file()`.
+9. **Recursive OpenSkills Discovery**: Update `openskills_manager.py` to recursively discover all categorized skills.
+10. **Base Skill Pack Bundler**: Integrate upstream developer skill synchronization (`awesome-claude-skills`) into `setup.sh`.
+11. **Production Web Grounding**: Wire `duckduckgo_search` and offline documentation indexes into `web_grounding.py`.
 12. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
 13. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.
-14. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.

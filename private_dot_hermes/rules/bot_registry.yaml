@@ -1,11 +1,11 @@
-# Master Bot Fleet & Language Specialization Registry (Google Multi-Language Architecture)
-# Defines intent classification, allowed skills, context limits, toolchain bindings, and web search policies.
+# Master Subagent Fleet Registry (Google AGY / ADK Standard)
+# Standard 5-Subagent Taxonomy with NVIDIA Automated Safety Rails & Backward-Compatible Aliases
 
 bots:
-  architect:
-    display_name: "@architect"
+  planner:
+    display_name: "@planner"
     description: "System-2 pre-planning, formal specifications, DAG dependency mapping, and interface contracts."
-    triggers: ["architect", "plan", "design system", "specification", "blueprint", "schema", "decompose", "interface"]
+    triggers: ["plan", "planner", "architect", "design system", "specification", "blueprint", "schema", "decompose", "interface"]
     skills_allowed: ["plan", "spike", "hermes-agent-skill-authoring"]
     web_search_policy: "always"
     context_ceiling_tok: 400
@@ -14,51 +14,75 @@ bots:
       - "Map DAG dependencies with topological sorting before implementing"
       - "Formulate typed interface contracts for all modules"
 
+  researcher:
+    display_name: "@researcher"
+    description: "Deep web exploration, OpenKB symbol indexing, documentation analysis, and persistent memory."
+    triggers: ["research", "researcher", "search", "investigate", "explore", "literature", "paper", "second brain", "find online"]
+    skills_allowed: ["spider-web-research", "grounded-citations", "llm-wiki"]
+    web_search_policy: "always"
+    context_ceiling_tok: 400
+    guardrails:
+      - "Read-only exploration: Do not edit codebase files directly"
+      - "Commit findings into ~/.hermes/knowledge/ with frontmatter"
+      - "Ensure zero token bloat: summarize sources <= 400 tokens"
+      - "Cite concrete URLs and evidence for all factual assertions"
+
   coder:
     display_name: "@coder"
-    description: "Universal modular code synthesis, TDD implementations, and clean-room file editing."
-    triggers: ["code", "implement", "build", "create file", "write function", "synthesize", "refactor"]
+    description: "Universal modular code synthesis, TDD implementations, and clean-room file editing across Python/Rust/C++/JS."
+    triggers: ["code", "coder", "implement", "build", "create file", "write function", "synthesize", "refactor", "python", "rust", "cpp", "c++"]
     skills_allowed: ["test-driven-development", "simplify-code", "python-debugpy"]
     web_search_policy: "before_code"
     context_ceiling_tok: 350
     guardrails:
       - "Adhere strictly to .hermes/plan.json specification"
       - "Run AST pre-commit observer gate before finalizing changes"
-      - "Enforce modern language idioms (typing, dataclasses, RAII)"
+      - "Enforce modern language idioms (typing, dataclasses, RAII, borrow checker)"
 
-  coder-cpp:
-    display_name: "@coder-cpp"
-    description: "High-performance systems programming, C++20 RAII, memory safety, and GCC/Clang optimization."
-    triggers: ["c++", "cpp", "c++20", "g++", "gcc", "clang", "raii", "unique_ptr", "cmake", "valgrind", "systems programming"]
-    skills_allowed: ["test-driven-development", "simplify-code"]
-    web_search_policy: "before_code"
+  reviewer:
+    display_name: "@reviewer"
+    description: "Quorum independent code audit, PR review, AST syntax validation, and blast-radius verification."
+    triggers: ["review", "reviewer", "code review", "pr review", "diff check", "lint audit", "quorum", "audit"]
+    skills_allowed: ["requesting-code-review", "rust-ast-grep"]
+    web_search_policy: "before_review"
+    context_ceiling_tok: 300
+    guardrails:
+      - "Structural separation of powers: Author cannot be auditor (fitness score >= 0.85)"
+      - "Focus strictly on code correctness, security, and maintainability"
+      - "Do not implement features; provide actionable line-referenced findings"
+
+  tester:
+    display_name: "@tester"
+    description: "Dynamic invariant verification, sandboxed test execution, and 2-Strike Tabu hypothesis eviction."
+    triggers: ["test", "tester", "verify", "benchmark", "debug", "error", "pytest", "validate", "assert"]
+    skills_allowed: ["systematic-debugging", "test-driven-development"]
+    web_search_policy: "on_error"
     context_ceiling_tok: 350
     guardrails:
-      - "Enforce strict C++20 standards, RAII resource management, and concepts."
-      - "Zero raw memory allocations (new/delete); strictly use std::unique_ptr and std::make_shared."
-      - "Ensure warning-free builds under gcc -Wall -Wextra -Werror."
+      - "Assert dynamic invariants rather than fragile string matches"
+      - "Never claim verification without citing raw command outputs"
+      - "Follow 2-Strike Tabu rule: Evict hypothesis on second consecutive failure"
 
-  coder-python:
-    display_name: "@coder-python"
-    description: "Modern Python 3.13 backend engineering, asyncio concurrency, and pytest contract validation."
-    triggers: ["python", "python3", "fastapi", "asyncio", "pytest", "dataclass", "ruff", "pydantic"]
-    skills_allowed: ["test-driven-development", "python-debugpy"]
-    web_search_policy: "before_code"
-    context_ceiling_tok: 350
+  # Backward-compatible aliases for legacy domain triggers
+  architect:
+    display_name: "@architect"
+    description: "Alias for @planner (System-2 pre-planning)"
+    triggers: ["architect"]
+    skills_allowed: ["plan", "spike"]
+    web_search_policy: "always"
+    context_ceiling_tok: 400
     guardrails:
-      - "Enforce strict type annotations, @dataclass, pathlib.Path, and asyncio."
-      - "Validate code through ruff check and verify contracts via pytest."
+      - "Never emit code without formal specification in .hermes/plan.json"
 
-  coder-rust:
-    display_name: "@coder-rust"
-    description: "Memory-safe systems programming, Rust borrow checker correctness, and Cargo crate tooling."
-    triggers: ["rust", "cargo", "rustc", "unsafe", "borrow checker", "tokio", "serde"]
-    skills_allowed: ["test-driven-development"]
-    web_search_policy: "before_code"
-    context_ceiling_tok: 350
+  domain-code-review:
+    display_name: "@domain-code-review"
+    description: "Alias for @reviewer (Quorum audit gate)"
+    triggers: ["domain-code-review"]
+    skills_allowed: ["requesting-code-review"]
+    web_search_policy: "before_review"
+    context_ceiling_tok: 300
     guardrails:
-      - "Enforce strict borrow checker compliance; zero unsafe blocks unless formally verified."
-      - "Implement idiomatic error propagation via Result/Option (no bare unwrap)."
+      - "Structural separation of powers: Author cannot be auditor"
 
   domain-design:
     display_name: "@domain-design"
@@ -68,43 +92,8 @@ bots:
     web_search_policy: "always"
     context_ceiling_tok: 350
     guardrails:
-      - "Prevent frame-0 initialization races and null canvas references."
-      - "Enforce strict ES-modules (<script type=\"module\">) and requestAnimationFrame loop lifecycle."
-
-  tester:
-    display_name: "@tester"
-    description: "Dynamic invariant verification, pytest test suites, and systematic bug diagnosis."
-    triggers: ["test", "verify", "audit", "benchmark", "debug", "error", "pytest", "validate", "assert"]
-    skills_allowed: ["systematic-debugging", "test-driven-development"]
-    web_search_policy: "on_error"
-    context_ceiling_tok: 350
-    guardrails:
-      - "Assert dynamic invariants rather than fragile string matches"
-      - "Never claim verification without citing raw command outputs"
-      - "Follow 2-Strike Tabu rule: Evict hypothesis on second consecutive failure."
-
-  researcher:
-    display_name: "@researcher"
-    description: "Deep web exploration, academic paper analysis, and Second Brain persistent memory indexing."
-    triggers: ["research", "search", "investigate", "explore", "literature", "paper", "second brain", "find online"]
-    skills_allowed: ["spider-web-research", "grounded-citations", "llm-wiki"]
-    web_search_policy: "always"
-    context_ceiling_tok: 400
-    guardrails:
-      - "Commit findings into ~/.hermes/knowledge/ with frontmatter"
-      - "Ensure zero token bloat: summarize sources <= 400 tokens"
-      - "Cite concrete URLs and evidence for all factual assertions"
-
-  domain-code-review:
-    display_name: "@domain-code-review"
-    description: "Static code analysis, PR review, maintainability and correctness auditing."
-    triggers: ["review", "code review", "pr review", "diff check", "lint audit"]
-    skills_allowed: ["requesting-code-review", "rust-ast-grep"]
-    web_search_policy: "before_review"
-    context_ceiling_tok: 300
-    guardrails:
-      - "Focus strictly on code correctness, security, and maintainability"
-      - "Do not implement features; provide actionable line-referenced findings"
+      - "Prevent frame-0 initialization races and null canvas references"
+      - "Enforce strict ES-modules and requestAnimationFrame lifecycle"
 
   domain-security:
     display_name: "@domain-security"
@@ -114,7 +103,7 @@ bots:
     web_search_policy: "on_error"
     context_ceiling_tok: 300
     guardrails:
-      - "Audit against dangerous scope mutations (eval, Function, __proto__)"
+      - "Audit against dangerous scope mutations"
       - "Ensure sandbox and process table isolation"
 
   domain-devops:

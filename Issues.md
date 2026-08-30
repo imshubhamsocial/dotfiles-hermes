@@ -659,3 +659,72 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
          ```
        * Call `vacuum_and_truncate_wal(conn)` on session close / checkpoint to physically return freed disk space to the OS.
   4. **Manual Verification**: Populate 500MB of temporary cache entries into `diskcache`; verify cache automatically prunes and stays $\le 256\text{MB}$. Run a heavy re-indexing cycle in `SymbolGraph`; call `vacuum_and_truncate_wal()`; verify `.db-wal` size shrinks to 0 bytes.
+
+---
+
+### Issue #31: Universal Polyglot In-Flight Auto-Formatting Pipeline in `write_file()`
+* **Classification**: Code Quality & Pre-Commit Automation
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/tools.py`, `src/hermes_core/working_memory.py`
+* **Symptom**: Code generated across languages (Python, JS/TS, Rust, Go, C++, HTML/CSS, Shell, Markdown) contains formatting defects, unaligned braces, missing imports, or style violations because formatters are not automatically invoked upon file generation.
+* **Root Cause**: `write_file()` performed only AST parsing for Python and crude brace counting for JS without running native language formatters.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/tools.py`, `src/hermes_core/formatter_pipeline.py` (New File), `executable_setup.sh`.
+  2. **Dependencies**: `ruff` (Python), `biome` (JS/TS/JSON/CSS via `@biomejs/biome`), `rustfmt` (Rust), `gofmt` (Go), `clang-format` (C/C++), `shfmt` (Bash).
+  3. **Concrete Changes**:
+     * In `executable_setup.sh`, ensure `ruff`, `biome`, `shfmt`, and `clang-format` are pre-installed in container.
+     * In `formatter_pipeline.py`:
+       ```python
+       def auto_format_and_lint_content(filepath: str, content: str) -> tuple[str, list[str]]:
+           ext = Path(filepath).suffix.lower()
+           # 1. Python: Astral Ruff (<5ms)
+           if ext == ".py":
+               return run_ruff_format_and_check(content)
+           # 2. Web/JS/TS/JSON/CSS: Biome (<3ms)
+           elif ext in {".js", ".ts", ".jsx", ".tsx", ".json", ".css"}:
+               return run_biome_format(filepath, content)
+           # 3. Rust: rustfmt
+           elif ext == ".rs":
+               return run_rustfmt(content)
+           # 4. Go: gofmt
+           elif ext == ".go":
+               return run_gofmt(content)
+           # 5. Shell: shfmt
+           elif ext in {".sh", ".bash"}:
+               return run_shfmt(content)
+           return content, []
+       ```
+     * In `tools.py:write_file()`: pipe `content` through `auto_format_and_lint_content()` before writing to disk.
+  4. **Manual Verification**: Call `write_file("app.tsx", "const   x:string='hello' ;")`; verify file written to disk is formatted cleanly by Biome as `const x: string = "hello";`.
+
+---
+
+### Issue #32: Tool Calling & JSON Schema Governance via Instructor & FastMCP
+* **Classification**: Tool Calling & Schema Generation
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/swarm_engine.py`, `src/hermes_core/codebase_memory_mcp.py`
+* **Symptom**: Custom `function_to_schema()` lost field constraints, docstrings, and nested Pydantic types, causing SLMs to hallucinate invalid parameter formats.
+* **Root Cause**: Ad-hoc inspection logic lacked Pydantic v2 JSON Schema generators and structured tool calling adapters.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/swarm_engine.py`, `src/hermes_core/tools.py`.
+  2. **Dependencies**: `instructor` (`jxnl/instructor` PyPI), `mcp[cli]` (Anthropic FastMCP), `pydantic` v2.
+  3. **Concrete Changes**:
+     * Refactor all Hermes tool signatures to use typed Pydantic models with `Field(description="...")`.
+     * Replace ad-hoc `function_to_schema()` with Instructor / Pydantic v2's native schema generator:
+       ```python
+       import instructor
+       from pydantic import TypeAdapter
+
+       def pydantic_function_to_schema(model_cls: type[BaseModel]) -> Dict[str, Any]:
+           schema = model_cls.model_json_schema()
+           return {
+               "type": "function",
+               "function": {
+                   "name": model_cls.__name__,
+                   "description": model_cls.__doc__ or f"Execute {model_cls.__name__}",
+                   "parameters": schema
+               }
+           }
+       ```
+     * Wire FastMCP server endpoints directly into Hermes tool registration.
+  4. **Manual Verification**: Register a tool with `Literal["a", "b"]` and nested `Dict[str, int]`; generate schema; verify output contains full `enum: ["a", "b"]` and typed property definitions matching OpenAI / Anthropic tool-calling specs.

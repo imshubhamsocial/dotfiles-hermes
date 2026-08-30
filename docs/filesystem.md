@@ -24,7 +24,7 @@ hermes/
 │   └── setup.sh                   # Automated one-click installation & provisioning
 │
 ├── docs/                          # Architecture, benchmark, and workflow guides
-│   ├── benchmark.md               # Evaluation metrics & benchmarking guide
+│   ├── test.md               # Evaluation metrics & benchmarking guide
 │   ├── filesystem.md              # Directory structure explanation (this file)
 │   ├── defaults.md                # System invariants, timeouts, and flags
 │   ├── components.md              # Catalog of all tools, libraries, and submodules

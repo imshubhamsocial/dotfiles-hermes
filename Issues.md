@@ -728,3 +728,81 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
        ```
      * Wire FastMCP server endpoints directly into Hermes tool registration.
   4. **Manual Verification**: Register a tool with `Literal["a", "b"]` and nested `Dict[str, int]`; generate schema; verify output contains full `enum: ["a", "b"]` and typed property definitions matching OpenAI / Anthropic tool-calling specs.
+
+---
+
+### Issue #33: Zero-Latency Session Resumption via `llama-server` KV Slot Persistence
+* **Classification**: Runtime Hardware & Inference Latency
+* **Impact**: High
+* **Discovered In**: `session_persistence.py`, `executable_llama-server`
+* **Symptom**: Resuming an existing session triggers a full prompt re-prefill (10–15s latency) because `llama-server` does not persist KV cache state across restarts or slot re-allocations.
+* **Root Cause**: `llama-server` was started without `--slot-save-path`, and the session manager did not call the `/slots` save/restore HTTP endpoints.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_llama-server`, `src/hermes_core/session_persistence.py`, `src/hermes_core/runner.py`.
+  2. **Dependencies**: `llama-server` (GGUF Runtime), `urllib.request` / `httpx`.
+  3. **Concrete Changes**:
+     * In `executable_llama-server`, append `--slot-save-path ~/.hermes/cache/slots`.
+     * In `session_persistence.py:checkpoint()`:
+       * Trigger HTTP POST to `http://127.0.0.1:8138/slots/0?action=save` with payload `{"filename": f"slot_{self.session_id}.bin"}`.
+     * In `session_persistence.py:restore()`:
+       * Trigger HTTP POST to `http://127.0.0.1:8138/slots/0?action=restore` with payload `{"filename": f"slot_{self.session_id}.bin"}`.
+       * If slot restore succeeds, the LLM is ready instantly with 0ms prefill latency.
+  4. **Manual Verification**: Run a 10-turn session; checkpoint; restart Hermes with `hermes -c`; verify `llama-server` slot log shows `restored KV cache from slot_*.bin` and Turn 1 begins generating in $< 50\text{ms}$.
+
+---
+
+### Issue #34: Incremental AST Symbol Re-Indexing via MTime/SHA256 Delta Caching
+* **Classification**: Code Intelligence & Indexing Performance
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/symbol_graph.py`
+* **Symptom**: On every session launch or resume, `SymbolGraph` re-walked and re-parsed every file from scratch, causing high CPU load and SQLite churn on large repos.
+* **Root Cause**: Indexer lacked an incremental `indexed_files` cache table tracking `mtime` and `sha256` checksums.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/symbol_graph.py`.
+  2. **Dependencies**: Standard Library `sqlite3`, `pathlib.Path`.
+  3. **Concrete Changes**:
+     * Add SQLite table: `CREATE TABLE IF NOT EXISTS indexed_files (filepath TEXT PRIMARY KEY, mtime REAL, sha256 TEXT, symbol_count INT)`.
+     * In `SymbolGraph.index_workspace()`:
+       * Query `SELECT filepath, mtime, sha256 FROM indexed_files`.
+       * For each file: if `current_mtime == cached_mtime`, **skip AST parsing entirely**.
+       * Only parse files where `mtime` changed or `sha256` hash differs.
+       * Delete symbols for removed files via `DELETE FROM symbols WHERE source_file NOT IN (...)`.
+  4. **Manual Verification**: Index a 1,000-file repository (taking ~2s); immediately re-run indexing; assert indexer finishes in $< 10\text{ms}$ (0 files re-parsed).
+
+---
+
+### Issue #35: Zero-GPU Vector Embeddings & Memory via FastEmbed & DuckDB
+* **Classification**: Memory Subsystem & Vector Intelligence
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/embeddings.py`, `src/hermes_core/opencode_mem.py`
+* **Symptom**: Custom embedding generation was slow, consumed unnecessary memory, or lacked efficient vector cosine similarity indexing.
+* **Root Cause**: Custom embedding loops instead of optimized ONNX CPU vector libraries.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/embeddings.py`, `src/hermes_core/vector_memory.py`, `executable_setup.sh`.
+  2. **Dependencies**: `fastembed` (Qdrant ONNX PyPI), `duckdb` (Embedded SQL).
+  3. **Concrete Changes**:
+     * Replace custom embedding models with `fastembed.TextEmbedding(model_name="BAAI/bge-small-en-v1.5")` (executes in $<8\text{ms}$ on CPU).
+     * In `vector_memory.py`, use embedded DuckDB for hybrid BM25 + Vector Cosine similarity:
+       ```python
+       import duckdb
+       conn = duckdb.connect(str(Path.home() / ".hermes/memory/vector.duckdb"))
+       conn.execute("SET max_memory = '256MB';")
+       ```
+  4. **Manual Verification**: Ingest 500 code snippets; run a vector similarity query; verify retrieval returns top-5 matches in $< 15\text{ms}$ on CPU.
+
+---
+
+### Issue #36: OpenTelemetry-Standardized Trajectory Tracing & Telemetry
+* **Classification**: Observability & Agent Diagnostics
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/trajectory.py`, `src/hermes_core/harness_evolution.py`
+* **Symptom**: Ad-hoc JSONL hash-chaining made it difficult to inspect multi-turn agent spans, tool latency breakdowns, or token consumption in standard visualization tools.
+* **Root Cause**: Custom log formatting instead of the industry-standard OpenTelemetry / PydanticAI Logfire format.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/trajectory.py`, `src/hermes_core/swarm_engine.py`.
+  2. **Dependencies**: `opentelemetry-sdk` / `opentelemetry-api` (PyPI).
+  3. **Concrete Changes**:
+     * Wrap agent turns and tool calls in standard OpenTelemetry spans (`tracer.start_as_current_span("tool_call:read_file")`).
+     * Attach standard semantic attributes: `gen_ai.prompt_tokens`, `gen_ai.completion_tokens`, `tool.name`, `tool.exit_code`.
+     * Export traces to local JSONL or standard OTLP endpoints without adding overhead.
+  4. **Manual Verification**: Run a 3-turn workflow; inspect generated trace JSON; verify standard OpenTelemetry span hierarchy (`agent_turn` $\rightarrow$ `tool_execution` $\rightarrow$ `observer_gate`).

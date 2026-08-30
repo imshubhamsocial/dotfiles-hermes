@@ -76,24 +76,34 @@ class FastASTPreCommitGate:
             except SyntaxError as e:
                 return False, f"Python SyntaxError on line {e.lineno}: {e.msg}"
 
-        # 2. JavaScript / HTML Bracket & Brace Balance Gate
-        if filepath.endswith((".js", ".ts", ".html")):
-            # Fast brace check
-            open_curly = code_content.count("{")
-            close_curly = code_content.count("}")
-            if open_curly != close_curly:
-                return False, f"Brace imbalance detected: {open_curly} '{{' vs {close_curly} '}}'."
+        # 2. JS / TS / Rust / Go / C Tree-Sitter Syntax Gate
+        lang_map = {
+            ".js": "javascript",
+            ".jsx": "javascript",
+            ".ts": "typescript",
+            ".tsx": "tsx",
+            ".rs": "rust",
+            ".go": "go",
+            ".c": "c",
+            ".cpp": "cpp",
+            ".json": "json",
+        }
+        suffix = Path(filepath).suffix.lower()
+        if suffix in lang_map:
+            try:
+                import tree_sitter_language_pack as tslp
+                parser = tslp.get_parser(lang_map[suffix])
+                tree = parser.parse(code_content.encode("utf-8"))
+                if tree.root_node.has_error:
+                    return False, f"Tree-Sitter detected syntax error in {filepath}."
+                return True, f"Valid {lang_map[suffix]} AST."
+            except Exception:
+                pass
 
-            open_paren = code_content.count("(")
-            close_paren = code_content.count(")")
-            if open_paren != close_paren:
-                return False, f"Parenthesis imbalance detected: {open_paren} '(' vs {close_paren} ')'."
-
-            # HTML tag balance check
-            if filepath.endswith(".html"):
-                if "<script" in code_content and "</script>" not in code_content:
-                    return False, "Unclosed <script> tag detected in HTML."
-
-            return True, "Valid JS/HTML structure."
+        # 3. HTML basic structure gate
+        if filepath.endswith(".html"):
+            if "<script" in code_content and "</script>" not in code_content:
+                return False, "Unclosed <script> tag detected in HTML."
+            return True, "Valid HTML structure."
 
         return True, "File type passed standard checks."

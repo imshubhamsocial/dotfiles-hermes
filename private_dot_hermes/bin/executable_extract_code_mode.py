@@ -17,7 +17,7 @@ import ast
 import re
 import sys
 
-_FENCE_RE = re.compile(r"^[ \t]*(?:```+|~~~+)[ \t]*(?:python|py|javascript|js)?[ \t]*\r?\n", re.MULTILINE)
+_FENCE_RE = re.compile(r"^[ \t]*(?:```+|~~~+)[ \t]*[a-zA-Z0-9_-]*[ \t]*\r?\n", re.MULTILINE)
 _CLOSE_RE = re.compile(r"^[ \t]*(?:```+|~~~+)[ \t]*\r?\n?$", re.MULTILINE)
 _PROSE_PREFIX_RE = re.compile(
     r"^\s*(?:here(?:'s| is)[^\n:]*:|sure[^\n:]*:|below[^\n:]*:|this script[^\n:]*:|"
@@ -39,24 +39,18 @@ def extract_code(raw: str) -> str:
 
     # 1. Pull fenced bodies if any fences exist anywhere in the output.
     if "```" in text or "~~~" in text:
-        # Normalize opening fences (with optional language tag) to a sentinel.
-        opened = _FENCE_RE.sub("\x00CODE\x00", text)
-        # Drop closing fences.
-        opened = _CLOSE_RE.sub("", opened)
-        chunks = [c.strip("\n") for c in opened.split("\x00CODE\x00") if c.strip() and c.strip() != "\x00"]
+        # Find all fenced code blocks
+        blocks = re.findall(r"(?:```+|~~~+)[ \t]*[a-zA-Z0-9_-]*\r?\n(.*?)\r?\n(?:```+|~~~+)", text, re.DOTALL)
+        if not blocks:
+            # Handle open-ended fence at end of generation
+            blocks = re.findall(r"(?:```+|~~~+)[ \t]*[a-zA-Z0-9_-]*\r?\n(.*)", text, re.DOTALL)
 
-        # Keep only chunks that parse as Python (drops pre/post-fence prose,
-        # <think> blocks, and trailing commentary).
         code_chunks = []
-        for chunk in chunks:
-            candidate = _unescape_fences(chunk).strip()
-            if not candidate:
-                continue
-            try:
-                ast.parse(candidate)
+        for block in blocks:
+            candidate = _unescape_fences(block).strip()
+            if candidate:
                 code_chunks.append(candidate)
-            except SyntaxError:
-                continue
+
         if not code_chunks:
             raise ValueError("extract_code: fenced output contained no parsable code body")
         return "\n\n".join(code_chunks)

@@ -126,7 +126,13 @@ class KnowledgeGraphIndexer:
                     if isinstance(item, ast.FunctionDef):
                         m_id = f"fn:{rel_path}:{node.name}.{item.name}"
                         args = [a.arg for a in item.args.args]
-                        calls = [n.id for n in ast.walk(item) if isinstance(n, ast.Name)]
+                        calls = []
+                        for n in ast.walk(item):
+                            if isinstance(n, ast.Call):
+                                if isinstance(n.func, ast.Name):
+                                    calls.append(n.func.id)
+                                elif isinstance(n.func, ast.Attribute):
+                                    calls.append(n.func.attr)
                         kg.add_node(CodeNode(
                             id=m_id,
                             type="method",
@@ -145,7 +151,13 @@ class KnowledgeGraphIndexer:
             elif isinstance(node, ast.FunctionDef):
                 f_id = f"fn:{rel_path}:{node.name}"
                 args = [a.arg for a in node.args.args]
-                calls = [n.id for n in ast.walk(node) if isinstance(n, ast.Name)]
+                calls = []
+                for n in ast.walk(node):
+                    if isinstance(n, ast.Call):
+                        if isinstance(n.func, ast.Name):
+                            calls.append(n.func.id)
+                        elif isinstance(n.func, ast.Attribute):
+                            calls.append(n.func.attr)
                 kg.add_node(CodeNode(
                     id=f_id,
                     type="function",

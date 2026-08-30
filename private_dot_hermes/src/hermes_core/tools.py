@@ -47,17 +47,22 @@ def read_file(filepath: str, start_line: Optional[int] = None, end_line: Optiona
 
 
 def write_file(filepath: str, content: str) -> str:
-    """Write complete content to a target file on disk with Sub-5ms AST Pre-Commit validation."""
+    """Write complete content to a target file on disk with in-flight formatting and Tree-sitter validation."""
     from .working_memory import FastASTPreCommitGate
-    valid, msg = FastASTPreCommitGate.validate_code_syntax(filepath, content)
+    from .formatter_pipeline import format_source_file
+
+    # Auto-format in-flight (Ruff for Python, Biome for JS/TS/JSON/CSS)
+    formatted_content = format_source_file(filepath, content)
+
+    valid, msg = FastASTPreCommitGate.validate_code_syntax(filepath, formatted_content)
     if not valid:
         return f"Pre-Commit Gate Rejected File: {msg}"
 
     target = _resolve_path(filepath)
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
-        return f"Successfully wrote {len(content)} characters to {filepath}."
+        target.write_text(formatted_content, encoding="utf-8")
+        return f"Successfully wrote {len(formatted_content)} characters to {filepath}."
     except Exception as e:
         return f"Error writing file: {str(e)}"
 

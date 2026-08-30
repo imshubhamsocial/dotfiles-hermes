@@ -157,43 +157,54 @@ class OfflineLSPFallback:
     @staticmethod
     def analyze_generic_source(file_path: str, source_code: str) -> List[LSPDiagnostic]:
         diagnostics: List[LSPDiagnostic] = []
-        # Check basic brace / parentheses balancing for non-python files
-        stack = []
-        pairs = {')': '(', '}': '{', ']': '['}
-        for line_idx, line in enumerate(source_code.splitlines()):
-            for char_idx, ch in enumerate(line):
-                if ch in "({[":
-                    stack.append((ch, line_idx, char_idx))
-                elif ch in ")}]":
-                    if not stack or stack[-1][0] != pairs[ch]:
-                        diagnostics.append(
-                            LSPDiagnostic(
-                                file_path=file_path,
-                                range=LSPRange(
-                                    start=LSPPosition(line=line_idx, character=char_idx),
-                                    end=LSPPosition(line=line_idx, character=char_idx + 1),
-                                ),
-                                severity=DiagnosticSeverity.ERROR,
-                                message=f"Unmatched closing bracket '{ch}'",
-                                source="syntax_guard",
-                            )
-                        )
-                    else:
-                        stack.pop()
-        while stack:
-            ch, line_idx, char_idx = stack.pop()
-            diagnostics.append(
-                LSPDiagnostic(
-                    file_path=file_path,
-                    range=LSPRange(
-                        start=LSPPosition(line=line_idx, character=char_idx),
-                        end=LSPPosition(line=line_idx, character=char_idx + 1),
-                    ),
-                    severity=DiagnosticSeverity.ERROR,
-                    message=f"Unclosed opening bracket '{ch}'",
-                    source="syntax_guard",
-                )
-            )
+        lang_map = {
+            ".js": "javascript",
+            ".jsx": "javascript",
+            ".ts": "typescript",
+            ".tsx": "tsx",
+            ".rs": "rust",
+            ".go": "go",
+            ".c": "c",
+            ".cpp": "cpp",
+            ".json": "json",
+        }
+        suffix = Path(file_path).suffix.lower()
+        if suffix in lang_map:
+            try:
+                import tree_sitter_language_pack as tslp
+                parser = tslp.get_parser(lang_map[suffix])
+                tree = parser.parse(source_code.encode("utf-8"))
+                if tree.root_node.has_error:
+                    # Find first error node
+                    def find_error(node):
+                        if node.is_error or node.type == "ERROR":
+                            return node
+                        for child in node.children:
+                            err = find_error(child)
+                            if err:
+                                return err
+                        return None
+
+                    err_node = find_error(tree.root_node)
+                    start_pt = err_node.start_point if err_node else (0, 0)
+                    end_pt = err_node.end_point if err_node else (0, 1)
+
+                    diag = LSPDiagnostic(
+                        file_path=file_path,
+                        range=LSPRange(
+                            start=LSPPosition(line=start_pt[0], character=start_pt[1]),
+                            end=LSPPosition(line=end_pt[0], character=end_pt[1]),
+                        ),
+                        severity=DiagnosticSeverity.ERROR,
+                        message=f"Tree-Sitter syntax error: unexpected token or bracket imbalance in {lang_map[suffix]} source tree",
+                        source="tree_sitter",
+                        code="TS_ERR",
+                    )
+                    diagnostics.append(diag)
+                return diagnostics
+            except Exception:
+                pass
+
         return diagnostics
 
 

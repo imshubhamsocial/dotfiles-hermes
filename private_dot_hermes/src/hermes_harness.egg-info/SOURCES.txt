@@ -22,6 +22,7 @@ pyproject.toml
 .hermes/src/hermes_core/executable_extract_code_mode.py
 .hermes/src/hermes_core/experience_store.py
 .hermes/src/hermes_core/fast_research.py
+.hermes/src/hermes_core/formatter_pipeline.py
 .hermes/src/hermes_core/google_agentic_substrate.py
 .hermes/src/hermes_core/graph_engine.py
 .hermes/src/hermes_core/harness_evolution.py

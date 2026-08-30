@@ -325,7 +325,8 @@ class OpenSkillsManager:
     
     DEFAULT_SKILLS_DIRS = [
         Path.home() / ".hermes" / "skills",
-        Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/skills"),
+        Path.home() / ".agents" / "skills",
+        Path(os.environ.get("HERMES_WORKSPACE", Path.cwd())) / ".hermes" / "skills",
     ]
     
     def __init__(
@@ -345,18 +346,13 @@ class OpenSkillsManager:
         self._rebuild_index()
     
     def _rebuild_index(self) -> None:
-        """Scan skills directories and build index"""
+        """Scan skills directories recursively and build index (Issue #24)."""
         with self._lock:
             self._skill_index.clear()
             for skills_dir in self.skills_dirs:
                 if not skills_dir.exists():
                     continue
-                for skill_dir in skills_dir.iterdir():
-                    if not skill_dir.is_dir():
-                        continue
-                    skill_file = skill_dir / "SKILL.md"
-                    if not skill_file.exists():
-                        continue
+                for skill_file in skills_dir.rglob("SKILL.md"):
                     try:
                         pkg = self._parser.parse(skill_file)
                         self._skill_index[pkg.manifest.name] = pkg

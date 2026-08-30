@@ -512,7 +512,8 @@ def main():
     parser.add_argument("-p", "--profile", default="auto", choices=["auto", "architect", "coder", "tester", "researcher"])
     parser.add_argument("--max-turns", type=int, default=25, help="Maximum conversation turns")
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress progress bar")
-    parser.add_argument("-w", "--workspace", type=Path, help="Workspace directory")
+    parser.add_argument("-v", "--verbose", "--debug", dest="verbose", action="store_true", help="Verbose debug output")
+    parser.add_argument("-w", "--workspace", "-i", "--in", "--in-dir", dest="workspace", type=Path, help="Workspace directory")
     
     # Check if first arg is a subcommand
     args_list = sys.argv[1:]
@@ -582,7 +583,8 @@ def main():
         parser.add_argument("-p", "--profile", default="auto", choices=["auto", "architect", "coder", "tester", "researcher"])
         parser.add_argument("--max-turns", type=int, default=25, help="Max turns")
         parser.add_argument("-q", "--quiet", action="store_true", help="Suppress progress")
-        parser.add_argument("-w", "--workspace", type=Path, help="Workspace directory")
+        parser.add_argument("-v", "--verbose", "--debug", dest="verbose", action="store_true", help="Verbose debug output")
+        parser.add_argument("-w", "--workspace", "-i", "--in", "--in-dir", dest="workspace", type=Path, help="Workspace directory")
         
         args = parser.parse_args(args_list)
         
@@ -591,9 +593,18 @@ def main():
             parser.print_help()
             return 1
         
+        # Auto-bind workspace to caller's cwd if not explicitly provided
+        workspace = args.workspace
+        if workspace is None:
+            workspace = Path.cwd().resolve()
+        else:
+            workspace = Path(workspace).resolve()
+        
+        os.environ["HERMES_WORKSPACE"] = str(workspace)
+        
         cli = HermesCLI(
             goal=prompt or "",
-            workspace=args.workspace,
+            workspace=workspace,
             yolo=args.yolo,
             profile=args.profile,
             max_turns=args.max_turns,

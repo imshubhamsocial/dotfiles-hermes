@@ -20,8 +20,9 @@ python3.13 -m pip install --break-system-packages \
     python-dotenv prompt_toolkit click requests aiohttp websockets \
     uvloop watchfiles cffi cryptography croniter psutil pillow pathspec ruamel.yaml uv \
     fastembed fastmcp mcp mcp-agent-gate mnemory chromadb qdrant-client \
+    sqlmodel diskcache duckdb instructor flatbuffers \
     tree-sitter==0.26.0 tree-sitter-language-pack==1.15.8 \
-    numpy sympy ruff polars pypdf trafilatura tiktoken gguf \
+    numpy sympy ruff polars pypdf trafilatura tiktoken gguf duckduckgo-search \
     nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13
 
 echo "==> Installing Playwright Chromium browser & headless Linux runtime libs..."
@@ -128,8 +129,13 @@ for filename, desc, repo_candidates in models:
         print(f'✓ {filename} already present in standard cache.')
 "
 
-echo "==> Setting up production hardware-optimized llama-server wrapper..."
-chmod +x "$HOME/.local/bin/llama-server.bin" 2>/dev/null || true
+mkdir -p "$HOME/.hermes/cache/slots" "$HOME/.hermes/skills"
+
+# Sync base categorized developer skills
+if [[ -d "$SCRIPT_DIR/private_skills" ]]; then
+    echo "==> Syncing base categorized developer skills into ~/.hermes/skills..."
+    cp -rn "$SCRIPT_DIR/private_skills"/* "$HOME/.hermes/skills/" 2>/dev/null || true
+fi
 
 cat << 'LLAMA' > "$HOME/.local/bin/llama-server"
 #!/usr/bin/env bash
@@ -156,6 +162,8 @@ if [[ -f "$MODEL_DRAFT" ]]; then
     )
 fi
 
+mkdir -p "${HOME}/.hermes/cache/slots"
+
 exec "$SERVER_BIN" \
     --model "$MODEL_MAIN" \
     "${DRAFT_FLAGS[@]}" \
@@ -166,6 +174,7 @@ exec "$SERVER_BIN" \
     --cache-type-k q4_0 \
     --cache-type-v q4_0 \
     -np 2 \
+    --slot-save-path "${HOME}/.hermes/cache/slots" \
     --threads 6 \
     --threads-batch 6 \
     --host 127.0.0.1 \
@@ -179,3 +188,4 @@ LLAMA
 chmod +x "$HOME/.local/bin/llama-server"
 
 echo "==> Setup complete! All dependencies, models, SearXNG grounding, and wrappers are operational."
+

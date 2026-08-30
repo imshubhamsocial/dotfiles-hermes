@@ -26,6 +26,8 @@ if [[ -f "$MODEL_DRAFT" ]]; then
     )
 fi
 
+mkdir -p "${HOME}/.hermes/cache/slots"
+
 exec "$SERVER_BIN" \
     --model "$MODEL_MAIN" \
     "${DRAFT_FLAGS[@]}" \
@@ -36,6 +38,7 @@ exec "$SERVER_BIN" \
     --cache-type-k q4_0 \
     --cache-type-v q4_0 \
     -np 2 \
+    --slot-save-path "${HOME}/.hermes/cache/slots" \
     --threads 6 \
     --threads-batch 6 \
     --host 127.0.0.1 \

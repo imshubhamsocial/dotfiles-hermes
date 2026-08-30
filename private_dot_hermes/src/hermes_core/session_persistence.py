@@ -236,3 +236,29 @@ class DurableSessionState(BaseModel):
             f"3. Ensure all syntax and contracts are strictly satisfied."
         )
         return prompt.strip()
+
+    def save_kv_slot(self, slot_id: int = 0, server_url: str = "http://127.0.0.1:8138") -> bool:
+        """Issue POST /slots/{slot_id}?action=save to persist KV cache to disk."""
+        try:
+            import urllib.request
+            url = f"{server_url}/slots/{slot_id}?action=save"
+            payload = json.dumps({"filename": f"slot_{self.session_id}.bin"}).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                return resp.status == 200
+        except Exception as e:
+            print(f"[DurableSessionState] KV slot save notice (server offline or non-GGUF): {e}", file=sys.stderr)
+            return False
+
+    def restore_kv_slot(self, slot_id: int = 0, server_url: str = "http://127.0.0.1:8138") -> bool:
+        """Issue POST /slots/{slot_id}?action=restore to restore KV cache from disk with 0ms prefill."""
+        try:
+            import urllib.request
+            url = f"{server_url}/slots/{slot_id}?action=restore"
+            payload = json.dumps({"filename": f"slot_{self.session_id}.bin"}).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                return resp.status == 200
+        except Exception as e:
+            print(f"[DurableSessionState] KV slot restore notice (server offline or non-GGUF): {e}", file=sys.stderr)
+            return False

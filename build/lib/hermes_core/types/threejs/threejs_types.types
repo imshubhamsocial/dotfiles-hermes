@@ -1,0 +1,47 @@
+# Three.js Type Definitions (seed — key geometry/material/renderer types)
+# Format: symbol_name: type signature
+
+# Core classes
+BufferGeometry: class BufferGeometry { attributes: BufferAttributeMap; computeBoundingBox(): void; computeBoundingSphere(): void; setAttribute(name: string, attribute: BufferAttribute): this; getAttribute(name: string): BufferAttribute; }
+BufferAttribute: class BufferAttribute { array: TypedArray; itemSize: number; count: number; needsUpdate: boolean; }
+Float32BufferAttribute: class Float32BufferAttribute extends BufferAttribute { constructor(array: number[] | Float32Array, itemSize: number, normalized?: boolean); }
+
+# Geometries
+BoxGeometry: class BoxGeometry extends BufferGeometry { constructor(width?: number, height?: number, depth?: number, widthSegments?: number, heightSegments?: number, depthSegments?: number); }
+SphereGeometry: class SphereGeometry extends BufferGeometry { constructor(radius?: number, widthSegments?: number, heightSegments?: number, phiStart?: number, phiLength?: number, thetaStart?: number, thetaLength?: number); }
+PlaneGeometry: class PlaneGeometry extends BufferGeometry { constructor(width?: number, height?: number, widthSegments?: number, heightSegments?: number); }
+ConeGeometry: class ConeGeometry extends BufferGeometry { constructor(radius?: number, height?: number, radialSegments?: number); }
+DodecahedronGeometry: class DodecahedronGeometry extends BufferGeometry { constructor(radius?: number, detail?: number); }
+
+# Materials
+Material: class Material { opacity: number; transparent: boolean; side: number; depthWrite: boolean; }
+MeshPhysicalMaterial: class MeshPhysicalMaterial extends Material { constructor(params?: { color?: number; roughness?: number; metalness?: number; transmission?: number; thickness?: number; ior?: number; clearcoat?: number; }); }
+MeshBasicMaterial: class MeshBasicMaterial extends Material { constructor(params?: { color?: number; wireframe?: boolean; }); }
+MeshStandardMaterial: class MeshStandardMaterial extends Material { constructor(params?: { color?: number; roughness?: number; metalness?: number; }); }
+
+# Lights
+Light: class Light { color: Color; intensity: number; }
+DirectionalLight: class DirectionalLight extends Light { constructor(color?: number, intensity?: number); castShadow: boolean; shadow: Shadow; position: Vector3; }
+AmbientLight: class AmbientLight extends Light { constructor(color?: number, intensity?: number); }
+PointLight: class PointLight extends Light { constructor(color?: number, intensity?: number, distance?: number); }
+
+# Math
+Vector3: class Vector3 { x: number; y: number; z: number; constructor(x?: number, y?: number, z?: number); set(x: number, y: number, z: number): this; copy(v: Vector3): this; add(v: Vector3): this; sub(v: Vector3): this; multiplyScalar(s: number): this; length(): number; normalize(): this; }
+Vector2: class Vector2 { x: number; y: number; constructor(x?: number, y?: number); }
+Color: class Color { r: number; g: number; b: number; constructor(color?: number | string); }
+Euler: class Euler { x: number; y: number; z: number; order: string; set(x: number, y: number, z: number, order?: string): this; }
+
+# Renderer & Scene
+WebGLRenderer: class WebGLRenderer { constructor(params?: { canvas?: HTMLCanvasElement; antialias?: boolean; alpha?: boolean; }); setSize(width: number, height: number): void; render(scene: Camera, camera: Camera): void; shadowMap: ShadowMap; domElement: HTMLCanvasElement; }
+Scene: class Scene { add(object: Object3D): this; remove(object: Object3D): this; children: Object3D[]; }
+PerspectiveCamera: class PerspectiveCamera extends Camera { constructor(fov?: number, aspect?: number, near?: number, far?: number); position: Vector3; lookAt(v: Vector3): void; }
+Camera: class Camera extends Object3D {}
+Object3D: class Object3D { position: Vector3; rotation: Euler; scale: Vector3; }
+
+# Constants
+DoubleSide: number (2)
+BackSide: number (1)
+FrontSide: number (0)
+PCFSoftShadowMap: number (2)
+ACESFilmicToneMapping: number (4)
+sRGBEncoding: number (3001)

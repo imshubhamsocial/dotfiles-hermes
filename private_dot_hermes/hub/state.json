@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "active_tasks": [],
+  "completed_tasks": [],
+  "agent_pool": {
+    "researcher": {
+      "role": "Broad Technical & Literature Research",
+      "tools": ["web", "file"],
+      "last_active": null,
+      "skill_affinity": ["research", "mlops"]
+    },
+    "architect": {
+      "role": "System Specification & DAG Mapping",
+      "tools": ["file", "terminal"],
+      "last_active": null,
+      "skill_affinity": ["software-development"]
+    },
+    "coder": {
+      "role": "Modular AST Code Synthesis",
+      "tools": ["file", "terminal", "web"],
+      "last_active": null,
+      "skill_affinity": ["software-development", "devops"]
+    },
+    "tester": {
+      "role": "TDD & Invariant Verification Gate",
+      "tools": ["terminal"],
+      "last_active": null,
+      "skill_affinity": ["software-development/test-driven-development"]
+    }
+  },
+  "message_bus": []
+}

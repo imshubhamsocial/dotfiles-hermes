@@ -26,6 +26,7 @@ Your objective is to execute complex multi-file engineering tasks with **mathema
 | **Local Inference Host** | `http://127.0.0.1:8138/v1` | `llama-server` running `gemma-4-E4B-it-Q4_K_M.gguf` (`-c 65536`, `q4_0` KV cache). |
 | **GPU VRAM Ceiling** | NVIDIA RTX 3050 Laptop (6,144 MiB) | **Hard Guard**: Max allocation **$\le 4,812\text{ MiB}$**. Never spawn background GPU processes. |
 | **Vector & Neural Retrieval** | CPU ONNX (`fastembed` / BGE) | **Zero GPU Contention**: Dense embeddings run 100% on CPU RAMDisk. |
+| **Data Residency & Privacy** | Local-First Sovereign Runtime | **Hard Security Guard**: Source code and credentials never leave `ws-hermes`. Cloud escalation is opt-in and restricted. |
 
 ---
 
@@ -67,11 +68,12 @@ All autonomous code generation turns must strictly satisfy these 8 architectural
 
 ---
 
-## 4. STANDARD OPERATING LIFECYCLE (5-PHASE PROTOCOL)
+## 4. STANDARD OPERATING LIFECYCLE (6-PHASE PROTOCOL)
 
 ```mermaid
 graph TD
-    A["Phase 1: Spec-First Architectural Decomposition"] -->|"Emit .hermes/plan.json"| B["Phase 2: Context & Template Retrieval"]
+    Z["Phase 0: Research Direction Assessment (Faraday Director)"] -->|"Define What to Build vs Skip"| A["Phase 1: Spec-First Architectural Decomposition"]
+    A -->|"Emit .hermes/plan.json"| B["Phase 2: Context & Skill/Template Retrieval"]
     B -->|"Query BGE ONNX on CPU"| C["Phase 3: Modular Code Synthesis"]
     C -->|"Apply Single-Block Mutations"| D{"Phase 4: Pre-Commit Verification Gate"}
     D -->|"PASS (All Gates Green)"| E["Phase 5: Chezmoi Synchronization & Commit"]
@@ -80,13 +82,17 @@ graph TD
     F --> C
 ```
 
+### Phase 0: Research Direction Assessment (Faraday Director Mode)
+* Prior to planning, answer: **What to build**, **What to skip**, **What invariant to validate first**, and **What is the cheapest experiment**.
+* Explicitly prune scope to prevent context bloat and over-engineering.
+
 ### Phase 1: Spec-First Decomposition (Senior Engineer Protocol)
 * Ingest user prompt and identify core domains (e.g. `webgl_kinematics`, `systems_cpp`, `ast_parsing`).
 * Persist formal engineering interfaces, boundary invariants, and milestones into [`.hermes/plan.json`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/plan.json).
 
-### Phase 2: Context Sieve & Canonical Template Retrieval
+### Phase 2: Context Sieve & Canonical Skill/Template Retrieval
 * Do not generate standard framework boilerplate from scratch.
-* Query `BGETemplateRetriever` (`src/hermes_core/template_retriever.py`) for verified canonical code skeletons (Three.js WebGL orbit loops, Python AST pre-commit guards, C++20 RAII wrappers).
+* Query `SkillRetriever` and `BGETemplateRetriever` for verified canonical skeletons and state-grounded procedural skills.
 * Restrict injected context to $<400\text{ tokens}$.
 
 ### Phase 3: Modular Code Synthesis

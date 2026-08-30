@@ -1,3 +1,26 @@
+---
+title: "Hermes Agent OS & Living Harness"
+version: "1.6.0"
+runtime: "ws-hermes"
+model: "gemma-4-E4B-it-Q4_K_M.gguf"
+hardware_requirements:
+  gpu_vram_limit_mib: 4812
+  context_window_tokens: 65536
+  kv_cache: "q4_0"
+capabilities:
+  - "autonomous-dag-planning"
+  - "state-grounded-skill-retrieval"
+  - "generative-ui-artifacts"
+  - "hub-mode-multi-agent-delegation"
+  - "polars-lazy-analytics"
+  - "pre-commit-observer-gate"
+tags:
+  - "agent-os"
+  - "local-slm"
+  - "gemma-4"
+  - "antigravity-aligned"
+---
+
 # Hermes Agent OS & Living Harness
 
 > **A High-Performance, Turnkey Autonomous Agent Operating System on Local Silicon**  

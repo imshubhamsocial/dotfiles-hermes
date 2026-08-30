@@ -18,6 +18,26 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+try:
+    from sqlmodel import SQLModel, Field, Session, create_engine, select
+    SQLMODEL_AVAILABLE = True
+except ImportError:
+    SQLMODEL_AVAILABLE = False
+
+
+class EpisodeModel(SQLModel, table=True):
+    """SQLModel table for durable episodic memory persistence (Issue #11)."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    episode_id: str = Field(index=True)
+    task_description: str
+    subsystem: str = "general"
+    tool_calls_json: str = "[]"
+    outcome: str = "SUCCESS"
+    token_usage: int = 0
+    duration_sec: float = 0.0
+    error_traces_json: str = "[]"
+    timestamp: float = Field(default_factory=time.time)
+
 
 @dataclass
 class EpisodeRecord:

@@ -15,6 +15,7 @@ pyproject.toml
 .hermes/src/hermes_core/context_sieve.py
 .hermes/src/hermes_core/context_window_guard.py
 .hermes/src/hermes_core/continual_refine.py
+.hermes/src/hermes_core/database.py
 .hermes/src/hermes_core/domain_fleet.py
 .hermes/src/hermes_core/draft_detective.py
 .hermes/src/hermes_core/embeddings.py
@@ -23,6 +24,7 @@ pyproject.toml
 .hermes/src/hermes_core/experience_store.py
 .hermes/src/hermes_core/fast_research.py
 .hermes/src/hermes_core/fastmcp.py
+.hermes/src/hermes_core/flatbuffers_state.py
 .hermes/src/hermes_core/formatter_pipeline.py
 .hermes/src/hermes_core/google_agentic_substrate.py
 .hermes/src/hermes_core/graph_engine.py

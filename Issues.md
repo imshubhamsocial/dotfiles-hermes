@@ -1,23 +1,93 @@
-# Issues & Architectural Fragility Audit (ws-hermes)
+# Issues, Architectural Fragility, & Open-Source Package Audit (ws-hermes)
 
-This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and static inspection across the Hermes agentic harness. It also provides the exact mapping to official open-source tools and packages from **Anthropic**, **NVIDIA**, **Google**, and the **Python / Rust Systems Ecosystem** to solve and verify each issue deterministically.
+This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and static inspection of the Hermes agentic harness. It also provides an exhaustive **Upstream Package Replacement Matrix** mapping our ad-hoc custom Python files to battle-tested open-source packages from **Anthropic**, **NVIDIA**, **Google**, **Astral**, and the **Python / Rust Systems Ecosystem** to make Hermes modular, scalable, deterministic, and free of regression edge cases.
 
 ---
 
-## 1. Registered Subsystem, Tool, & Agentic Vulnerabilities (With Industry Package Mappings)
+## 1. Upstream Package Replacement Matrix (Eliminating Ad-Hoc Python Code)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                       UPSTREAM PACKAGE REPLACEMENT & DE-BOILERPLATING MATRIX                                        │
+├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────┤
+│ Functional Subsystem     │ Current Ad-Hoc Custom Files         │ Recommended Upstream GitHub/PyPI Pkg │ Architectural Advantage     │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 1. Polyglot AST, Symbol  │ `symbol_graph.py`, `lsp_bridge.py`, │ `tree-sitter`                        │ Fast, incremental C/Rust AST│
+│    Graph & Syntax Gates  │ `knowledge_graph.py`,               │ `tree-sitter-languages`              │ parser; native syntax error │
+│                          │ `working_memory.py` (FastASTGate),  │ `pathspec`                           │ detection (`has_error`);    │
+│                          │ `extract_code_mode.py`              │ `ruff` (Astral)                      │ 100% Git `.gitignore` spec  │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 2. Tool Calling, MCP     │ `codebase_memory_mcp.py`,           │ `mcp[cli]` (Anthropic FastMCP)       │ 100% valid JSON Schema;     │
+│    Protocol & Schemas    │ `swarm_engine.py` (func_to_schema), │ `docstring-parser`                   │ typed Pydantic serializing; │
+│                          │ `tools.py` (path scoping & stubs),  │ `modelcontextprotocol/servers`       │ eliminates blind string cuts│
+│                          │ `speculative_executor.py`           │                                      │ and missing doc descriptions│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 3. Multi-Agent DAG       │ `multi_bot_delegation.py`,          │ `google/adk-python` (Google ADK)     │ Code-first DAG workflows    │
+│    Orchestration & Eval  │ `graph_engine.py`, `task_graph.py`, │ `networkx`                           │ (`SequentialAgent`, etc.);  │
+│                          │ `synergy_bus.py`,                   │ `adk eval` (Trajectory Evaluator)    │ real agent dispatch;        │
+│                          │ `hypothesis_tree.py`                │                                      │ replaces mock turn returns  │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 4. Deterministic Safety  │ `capability_masks.py`,              │ `nemoguardrails` (NVIDIA NeMo)       │ Programmable Colang Input,  │
+│    & Execution Rails     │ `SOUL.md` (prompt-policing)         │ `bubblewrap` (`bwrap`)               │ Execution, and Output rails;│
+│                          │                                     │ `process_guard.py` (`setsid`)        │ hard user-space + kernel    │
+│                          │                                     │                                      │ security boundary           │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 5. Search Grounding &    │ `web_grounding.py`,                 │ `duckduckgo-search` (PyPI)           │ Maintained, zero-config web │
+│    Web Content Extract   │ `extract_web_content.py`,           │ `trafilatura`                        │ grounding; resilient main-  │
+│                          │ `fast_research.py`                  │ `mcp/servers/src/brave-search`       │ text HTML-to-MD extraction  │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 6. Persistent Memory &   │ `experience_store.py`,              │ `duckdb` / `sqlite3` (WAL mode)      │ Zero-GPU persistent tabular │
+│    Exact Token Metrics   │ `openviking_vfs.py`,                │ `fastembed` (Qdrant ONNX)            │ & vector storage on disk;   │
+│                          │ `opencode_mem.py`, `cog_vault.py`   │ `tiktoken`                           │ exact BPE token counting    │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
+│ 7. Skills Lifecycle &    │ `openskills_manager.py`,            │ `awesome-claude-skills`              │ Recursive skill discovery;  │
+│    Evolution Staging     │ `skill_evolution.py`,               │ `openskills` specification           │ isolated staging directory  │
+│                          │ `verify_skills_config.py`           │                                      │ preventing active skill loss│
+└──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────┘
+```
+
+---
+
+## 2. Multi-Prompt Determinism & Regression Prevention Invariants
+
+To guarantee that Hermes behaves consistently across diverse, identical, or adversarial prompts without failing due to harness flaws, we establish **4 Core Determinism Invariants**:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 DETERMINISTIC HARNESS EXECUTION INVARIANTS                             │
+├───────────────────────┬──────────────────────────────────┬─────────────────────────────────────────────┤
+│ Invariant Class       │ Root Cause of Non-Determinism    │ Deterministic Solution Guarantee            │
+├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+│ 1. Generation Budget  │ Monolithic 2,500-token dumping   │ Enforce physical `max_tokens: 600` ceiling; │
+│    Determinism        │ causes prompt-dependent timeouts │ turn always finishes & yields in ≤ 15s      │
+├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+│ 2. Subprocess I/O     │ Wall-clock timers kill healthy   │ Monitor stdout/stderr stream byte heartbeat;│
+│    Determinism        │ processes on busy CPU/GPU runs   │ only flag deadlock on zero bytes for >15s   │
+├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+│ 3. Tool & Schema      │ Blind character slicing chops    │ Use FastMCP structured Pydantic models;     │
+│    Determinism        │ JSON, crashing client parsers    │ slice array elements before JSON serialization│
+├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+│ 4. Invocation & Flag  │ Callers forget `--in`, `--yolo`, │ Canonical `HermesRunner` SDK automatically  │
+│    Determinism        │ or use invalid flags like `-v`   │ passes all workspace and non-TTY arguments  │
+└───────────────────────┴──────────────────────────────────┴─────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Registered Subsystem, Tool, & Agentic Vulnerabilities
 
 ### Issue #01: The "Completion Trap" & Missing Physical Output Token Gating
 * **Classification**: Behavioral Regression / Lack of Physical Gating
 * **Impact**: Critical
 * **Discovered In**: `test_live_generative_ui_artifact_creation`, `test_live_polars_data_analysis_skill_invocation`, `test_workflow_multi_file_python_library`
-* **Symptom**: When given an unconstrained goal (e.g. *"Generate a complete standalone HTML dashboard with inline CSS and JS"*), Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180 seconds.
+* **Symptom**: When given an unconstrained goal, Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180 seconds.
 * **Root Cause**:
-  1. `SOUL.md` and `AGENTS.md` instructed the model to be modular and concise, but **prompt rules alone cannot physically restrict token generation**.
+  1. `SOUL.md` and `AGENTS.md` instructed the model to be modular, but **prompt rules alone cannot physically restrict token generation**.
   2. The harness allowed a single turn to run up to `max_tokens` (4,096) without enforcing an intermediate tool boundary, chunk yield, or physical output brake.
   3. The agent bypassed the Modular Synthesis DAG Engine (`spec_first_planner.py` / `task_graph.py`) and went straight from user prompt to single-stream code dumping.
 * **Remediation & Industry Package Alignment**:
   * **Google ADK Workflow Primitives (`google/adk-python` — `SequentialAgent` / `LoopAgent`)**: Enforce DAG state transitions where an architectural blueprint must be committed before file synthesis tools are unlocked.
-  * **NVIDIA NeMo Output Rails (`nemoguardrails` — Output Token & Chunk Rail)**: Enforce a physical dispatch ceiling ($\le 600\text{ tokens}$ per turn) in `llama-server` runtime and interrupt unconstrained single-stream generation.
+  * **NVIDIA NeMo Output Rails (`nemoguardrails` — Output Token Rail)**: Enforce a physical dispatch ceiling ($\le 600\text{ tokens}$ per turn) in `llama-server` runtime and interrupt unconstrained single-stream generation.
 
 ---
 
@@ -342,171 +412,3 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Remediation & Industry Package Alignment**:
   * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, I/O activity heartbeats, and working directory bindings.
   * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.
-
----
-
-## 2. Industry Tool & Package Matrix for Deterministic Verification
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 INDUSTRY OPEN-SOURCE PACKAGE MAPPING FOR HERMES HARNESS                                │
-├─────────────────────┬──────────────────────────────────────────┬───────────────────────────────────────────────────────┤
-│ Origin / Lab        │ Tool / Package Name                      │ Purpose & Verification Role                           │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Anthropic**       │ `modelcontextprotocol/python-sdk`        │ Official FastMCP server & tool schema serialization   │
-│                     │ (`mcp[cli]`)                             │ (fixes Issue #07, Issue #19)                          │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Anthropic**       │ `modelcontextprotocol/servers`           │ Reference MCP servers (filesystem, git, brave-search) │
-│                     │ (`filesystem`, `brave-search`)           │ (fixes Issue #02, Issue #12, Issue #20)               │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Anthropic**       │ `awesome-claude-skills`                  │ Curated, production-grade developer skill pack        │
-│                     │                                          │ (fixes Issue #24, Issue #25)                          │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **NVIDIA**          │ `NVIDIA/NeMo-Guardrails`                 │ Colang-driven Input, Execution, and Output Rails      │
-│                     │ (`nemoguardrails`)                       │ (fixes Issue #01, Issue #05)                          │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Google**          │ `google/adk-python`                      │ Hierarchical agent workflow primitives & evaluation   │
-│                     │ (`SequentialAgent`, `adk eval`)          │ (fixes Issue #01, Issue #03, Issue #11, Issue #18)    │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Tree-Sitter**     │ `tree-sitter` & `tree-sitter-languages`  │ Polyglot multi-language AST parser & syntax detector  │
-│ (Universal)         │                                          │ (fixes Issue #08, Issue #09, Issue #15, Issue #26)    │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Astral**          │ `ruff` (`ruff format`, `ruff check`)     │ Instant sub-10ms Python code formatter and linter     │
-│ (Rust Systems)      │                                          │ (fixes Issue #26)                                     │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Search / Ground** │ `duckduckgo-search`                      │ Zero-config search grounding with offline fallback    │
-│                     │ (`duckduckgo_search`)                    │ (fixes Issue #20)                                     │
-├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ **Git Wildmatch**   │ `pathspec`                               │ 100% Git-compliant `.gitignore` pattern evaluation    │
-│                     │                                          │ (fixes Issue #08)                                     │
-└─────────────────────┴──────────────────────────────────────────┴───────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. Exhaustive Codebase Audit: Timeouts, Budgets, Sleeps & Fragile Heuristics
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                CODEBASE FRAGILITY & HEURISTICS MATRIX                            │
-├──────────────────────────────────────┬─────────────────────────┬─────────────────────────────────┤
-│ File Location                        │ Mechanism Used          │ Risk / Fragility Analysis       │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `private_dot_hermes/config.yaml`     │ `timeout: 180`          │ Arbitrary terminal kill timer;  │
-│                                      │ `inactivity_timeout: 120│ can kill heavy builds mid-run   │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/synergy_bus.py`     │ Unbounded list append   │ Memory leak; events never purged│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/multi_bot_deleg...` │ Synthetic mock returns  │ Fakes architect/coder execution │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/swarm_engine.py`    │ Naive `function_to_sch..` Loss of param types & docstrings│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/web_grounding.py`   │ `from ddgs import DDGS` │ Broken import; searches return[]│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/token_engine.py`    │ Unreaped `/dev/shm` logs│ RAMDisk bloat on heavy runs     │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/skill_evolution.py` │ `shutil.rmtree` on fail │ Destroys pre-existing user skill│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/experience_store.py`│ `/dev/shm` default path │ State loss on system reboot     │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/openskills_manager` │ Flat 1-level `iterdir`  │ Misses all 62 categorized skills│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/working_memory.py`  │ `count("{")` naive gate │ False-positive syntax rejections│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/capability_masks.py`│ `ROLE_POLICIES`         │ Read-only fallback is good, but │
-│                                      │ (Prompt & dispatch)     │ requires path-level gating      │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/codebase_memory_mcp`│ `MAX_TOKENS = 150`      │ Blind string slicing produces   │
-│                                      │ `truncate_to_tokens()`  │ malformed, unparseable JSON     │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/symbol_graph.py`    │ `patterns = ["*.py"]`   │ Monoglot limitation; completely │
-│                                      │ `ast.parse` only        │ ignores JS, TS, Rust, Go, HTML  │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/lsp_bridge.py`      │ Bracket stack scrubber  │ False positives on quotes,      │
-│                                      │ across raw characters   │ comments, regex, and templates  │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/knowledge_graph.py` │ `ast.Name` for calls    │ Confuses local variables &      │
-│                                      │ naive regex for JS      │ arguments with function calls   │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/hypothesis_tree.py` │ Hardcoded singleton     │ State collision & corruption    │
-│                                      │ `/dev/shm/...json`      │ across concurrent agent tasks   │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/tools.py`           │ `search_web()` stub;    │ Returns dummy string; relative  │
-│                                      │ `/dev/shm` default root │ paths point to /dev/shm         │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/speculative_exec...`│ `timeout=5.0` hardcode  │ Promise abandonment; unbounded  │
-│                                      │ unevicted promise dict  │ memory growth in long sessions  │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `bin/extract_code_mode.py`           │ `ast.parse` filter on   │ Destroys non-Python blocks      │
-│                                      │ all fenced chunks       │ (Bash, HTML, JS, JSON, SQL)     │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/context_compactor.py`│ 4-tier token drop (95%) │ Heuristic token slicing drops   │
-│                                      │ & message truncation    │ critical tool definitions       │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `src/hermes_core/process_guard.py`   │ Polling loops +         │ Requires explicit PGID kill     │
-│                                      │ hardcoded 100ms grace   │ rather than arbitrary sleep     │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `executable_verify_harness_...py`    │ `timeout=5`, `timeout=90│ Brittle when under heavy CPU/   │
-│                                      │ urllib `timeout=2`      │ GPU load during test runs       │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `private_skills/.../comfyui/`        │ `time.sleep(interval)`  │ Wasteful CPU spin; should use   │
-│                                      │ `_sleep_backoff()`      │ event-driven WebSocket listener │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `private_skills/.../maps/`           │ `time.sleep(1.0)`       │ Hardcoded Nominatim rate limit; │
-│                                      │ retry multiplier sleeps │ should use Token Bucket limiter │
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `private_skills/.../claude-code/`    │ 15+ hardcoded `timeout` │ Fragile CLI execution examples; │
-│                                      │ parameters in SKILL.md  │ should use output stream signals│
-├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
-│ `SOUL.md` & `AGENTS.md`              │ Natural language rules  │ Prompt-policing is easily       │
-│                                      │ for output conciseness  │ ignored by SLMs without brakes  │
-└──────────────────────────────────────┴─────────────────────────┴─────────────────────────────────┘
-```
-
----
-
-## 4. Detailed Audit by Category
-
-### A. Arbitrary Subprocess & Terminal Timeouts
-* **Where found:** `config.yaml` (`timeout: 180`, `inactivity_timeout: 120`), `container_cmd.py` (`timeout=10`), `observer_gate.py` (`timeout=5`, `timeout=3`), `speculative_executor.py` (`timeout=5.0`), test suites (`timeout=90`, `timeout=120`).
-* **Why it is fragile:** Hardcoded seconds fail across heterogenous hardware. A linter or compiler taking 5.1 seconds on a busy machine triggers a hard failure.
-* **Deterministic Fix:** Replace static wall-clock timers with **I/O Stream Activity Heartbeat Monitors** (which only flag deadlocks on zero data for $>15\text{s}$) and **State-Driven DAG Completion Signals**.
-
-### B. Artificial Sleeps & Spin-Waits
-* **Where found:** `comfyui/scripts/_common.py` (`time.sleep()`), `maps/scripts/maps_client.py` (`time.sleep(1.0)`), `grounded-citations/scripts/sources.py` (`time.sleep(0.05)`), `speculative_tool_executor.py` (`time.sleep(0.05)`).
-* **Why it is fragile:** Sleeps inject artificial latency and introduce race conditions when background jobs complete sooner or later than the sleep window.
-* **Deterministic Fix:**
-  * Replace polling sleeps with **async event listeners** (e.g. WebSocket notifications for neural generation).
-  * Replace sleep-based rate limiters with **Leaky Bucket / Token Bucket algorithms** that compute exact mathematical dispatch windows.
-
-### C. Context Compression & Truncation Heuristics
-* **Where found:** `context_compactor.py`, `conversation_loop.py`, `codebase_memory_mcp.py` (`truncate_to_tokens`).
-* **Why it is fragile:** When context overflows, the compactor attempts a 95% token drop or truncates message history. If a prompt contains 22K tokens of system instructions and tool definitions, truncation heuristics fail to compress and cause the `"Cannot compress further"` error loop. In MCP, blind string slicing corrupts JSON syntax.
-* **Deterministic Fix:**
-  * **Dynamic Tool Offloading:** Never load all tool schemas simultaneously. Load only the tools permitted for the active subagent role via `capability_masks.py`.
-  * **Structural AST Node Truncation:** Truncate data structures before JSON serialization.
-
-### D. Prompt-Policed Guidelines vs. Physical Constraints
-* **Where found:** `SOUL.md`, `AGENTS.md`, `dot_hermes_AGENTS.md`.
-* **Why it is fragile:** Phrases like *"Never output massive blocks"*, *"Keep changes atomic"*, and *"Follow Phase 0"* rely entirely on the model's self-discipline. Small language models (4B–8B) routinely regress into completion mode when given ambiguous prompts.
-* **Deterministic Fix:**
-  * **Physical Token Brake:** Dispatcher truncates or interrupts single turns at $\le 600\text{ tokens}$ and demands tool execution.
-  * **Pre-Execution Observer Gate:** File write operations greater than 150 lines without prior DAG blueprinting are structurally rejected by the tool executor.
-
----
-
-## 5. Architectural Roadmap for Permanent Elimination
-
-1. **Physical Turn Token Limiter**: Enforce `max_tokens: 600` per generation turn in `config.yaml` and `llama-server` dispatch to physically eliminate monolithic token dumping.
-2. **I/O Stream Activity Heartbeat**: Replace all wall-clock timeouts with non-blocking stdout/stderr stream activity monitors.
-3. **NVIDIA NeMo Execution Rails**: Enforce pre-execution path and command policy containment in `capability_masks.py`.
-4. **Official Anthropic FastMCP Serialization**: Replace custom string chopping with `FastMCP` data model serialization.
-5. **Google ADK DAG State Flow**: Replace mock turn generators in `multi_bot_delegation.py` with ADK `SequentialAgent` / `ParallelAgent` execution.
-6. **Polyglot Tree-Sitter Parser**: Connect `tree-sitter` & `tree-sitter-languages` to `symbol_graph.py`, `lsp_bridge.py`, and `extract_code_mode.py`.
-7. **Git-Compliant `.gitignore` Resolution**: Use `pathspec` for accurate file filtering.
-8. **Astral Ruff & Prettier Auto-Formatter Pipeline**: Automatically pipe generated code through `ruff format` and `prettier` in `write_file()`.
-9. **Recursive OpenSkills Discovery**: Update `openskills_manager.py` to recursively discover all categorized skills.
-10. **Base Skill Pack Bundler**: Integrate upstream developer skill synchronization (`awesome-claude-skills`) into `setup.sh`.
-11. **Production Web Grounding**: Wire `duckduckgo_search` and offline documentation indexes into `web_grounding.py`.
-12. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
-13. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.

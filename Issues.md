@@ -996,3 +996,63 @@ To eliminate ad-hoc AST parsers and slow in-memory graph loops, Hermes adopts th
 * **Concrete Implementation:**
   * Use `cuGraph` / `networkx` to compute PageRank centrality across the entire symbol graph.
   * When ingesting a large codebase, extract only the top-ranked structural interfaces into a compressed `<|ARCHITECTURAL_SPINE|>` ($< 800\text{ tokens}$), allowing the agent to understand 50,000-line repositories without blowing token budgets.
+
+---
+
+## 8. First-Party Google & NVIDIA Multi-Bot Workflow & Orchestration Architecture
+
+To replace rigid, manually coded phase pipelines (`Phase 0 -> Phase 1 -> Phase 2 -> Phase 3`) and custom inter-bot messaging with official frontier lab multi-agent standards, Hermes adopts **Google ADK Workflow Agents** (`google/adk-python`), the **Google A2A Protocol** (`google/a2a`), and **NVIDIA NeMo Colang 2.0 Dialog Rails**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 FIRST-PARTY GOOGLE & NVIDIA MULTI-BOT ORCHESTRATION MATRIX                                              │
+├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
+│ Functional Subsystem     │ Former Custom / Manual Implementation│ Official Google / NVIDIA Framework  │ Upstream Architectural Power    │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **1. Multi-Bot Flow**    │ Hardcoded 3-phase / 4-phase Python  │ **Google ADK Workflow Engine**       │ Code-first hierarchical agents: │
+│    **Orchestrator**      │ loops & mock delegation strings     │ (`google/adk-python` `workflows`)    │ `SequentialAgent`, `ParallelAgent`,│
+│                          │                                     │                                      │ and `LoopAgent` with retry rules│
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **2. Bot-to-Bot Protocol**│ Ad-hoc in-memory JSON list parsing  │ **Google A2A Protocol**              │ Standardized handover contracts:│
+│    **& Task Handover**   │ (`synergy_bus.py`)                  │ (`google/a2a` Agent-to-Agent spec)   │ typed delegation requests, scope │
+│                          │                                     │                                      │ boundary claims, and receipts   │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **3. Workflow State**    │ Custom string regex phase gates     │ **NVIDIA NeMo Colang 2.0 Rails**     │ Formal state-machine execution: │
+│    **Verification Rails**│ in prompts                          │ (`NVIDIA/NeMo-Guardrails`)           │ structurally blocks phase skips │
+│                          │                                     │                                      │ until test assertions pass      │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **4. Dynamic Fleet &**   │ Static 3-bot fleet (Architect, Coder│ **Google ADK Dynamic Swarm**         │ Dynamically instantiates subagent│
+│    **Role Specialization**│ Tester) in fixed sequence           │ (`adk.agents.hierarchical`)          │ trees based on task requirements│
+│                          │                                     │                                      │ (e.g. adding a specialized UI bot│
+└──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### Step-by-Step Integration Plan for Multi-Bot Workflow Orchestration
+
+#### 1. Dynamic Agent Hierarchy (`google/adk-python`)
+* **Files to Touch:** `src/hermes_core/multi_bot_delegation.py`, `src/hermes_core/swarm_engine.py`.
+* **Concrete Implementation:**
+  * Replace static sequential loops with Google ADK's `SequentialAgent`, `ParallelAgent`, and `LoopAgent`.
+  * If a prompt is a simple single-file edit, ADK routes it as a lightweight single turn; if it is a complex feature, ADK orchestrates an Architect $\rightarrow$ Parallel Coder $\rightarrow$ Tester loop.
+
+#### 2. Standardized Handover Contracts (`google/a2a`)
+* **Files to Touch:** `src/hermes_core/a2a_protocol.py`, `src/hermes_core/synergy_bus.py`.
+* **Concrete Implementation:**
+  * Subagents exchange typed `A2ATaskContract` objects with formal input preconditions, allowed tools, and required postcondition test receipts.
+  * Eliminates unstructured JSON string passing and memory leaks across long multi-agent sessions.
+
+#### 3. State-Machine Verification Rails (`NVIDIA/NeMo-Guardrails` Colang 2.0)
+* **Files to Touch:** `src/hermes_core/capability_masks.py`, `src/hermes_core/observer_gate.py`.
+* **Concrete Implementation:**
+  * Define Colang 2.0 dialog rails that structurally enforce the completion lifecycle:
+    ```colang
+    user "Implement feature"
+      execute adk_plan_architecture
+      execute adk_synthesize_code
+      execute adk_run_pytest_verification
+      when test_passed then emit_task_success
+      else execute adk_backtrack_and_repair
+    ```
+  * Blocks the model from claiming a task is done until unit test assertions pass with exit code `0`.

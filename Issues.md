@@ -934,3 +934,74 @@ To ensure that all defaults and configurations are **empirically profiled using 
 2. **Never replace I/O heartbeats with arbitrary `sleep()` or wall-clock `timeout=N`:** Wall-clock timers fail under variable CPU/GPU loads. Stream byte activity heartbeats guarantee deterministic execution.
 3. **Never import PyTorch in the agent worker runtime:** Always use `fastembed` (ONNX Runtime on CPU) for embeddings to keep host memory $< 100\text{MB}$.
 4. **Always profile generation budgets using Google ADK trajectory evaluation (`adk eval`):** Never set arbitrary static token limits without verifying trajectory optimality against real benchmarks.
+
+---
+
+## 4. Frontier Lab Extended Ecosystem Matrix (Google, Anthropic, & NVIDIA)
+
+To further evolve, harden, and scale the Hermes harness, the table below catalogs the extended suite of official tools and protocols from Google, Anthropic, and NVIDIA:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 FRONTIER LAB EXTENDED TOOLING & AGENT EVOLUTION MATRIX                                                  │
+├─────────────────────┬──────────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
+│ Origin / Lab        │ Tool / Package Name                      │ Functional Domain                    │ Capability in Hermes Harness    │
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **Google**          │ `google/a2a` (Agent-to-Agent Protocol)   │ Inter-Agent Communication            │ Formalizes typed delegation     │
+│                     │                                          │                                      │ contracts across subagents.     │
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **Google**          │ `google/flatbuffers`                     │ High-Throughput Zero-Copy IPC        │ 100x faster inter-bot symbol    │
+│                     │                                          │                                      │ & AST tree data transfers.      │
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **Google**          │ `google/clusterfuzz` / `fuzzbench`       │ Automated Tool Input Fuzzing         │ Discovers edge-case crash       │
+│                     │                                          │                                      │ vectors in tool parsers.        │
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **Anthropic**       │ `anthropics/prompt-eng-interactive`      │ Prompt Optimization & Drift Testing  │ Automatically detects prompt    │
+│                     │                                          │                                      │ regression and instruction drift│
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **Anthropic**       │ `anthropic-quickstarts/computer-use`     │ OS & Terminal Execution Primitives   │ Standardizes coordinate/bash    │
+│                     │                                          │                                      │ execution and sandbox harnesses.│
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **NVIDIA**          │ `NVIDIA/NeMo-Curator`                    │ Synthetic Data & Skill Curation      │ Algorithmic generation & quality│
+│                     │                                          │                                      │ filtering for evolved skills.   │
+├─────────────────────┼──────────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **NVIDIA**          │ `NVIDIA/TensorRT-LLM` / `triton`         │ Inference Acceleration               │ High-throughput paged KV caching│
+│                     │                                          │                                      │ & CUDA kernel optimizations.    │
+└─────────────────────┴──────────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### Issue #46: Multi-Agent Protocol & Zero-Copy IPC via Google A2A and FlatBuffers
+* **Classification**: Inter-Agent Communication & IPC Performance
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/synergy_bus.py`, `src/hermes_core/multi_bot_delegation.py`
+* **Symptom**: Subagents exchanged unvalidated JSON strings over raw in-memory lists, causing high serialization overhead, schema divergence, and lack of verified task completion receipts.
+* **Root Cause**: Custom messaging protocols without formal agent-to-agent contracts or zero-copy IPC.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/a2a_protocol.py` (New File), `src/hermes_core/synergy_bus.py`, `src/hermes_core/multi_bot_delegation.py`.
+  2. **Dependencies**: `flatbuffers` (`google/flatbuffers` PyPI), `google/a2a` specification.
+  3. **Concrete Changes**:
+     * Implement `GoogleA2AProtocol`:
+       * Formalize typed message types: `TaskDelegationRequest`, `CapabilityNegotiation`, `ExecutionReceipt`, `BoundaryHandover`.
+       * Serialize inter-agent AST and symbol graph trees using FlatBuffers schema for zero-copy memory reads ($<0.1\text{ms}$ latency).
+     * Enforce verified execution receipts before marking subagent tasks completed in `TaskGraph`.
+  4. **Manual Verification**: Run a 3-agent delegation pipeline; verify FlatBuffers schemas serialize/deserialize without memory copies; verify typed execution receipts are validated.
+
+---
+
+### Issue #47: Autonomous Skill Evolution & Curation via NVIDIA NeMo Curator & Anthropic Prompt Evaluator
+* **Classification**: Self-Evolution Engine & Synthetic Skill Curation
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/skill_evolution.py`, `src/hermes_core/harness_evolution.py`
+* **Symptom**: Autonomous skill evolution generated candidate skills with redundant instructions, prompt drift, or lack of unit tests, leading to low certification rates during A/B evaluation.
+* **Root Cause**: Ad-hoc prompt generation without systematic data curation, deduplication, or prompt regression testing.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/skill_evolution.py`, `src/hermes_core/prompt_evaluator.py` (New File).
+  2. **Dependencies**: `nemo_curator` (`NVIDIA/NeMo-Curator`), Anthropic Prompt Evaluation patterns.
+  3. **Concrete Changes**:
+     * In `skill_evolution.py:synthesize_candidate_skill()`:
+       * Apply NeMo Curator filtering to deduplicate instructions and eliminate boilerplate tokens.
+       * Automatically generate a paired `test_skill.py` unit suite for every synthesized `SKILL.md`.
+     * Run Anthropic Prompt Evaluator on candidate prompts to verify instruction adherence before launching A/B benchmarks.
+  4. **Manual Verification**: Trigger a skill evolution cycle; verify generated skill includes a curated `SKILL.md` and automated unit test suite passing in staging.

@@ -20,7 +20,6 @@ pyproject.toml
 .hermes/src/hermes_core/draft_detective.py
 .hermes/src/hermes_core/embeddings.py
 .hermes/src/hermes_core/evolution.py
-.hermes/src/hermes_core/executable_extract_code_mode.py
 .hermes/src/hermes_core/experience_store.py
 .hermes/src/hermes_core/fast_research.py
 .hermes/src/hermes_core/fastmcp.py

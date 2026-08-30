@@ -90,3 +90,13 @@ from .branch_swapper import BranchSwapper, create_branch_swapper, RepairTurn, Ta
 
 # U39: Visual Arbiter
 from .visual_arbiter import VisualArbiter, create_visual_arbiter, run_visual_check, VisualReport, KinematicResult, PLAYWRIGHT_AVAILABLE, RAMDISK_BASE
+
+# Domain 1-5 Unified First-Party Modules
+from .runner import HermesRunner, ExecutionResult
+from .fastmcp import HermesFastMCPManager, get_fastmcp_manager
+from .vfs import HermesMemoryFS, create_memory_fs
+from .database import DatabaseConnectionFactory, get_state_db_factory
+from .flatbuffers_state import FlatBufferCheckpoint
+from .formatter_pipeline import PolyglotFormatterPipeline, format_source_file
+from .test_time_sampler import TestTimeComputeSampler, create_test_time_sampler
+

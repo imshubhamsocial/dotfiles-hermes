@@ -1,6 +1,6 @@
 # Issues & Architectural Fragility Audit (ws-hermes)
 
-This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and static codebase inspection of the Hermes agentic harness. It also provides an exhaustive physical audit of where the codebase relies on artificial timeouts, arbitrary token budgets, fixed context limits, hardcoded sleeps, and prompt-policed constraints rather than deterministic physical mechanisms.
+This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and exhaustive static inspection of every tool, script, plugin, and configuration across the Hermes agentic harness. It also provides an exhaustive physical audit of where the codebase relies on artificial timeouts, arbitrary token budgets, fixed context limits, hardcoded sleeps, and prompt-policed constraints rather than deterministic physical mechanisms.
 
 ---
 
@@ -167,6 +167,39 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
+### Issue #14: Speculative Tool Executor Promise Abandonment & Memory Leak
+* **Classification**: Async Tool Execution / Resource Leak
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/speculative_executor.py`
+* **Symptom**: Speculative tool promises taking $>5.0\text{s}$ are permanently abandoned, marked as `REJECTED`, and then re-executed synchronously. Furthermore, completed promises are never evicted from `self.promises`.
+* **Root Cause**: `promise.future.result(timeout=5.0)` uses a hardcoded 5-second ceiling without adaptive deadline adjustment, and `self.promises` has no LRU / TTL eviction policy.
+* **Remediation**:
+  * Implement an adaptive timeout matching tool latency profiles and bound `self.promises` using an LRU cache.
+
+---
+
+### Issue #15: Deterministic Code Extractor Monoglot Python Destruction
+* **Classification**: Code Extraction & Tool Calling
+* **Impact**: High
+* **Discovered In**: `private_dot_hermes/bin/executable_extract_code_mode.py`
+* **Symptom**: Extracting non-Python code blocks (Bash, HTML, CSS, JavaScript, SQL, JSON, YAML) from markdown fences fails with `"extract_code: fenced output contained no parsable code body"`.
+* **Root Cause**: `extract_code()` filters candidate code chunks by passing them to `ast.parse(candidate)`. Any non-Python syntax raises `SyntaxError` and is discarded.
+* **Remediation**:
+  * Accept code blocks tagged with language markers (e.g. ```` ```bash ````, ```` ```html ````) and validate syntax using language-specific linters rather than assuming all code is Python.
+
+---
+
+### Issue #16: External Directory Expansion in Skill Verification
+* **Classification**: Configuration & Environment Resilience
+* **Impact**: Medium
+* **Discovered In**: `private_dot_hermes/bin/executable_verify_skills_config.py`
+* **Symptom**: Profiles declaring `external_dirs` with tildes or unexpanded shell variables fail pre-run verification if environment variables differ between host and container.
+* **Root Cause**: Path existence checks relied on raw environment expansions without canonicalizing paths via `Path.resolve()`.
+* **Remediation**:
+  * Use normalized `os.path.expanduser(os.path.expandvars(p))` before validating directory existence.
+
+---
+
 ## 2. Exhaustive Codebase Audit: Timeouts, Budgets, Sleeps & Fragile Heuristics
 
 ```
@@ -199,11 +232,20 @@ This document registers all operational bugs, loopholes, regressions, and archit
 │ `src/hermes_core/tools.py`           │ `search_web()` stub;    │ Returns dummy string; relative  │
 │                                      │ `/dev/shm` default root │ paths point to /dev/shm         │
 ├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/speculative_exec...`│ `timeout=5.0` hardcode  │ Promise abandonment; unbounded  │
+│                                      │ unevicted promise dict  │ memory growth in long sessions  │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `bin/extract_code_mode.py`           │ `ast.parse` filter on   │ Destroys non-Python blocks      │
+│                                      │ all fenced chunks       │ (Bash, HTML, JS, JSON, SQL)     │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
 │ `src/hermes_core/context_compactor.py`│ 4-tier token drop (95%) │ Heuristic token slicing drops   │
 │                                      │ & message truncation    │ critical tool definitions       │
 ├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
 │ `src/hermes_core/process_guard.py`   │ Polling loops +         │ Requires explicit PGID kill     │
 │                                      │ hardcoded 100ms grace   │ rather than arbitrary sleep     │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `executable_verify_harness_...py`    │ `timeout=5`, `timeout=90│ Brittle when under heavy CPU/   │
+│                                      │ urllib `timeout=2`      │ GPU load during test runs       │
 ├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
 │ `private_skills/.../comfyui/`        │ `time.sleep(interval)`  │ Wasteful CPU spin; should use   │
 │                                      │ `_sleep_backoff()`      │ event-driven WebSocket listener │
@@ -224,23 +266,23 @@ This document registers all operational bugs, loopholes, regressions, and archit
 ## 3. Detailed Audit by Category
 
 ### A. Arbitrary Subprocess & Terminal Timeouts
-* **Where found:** `config.yaml` (`timeout: 180`, `inactivity_timeout: 120`), `container_cmd.py` (`timeout=10`), `observer_gate.py` (`timeout=5`, `timeout=3`), test suites (`timeout=90`, `timeout=120`).
+* **Where found:** `config.yaml` (`timeout: 180`, `inactivity_timeout: 120`), `container_cmd.py` (`timeout=10`), `observer_gate.py` (`timeout=5`, `timeout=3`), `speculative_executor.py` (`timeout=5.0`), test suites (`timeout=90`, `timeout=120`).
 * **Why it is fragile:** Hardcoded seconds fail across heterogenous hardware. A linter or compiler taking 5.1 seconds on a busy machine triggers a hard failure.
 * **Deterministic Fix:** Replace static wall-clock timers with **I/O Heartbeat Monitors** (detecting active stdout/stderr stream bytes) and **Process Exit Events**.
 
 ### B. Artificial Sleeps & Spin-Waits
-* **Where found:** `comfyui/scripts/_common.py` (`time.sleep()`), `maps/scripts/maps_client.py` (`time.sleep(1.0)`), `grounded-citations/scripts/sources.py` (`time.sleep(0.05)`).
+* **Where found:** `comfyui/scripts/_common.py` (`time.sleep()`), `maps/scripts/maps_client.py` (`time.sleep(1.0)`), `grounded-citations/scripts/sources.py` (`time.sleep(0.05)`), `speculative_tool_executor.py` (`time.sleep(0.05)`).
 * **Why it is fragile:** Sleeps inject artificial latency and introduce race conditions when background jobs complete sooner or later than the sleep window.
 * **Deterministic Fix:**
   * Replace polling sleeps with **async event listeners** (e.g. WebSocket notifications for neural generation).
   * Replace sleep-based rate limiters with **Leaky Bucket / Token Bucket algorithms** that compute exact mathematical dispatch windows.
 
 ### C. Context Compression & Truncation Heuristics
-* **Where found:** `context_compactor.py`, `conversation_loop.py`.
-* **Why it is fragile:** When context overflows, the compactor attempts a 95% token drop or truncates message history. If a prompt contains 22K tokens of system instructions and tool definitions, truncation heuristics fail to compress and cause the `"Cannot compress further"` error loop.
+* **Where found:** `context_compactor.py`, `conversation_loop.py`, `codebase_memory_mcp.py` (`truncate_to_tokens`).
+* **Why it is fragile:** When context overflows, the compactor attempts a 95% token drop or truncates message history. If a prompt contains 22K tokens of system instructions and tool definitions, truncation heuristics fail to compress and cause the `"Cannot compress further"` error loop. In MCP, blind string slicing corrupts JSON syntax.
 * **Deterministic Fix:**
   * **Dynamic Tool Offloading:** Never load all tool schemas simultaneously. Load only the tools permitted for the active subagent role via `capability_masks.py`.
-  * **Summary Anchoring:** Replace linear truncation with structural SQLite memory graphs (`experiential.jsonl`).
+  * **Structural AST Node Truncation:** Truncate data structures before JSON serialization.
 
 ### D. Prompt-Policed Guidelines vs. Physical Constraints
 * **Where found:** `SOUL.md`, `AGENTS.md`, `dot_hermes_AGENTS.md`.
@@ -256,6 +298,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 1. **Physical Turn Token Limiter**: Enforce `max_tokens: 800` per generation turn in `config.yaml` and `llama-server` dispatch.
 2. **Schema-Driven DAG Enforcer**: Require `emit_plan_dag` tool call before `write_file` is unlocked.
 3. **Structured Tree-Sitter MCP Slicing**: Truncate JSON AST elements structurally before serialization.
-4. **Multi-Language AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
-5. **Session-Isolated State**: Scope `/dev/shm` temporary storage by `{session_id}_{task_id}` across all engines.
-6. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.
+4. **Polyglot AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
+5. **Polyglot Markdown Code Extractor**: Remove Python-only AST filter from `extract_code_mode.py`.
+6. **Session-Isolated State**: Scope `/dev/shm` temporary storage by `{session_id}_{task_id}` across all engines.
+7. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.

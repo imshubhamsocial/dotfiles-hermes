@@ -806,3 +806,74 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
      * Attach standard semantic attributes: `gen_ai.prompt_tokens`, `gen_ai.completion_tokens`, `tool.name`, `tool.exit_code`.
      * Export traces to local JSONL or standard OTLP endpoints without adding overhead.
   4. **Manual Verification**: Run a 3-turn workflow; inspect generated trace JSON; verify standard OpenTelemetry span hierarchy (`agent_turn` $\rightarrow$ `tool_execution` $\rightarrow$ `observer_gate`).
+
+---
+
+### Issue #37: In-Process Git Plumbing & 3-Way Merge via PyGit2 / Dulwich
+* **Classification**: Git & Worktree Automation
+* **Impact**: High
+* **Discovered In**: `private_skills/.../merge-reconciler`, `src/hermes_core/branch_swapper.py`
+* **Symptom**: Git branch operations and merge conflict resolutions relied on raw shell commands (`git merge`, `git checkout`) and regex string parsing, failing on complex 3-way conflicts or detached HEAD states.
+* **Root Cause**: Spawning external `git` CLI processes instead of using native in-process libgit2 bindings.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/git_engine.py` (New File), `src/hermes_core/branch_swapper.py`, `private_skills/.../merge-reconciler/SKILL.md`.
+  2. **Dependencies**: `pygit2` (libgit2 C bindings) or `dulwich` (Pure Python Git).
+  3. **Concrete Changes**:
+     * In `git_engine.py`:
+       * Use `pygit2.Repository(cwd)` for in-process branch inspection, staging, and commits.
+       * Implement transactional 3-way merge resolution (`repo.merge_trees(ancestor, our_tree, their_tree)`) that outputs structured AST diffs directly to the Coder agent.
+     * Replace shell `git worktree add` commands with transactional `pygit2.Worktree` operations.
+  4. **Manual Verification**: Create conflicting branches modifying the same file; run `git_engine.merge()`; verify conflict markers and ancestor AST are resolved cleanly without spawning subshells.
+
+---
+
+### Issue #38: WASM-Sandboxed Pure Plugin & Math Tool Execution via Extism / Wasmtime
+* **Classification**: Plugin Architecture & Micro-Sandboxing
+* **Impact**: Medium
+* **Discovered In**: `plugins/`, `src/hermes_core/plugin_loader.py`
+* **Symptom**: Lightweight mathematical, cryptographic, or formatting plugins spawned heavy OS subprocesses, adding 50–100ms fork/exec latency per tool call.
+* **Root Cause**: Lack of an in-process WebAssembly micro-sandbox for untrusted pure plugins.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/wasm_runner.py` (New File), `src/hermes_core/plugin_loader.py`.
+  2. **Dependencies**: `extism` (Universal WebAssembly Plugin Framework) or `wasmtime` PyPI.
+  3. **Concrete Changes**:
+     * Build `WasmPluginRunner` utilizing `extism.Plugin`.
+     * Execute pure plugins (syntax checkers, JSON transforms, unit conversion, crypto hashing) inside WASM memory with $<1\text{ms}$ execution latency and zero host OS access.
+  4. **Manual Verification**: Run a WASM-compiled syntax validator; assert execution completes in $< 2\text{ms}$ with zero subprocess spawns.
+
+---
+
+### Issue #39: Agent Ping-Pong Loop & Budget Exhaustion Guard via AgentGuard
+* **Classification**: Agent Loop Invariant & Anti-Stall
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/context_window_guard.py`, `src/hermes_core/middleware.py`
+* **Symptom**: When a tool repeatedly returned the same error, 4B models entered infinite retry loops ("ping-ponging" between read and write) until turn budget was exhausted.
+* **Root Cause**: Missing $O(1)$ cyclic tool-call sequence detection.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/context_window_guard.py`, `src/hermes_core/swarm_engine.py`.
+  2. **Dependencies**: `nemoguardrails` / `AgentGuard` pattern.
+  3. **Concrete Changes**:
+     * In `HermesOrchestrator`: track sliding window of last 6 tool call signatures `(tool_name, sha256(args), exit_code)`.
+     * If the identical `(tool_name, args)` appears $\ge 3$ consecutive times without state change:
+       * Intercept execution immediately with `LoopDetectionDenied: Repetitive tool execution detected. Generate a negative constraint and backtrack.`.
+       * Force the agent to invoke `HypothesisTree.record_failure_and_backtrack()`.
+  4. **Manual Verification**: Issue a prompt triggering an unresolvable tool error; verify the loop guard interrupts after 3 repeats, forcing the model into backtracking.
+
+---
+
+### Issue #40: Headless Browser & Generative UI Validation via Playwright MCP
+* **Classification**: Generative UI & Visual Artifact Verification
+* **Impact**: High
+* **Discovered In**: `test_live_generative_ui_artifact_creation`, `private_skills/.../popular-web-designs`
+* **Symptom**: Generated HTML, CSS, Three.js, and Canvas dashboards were marked "complete" even when JavaScript runtime errors crashed the browser on page load.
+* **Root Cause**: Verification only checked static file existence without rendering the page in a headless browser engine.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/observer_gate.py`, `executable_setup.sh`.
+  2. **Dependencies**: `playwright` (Python headless Chromium) or `@modelcontextprotocol/server-playwright`.
+  3. **Concrete Changes**:
+     * In `observer_gate.py`: add `verify_html_in_headless_browser(artifact_path)`:
+       * Launch headless Chromium via Playwright.
+       * Load `file:///{artifact_path}`.
+       * Capture browser console errors (`page.on("console", ...)` and `page.on("pageerror", ...)`).
+       * If unhandled JavaScript exceptions occur: fail the observer gate and return the exact browser stack trace to the Coder agent.
+  4. **Manual Verification**: Generate an HTML file with an intentional `ReferenceError: foo is not defined`; run `observer_gate.py`; assert gate rejects the artifact with the browser console error trace.

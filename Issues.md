@@ -963,3 +963,29 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
      * **Heuristic 6 (Regex AST Extraction):** Replaced with official multi-language Tree-sitter grammars (`tree-sitter-languages`).
      * **Heuristic 7 (Hardcoded `/dev/shm` Workspace Path):** Replaced with dynamic project workspace discovery (`Path.cwd().resolve()`).
   3. **Manual Verification**: Run live adversarial suite `pytest tests/roadmap6_adversarial/`; verify 100% of tests pass deterministically across 10 repeated iterations with zero intermittent timeout or syntax false-positive failures.
+
+---
+
+### Issue #44: Automated Frontier Lab Evaluation & Red-Teaming Harness Integration (Google ADK, Anthropic MCP Inspector, & NVIDIA Garak)
+* **Classification**: Automated Testing, Security Red-Teaming & Benchmark Governance
+* **Impact**: High
+* **Discovered In**: `tests/roadmap6_adversarial/`, `tests/test_hermes_live_prompts.py`
+* **Symptom**: Current test suites rely on manual Python `assert` statements and ad-hoc subprocess runs without standard trajectory evaluations, automated vulnerability scanning, or programmatic MCP tool certification.
+* **Root Cause**: Lack of integration with official open-source evaluation and red-teaming harnesses released by Google, Anthropic, and NVIDIA.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `tests/eval_harness/` (New Subpackage), `tests/eval_harness/adk_trajectory_eval.py`, `tests/eval_harness/garak_redteam.py`, `tests/eval_harness/mcp_certification.py`, `executable_setup.sh`.
+  2. **Official Frontier Lab Tools & Packages**:
+     * **Google ADK Evaluator (`google/adk-python` — `adk eval`):**
+       * Evaluates agent trajectories: validates tool selection, tool-call sequence order, and contract satisfaction.
+       * Runs dynamic LLM user simulations to test agent goal achievement without brittle static scripts.
+     * **Anthropic MCP Inspector (`@modelcontextprotocol/inspector` / `mcp dev`):**
+       * Programmatically audits and certifies all custom and private MCP servers (`codebase_memory_mcp.py`, `brave-search`, `filesystem`).
+       * Validates that all tool inputs and outputs match strict JSON Schema standards before deployment.
+     * **NVIDIA Garak (`NVIDIA/garak` / `garak.probes`):**
+       * Automated Generative AI Red-Teaming Kit.
+       * Probes Hermes systematically for prompt injection, jailbreaks, data leakage, and capability mask bypasses.
+  3. **Concrete Changes**:
+     * In `executable_setup.sh`, install `pip install garak google-adk mcp[cli] hypothesis pytest-benchmark`.
+     * In `tests/eval_harness/garak_redteam.py`: configure Garak probes (`garak.probes.promptinject`, `garak.probes.encoding`, `garak.probes.leakage`) targeting `HermesRunner`.
+     * In `tests/eval_harness/mcp_certification.py`: run programmatic MCP schema verification across all tools in `~/.hermes/src/hermes_core/tools.py`.
+  4. **Manual Verification**: Run `python3 -m pytest tests/eval_harness/`; verify Google ADK evaluates 100% of trajectory steps, MCP Inspector validates all schemas, and NVIDIA Garak confirms 0 jailbreak vulnerabilities.

@@ -16,7 +16,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
   2. The harness allowed a single turn to run up to `max_tokens` (4,096) without enforcing an intermediate tool boundary, chunk yield, or physical output brake.
   3. The agent bypassed the Modular Synthesis DAG Engine (`spec_first_planner.py` / `task_graph.py`) and went straight from user prompt to single-stream code dumping.
 * **Remediation**:
-  * Implement a physical output token ceiling ($\le 600 - 800\text{ tokens}$ per turn) at the engine dispatch level.
+  * Implement a physical output token ceiling ($\le 600\text{ tokens}$ per turn) at the engine dispatch level.
   * Enforce schema-level DAG requirements: the agent must emit an architectural skeleton or task graph before receiving access to full file synthesis tools.
   * Integrate the 6-point Observer Gate between file chunks (HTML skeleton $\rightarrow$ CSS styles $\rightarrow$ JS logic $\rightarrow$ validation).
 
@@ -30,18 +30,23 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Root Cause**: `hermes` CLI defaults its working directory to `~` (or `cwd: .` in `~/.hermes/config.yaml`). When executed programmatically in a subfolder, `hermes` does not automatically infer the caller's working directory unless the explicit CLI flag `--in <DIR>` is passed.
 * **Remediation**:
   * Updated test runner helper to always append `["--in", str(cwd)]` whenever a custom working directory is provided.
-  * Ensure programmatic SDK wrappers explicitly propagate `in_dir` to the runtime environment.
+  * In `cli.py`, auto-detect non-interactive TTY environments and automatically bind `--in` to `Path.cwd()` if not provided.
 
 ---
 
-### Issue #03: Fragile Subprocess Timeouts in Live Test Harnesses
-* **Classification**: Test Harness Invariant Violation
-* **Impact**: Medium
-* **Discovered In**: `test_hermes_live_prompts.py`
-* **Symptom**: 3 live tests failed with `subprocess.TimeoutExpired` at 90s / 120s even though `llama-server` was actively generating valid tokens at 29.5 t/s with 0 errors.
-* **Root Cause**: Subprocess calls used arbitrary hardcoded timeouts (`timeout=90`, `timeout=120`) that were insufficient for multi-turn agentic thinking loops (4 consecutive tool calls with 23K prompt tokens).
+### Issue #03: Heuristic Subprocess Timeouts & Missing I/O Activity Heartbeats
+* **Classification**: Harness Invariant Violation / Artificial Timer Crutch
+* **Impact**: Critical
+* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`
+* **Symptom**: Live tests failed with `subprocess.TimeoutExpired` at 90s / 120s / 180s even though `llama-server` was actively streaming valid tokens at 29.5 t/s with 0 errors.
+* **Root Cause**:
+  1. The harness used arbitrary wall-clock timers (`timeout=90`, `timeout=180`) instead of monitoring physical execution signals.
+  2. The single turn was allowed to run unconstrained for 2,500+ tokens without yielding, burning wall-clock seconds.
+  3. Increasing timeouts (e.g. from 90s to 300s) is an **anti-pattern** that masks the root cause rather than solving it deterministically.
 * **Remediation**:
-  * Eliminate arbitrary tight timeouts on live generative workflows. Use reactive completion polling or allocate realistic headroom ($240\text{s} - 300\text{s}$) for multi-turn SLM generation.
+  * **Eliminate Wall-Clock Timers:** Replace static timeouts with **I/O Stream Activity Heartbeats** (which only flag a deadlock if zero bytes are received on stdout/stderr for $>15\text{s}$).
+  * **Enforce Turn Output Chunking:** Limit single-turn generation to $\le 600\text{ tokens}$ so each individual turn executes and yields in $\le 15\text{ seconds}$.
+  * **State-Driven DAG Termination:** Signal task completion deterministically via invariant verification (tests pass + artifacts verified).
 
 ---
 
@@ -171,10 +176,10 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Classification**: Async Tool Execution / Resource Leak
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/speculative_executor.py`
-* **Symptom**: Speculative tool promises taking $>5.0\text{s}$ are permanently abandoned, marked as `REJECTED`, and then re-executed synchronously. Furthermore, completed promises are never evicted from `self.promises`.
-* **Root Cause**: `promise.future.result(timeout=5.0)` uses a hardcoded 5-second ceiling without adaptive deadline adjustment, and `self.promises` has no LRU / TTL eviction policy.
+* **Symptom**: Speculative tool promises taking $>5.0\text{s}$ are abandoned, marked as `REJECTED`, and re-executed synchronously. Furthermore, completed promises are never evicted from `self.promises`.
+* **Root Cause**: Hardcoded timeout polling on futures and missing LRU eviction policy on `self.promises`.
 * **Remediation**:
-  * Implement an adaptive timeout matching tool latency profiles and bound `self.promises` using an LRU cache.
+  * Use event-driven futures callbacks (`future.add_done_callback`) and bind `self.promises` using an LRU cache.
 
 ---
 
@@ -252,9 +257,9 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/token_engine.py`
 * **Symptom**: `/dev/shm` fills up with thousands of orphan `hermes_ephemeral_*.log` files during heavy coding sessions.
-* **Root Cause**: `EphemeralToolBuffer.finalize()` writes full subprocess stdout/stderr streams to `/dev/shm` on every single command turn, but never registers a TTL or cleanup reaper.
+* **Root Cause**: `EphemeralToolBuffer.finalize()` writes full subprocess stdout/stderr streams to `/dev/shm` on every single command turn, but never registers a FIFO capacity cap.
 * **Remediation**:
-  * Add an automatic ring-buffer reaper in `EphemeralToolBuffer` that keeps only the last 50 execution logs and removes files older than 1 hour.
+  * Add a deterministic FIFO RingBuffer in `EphemeralToolBuffer` capping stored log count to 50 entries.
 
 ---
 
@@ -321,6 +326,20 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Root Cause**: Root CLI parser only registers specific subcommand arguments (or `--dev` tied strictly to `--tui`).
 * **Remediation**:
   * Add global `--verbose` / `-v` / `--debug` aliases at the root CLI argument parser to configure logging levels consistently across all modes.
+
+---
+
+### Issue #28: Agent & Benchmark Flag Amnesia & Missing Canonical Runner SDK
+* **Classification**: Harness Usability & Invocation Invariant
+* **Impact**: High
+* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`, benchmark scripts
+* **Symptom**: During automated benchmarks, CI runs, or subagent tool dispatch, callers routinely omit critical CLI flags (e.g. `--in <DIR>`, `--yolo`, `--skills`, `--accept-hooks`), causing headless runs to hang waiting for stdin confirmation, write files to the wrong workspace, or fail to load required skills.
+* **Root Cause**:
+  1. No single typed Python SDK wrapper existed (e.g. `hermes_core.runner.run_hermes(...)`); every test and subagent constructed ad-hoc `subprocess.run(["hermes", ...])` argv lists from scratch.
+  2. The CLI did not automatically detect non-interactive TTY environments to default `--in` to `os.getcwd()` and auto-accept headless hooks.
+* **Remediation**:
+  * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, I/O activity heartbeats, and working directory bindings.
+  * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.
 
 ---
 
@@ -410,7 +429,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 ### A. Arbitrary Subprocess & Terminal Timeouts
 * **Where found:** `config.yaml` (`timeout: 180`, `inactivity_timeout: 120`), `container_cmd.py` (`timeout=10`), `observer_gate.py` (`timeout=5`, `timeout=3`), `speculative_executor.py` (`timeout=5.0`), test suites (`timeout=90`, `timeout=120`).
 * **Why it is fragile:** Hardcoded seconds fail across heterogenous hardware. A linter or compiler taking 5.1 seconds on a busy machine triggers a hard failure.
-* **Deterministic Fix:** Replace static wall-clock timers with **I/O Heartbeat Monitors** (detecting active stdout/stderr stream bytes) and **Process Exit Events**.
+* **Deterministic Fix:** Replace static wall-clock timers with **I/O Stream Activity Heartbeat Monitors** (which only flag deadlocks on zero data for $>15\text{s}$) and **State-Driven DAG Completion Signals**.
 
 ### B. Artificial Sleeps & Spin-Waits
 * **Where found:** `comfyui/scripts/_common.py` (`time.sleep()`), `maps/scripts/maps_client.py` (`time.sleep(1.0)`), `grounded-citations/scripts/sources.py` (`time.sleep(0.05)`), `speculative_tool_executor.py` (`time.sleep(0.05)`).
@@ -430,37 +449,24 @@ This document registers all operational bugs, loopholes, regressions, and archit
 * **Where found:** `SOUL.md`, `AGENTS.md`, `dot_hermes_AGENTS.md`.
 * **Why it is fragile:** Phrases like *"Never output massive blocks"*, *"Keep changes atomic"*, and *"Follow Phase 0"* rely entirely on the model's self-discipline. Small language models (4B–8B) routinely regress into completion mode when given ambiguous prompts.
 * **Deterministic Fix:**
-  * **Physical Token Brake:** Dispatcher truncates or interrupts single turns at $\le 800\text{ tokens}$ and demands tool execution.
+  * **Physical Token Brake:** Dispatcher truncates or interrupts single turns at $\le 600\text{ tokens}$ and demands tool execution.
   * **Pre-Execution Observer Gate:** File write operations greater than 150 lines without prior DAG blueprinting are structurally rejected by the tool executor.
 
 ---
 
 ## 4. Architectural Roadmap for Permanent Elimination
 
-1. **Physical Turn Token Limiter**: Enforce `max_tokens: 800` per generation turn in `config.yaml` and `llama-server` dispatch.
-2. **Schema-Driven DAG Enforcer**: Require `emit_plan_dag` tool call before `write_file` is unlocked.
-3. **Structured Tree-Sitter MCP Slicing**: Truncate JSON AST elements structurally before serialization.
-4. **Polyglot AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
-5. **Polyglot Markdown Code Extractor**: Remove Python-only AST filter from `extract_code_mode.py`.
-6. **Recursive OpenSkills Discovery**: Update `openskills_manager.py` to recursively discover all categorized skills.
-7. **Base Skill Pack Bundler**: Integrate upstream developer skill synchronization into `setup.sh`.
-8. **Automated Linter/Formatter Gate**: Pipe generated files through `ruff format` / `prettier` automatically.
-9. **Live Multi-Bot Orchestration**: Replace mock turn generators in `multi_bot_delegation.py` with real agent dispatch.
-10. **Production Web Grounding**: Fix DuckDuckGo import, install `duckduckgo_search`, and link to offline doc search.
-11. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
-12. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.
-13. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.
-
----
-
-### Issue #28: Agent & Benchmark Flag Amnesia & Missing Canonical Runner SDK
-* **Classification**: Harness Usability & Invocation Invariant
-* **Impact**: High
-* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`, benchmark scripts
-* **Symptom**: During automated benchmarks, CI runs, or subagent tool dispatch, callers routinely omit critical CLI flags (e.g. `--in <DIR>`, `--yolo`, `--skills`, `--accept-hooks`), causing headless runs to hang waiting for stdin confirmation, write files to the wrong workspace, or fail to load required skills.
-* **Root Cause**:
-  1. No single typed Python SDK wrapper existed (e.g. `hermes_core.runner.run_hermes(...)`); every test and subagent constructed ad-hoc `subprocess.run(["hermes", ...])` argv lists from scratch.
-  2. The CLI did not automatically detect non-interactive TTY environments to default `--in` to `os.getcwd()` and auto-accept headless hooks.
-* **Remediation**:
-  * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, timeouts, and working directory bindings.
-  * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.
+1. **Physical Turn Token Limiter**: Enforce `max_tokens: 600` per generation turn in `config.yaml` and `llama-server` dispatch to physically eliminate monolithic token dumping.
+2. **I/O Stream Activity Heartbeat**: Replace all wall-clock timeouts with non-blocking stdout/stderr stream activity monitors.
+3. **Schema-Driven DAG Enforcer**: Require `emit_plan_dag` tool call before `write_file` is unlocked.
+4. **Structured Tree-Sitter MCP Slicing**: Truncate JSON AST elements structurally before serialization.
+5. **Polyglot AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
+6. **Polyglot Markdown Code Extractor**: Remove Python-only AST filter from `extract_code_mode.py`.
+7. **Recursive OpenSkills Discovery**: Update `openskills_manager.py` to recursively discover all categorized skills.
+8. **Base Skill Pack Bundler**: Integrate upstream developer skill synchronization into `setup.sh`.
+9. **Automated Linter/Formatter Gate**: Pipe generated files through `ruff format` / `prettier` automatically.
+10. **Live Multi-Bot Orchestration**: Replace mock turn generators in `multi_bot_delegation.py` with real agent dispatch.
+11. **Production Web Grounding**: Fix DuckDuckGo import, install `duckduckgo_search`, and link to offline doc search.
+12. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
+13. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.
+14. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.

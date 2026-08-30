@@ -1028,3 +1028,50 @@ To further evolve, harden, and scale the Hermes harness, the table below catalog
          * If Candidate A fails but Candidate B passes: commit Candidate B immediately (zero human or turn penalty).
          * If both fail: select the candidate with the higher test pass ratio, feed its exact failure trace into the next turn, and record a negative Tabu constraint.
   4. **Manual Verification**: Run a challenging bug-fix test where standard greedy generation fails; verify `TestTimeComputeSampler` generates 2 candidates in parallel across Slot 0 & Slot 1 and automatically commits the candidate that passes 100% of the unit tests.
+
+---
+
+## 5. Google & NVIDIA Specialized Matrix for Database, Task, & Skill Governance
+
+To ensure that state management, task decomposition, and skill evolution are governed by official frontier lab frameworks rather than ad-hoc custom code, the matrix below details the integration of specialized Google and NVIDIA tools:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 GOOGLE & NVIDIA SPECIALIZED DATABASE, TASK, & SKILL MATRIX                                              │
+├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
+│ Functional Domain        │ Google Tool / Repository            │ NVIDIA Tool / Repository             │ Role in Hermes Agent OS         │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **1. Database & State**  │ `google/flatbuffers` (Zero-copy IPC)│ `NVIDIA/cuVS` (Vector Search Engine) │ • Sub-millisecond ANN search.   │
+│                          │ `google/leveldb` (LSM-tree Key-Val) │ `NVIDIA/NeMo-Curator` (DB Deduper)   │ • Auto-compacted disk storage.  │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **2. Task Decomposition**│ `google/adk-python` (Workflow DAGs) │ `NVIDIA/NeMo-Guardrails` (Colang)    │ • Strict state-machine DAG flow;│
+│    **& Orchestration**   │ `google/a2a` (Delegation Protocol)  │ `NVIDIA/NeMo-Agent` (MCTS Planner)   │ • Prevents skipping subtasks.   │
+├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
+│ **3. Skill Decomposition**│ `adk.tools` (Dynamic Loader)       │ `NVIDIA/NeMo-Curator` (Distiller)    │ • Trajectory-to-Skill extraction│
+│    **& Governance**      │                                     │ `nemoguardrails` (Capability Rails)  │ • Auto-generates unit tests.    │
+└──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### Step-by-Step Integration Plan for Google & NVIDIA Governance Tools
+
+#### 1. Database & State Layer (`google/leveldb` + `google/flatbuffers` + `NVIDIA/cuVS`)
+* **Files to Touch:** `src/hermes_core/database/vfs_store.py`, `src/hermes_core/vector_memory.py`.
+* **Concrete Implementation:**
+  * Use `leveldb` as the high-throughput, auto-compacting key-value backend for OpenViking VFS (`viking://`) and intermediate tool outputs, ensuring disk files remain tightly bounded through LSM-tree log compaction.
+  * Use `flatbuffers` for zero-copy binary serialization of task graphs, eliminating JSON encoding/decoding overhead across background agent processes.
+  * Connect `NVIDIA/cuVS` (running CPU/GPU ANN indexes) to power sub-millisecond similarity search across codebase symbols and experience playbooks.
+
+#### 2. Task Decomposition & State Machine Governance (`google/adk-python` + `NVIDIA/NeMo-Guardrails`)
+* **Files to Touch:** `src/hermes_core/task_graph.py`, `src/hermes_core/spec_first_planner.py`.
+* **Concrete Implementation:**
+  * Adopt Google ADK's `SequentialAgent`, `ParallelAgent`, and `LoopAgent` workflow primitives in `task_graph.py`.
+  * Use NVIDIA Colang 2.0 dialog/task rails to enforce that a task cannot transition to "COMPLETE" status until its paired test suite emits a verified exit code `0`.
+
+#### 3. Skill Decomposition & Automated Distillation (`NVIDIA/NeMo-Curator` + `adk.tools`)
+* **Files to Touch:** `src/hermes_core/skill_evolution.py`, `src/hermes_core/openskills_manager.py`.
+* **Concrete Implementation:**
+  * Use `NeMo-Curator`'s trajectory analyzer to distill successful multi-turn execution traces into modular, single-responsibility `SKILL.md` playbooks.
+  * Automatically generate an executable `test_skill.py` test suite for every distilled skill to verify it before promoting it from `~/.hermes/staging_skills/` to active production.
+  * Use `adk.tools` to dynamically load only the subset of skills required for the active subtask into context, preserving token budgets.

@@ -133,3 +133,37 @@ class SchemaJSONLDBuilder:
 
 def create_schema_builder(base_uri: str = "urn:hermes:graph") -> SchemaJSONLDBuilder:
     return SchemaJSONLDBuilder(base_uri=base_uri)
+
+
+class InstructorSchemaEngine:
+    """Auto-generates strict JSON schemas using Instructor and Pydantic (Issue #17)."""
+
+    @staticmethod
+    def generate_tool_schema(model_or_func: Any) -> Dict[str, Any]:
+        """Convert a Pydantic Model or function into an OpenAI/FastMCP-compliant JSON Schema."""
+        from pydantic import BaseModel, TypeAdapter
+        import inspect
+
+        if inspect.isclass(model_or_func) and issubclass(model_or_func, BaseModel):
+            return model_or_func.model_json_schema()
+
+        if callable(model_or_func):
+            sig = inspect.signature(model_or_func)
+            doc = inspect.getdoc(model_or_func) or ""
+            fields = {}
+            for param_name, param in sig.parameters.items():
+                ann = param.annotation if param.annotation is not inspect.Parameter.empty else Any
+                fields[param_name] = ann
+            adapter = TypeAdapter(Dict[str, Any])
+            return {
+                "name": model_or_func.__name__,
+                "description": doc,
+                "parameters": {
+                    "type": "object",
+                    "properties": {k: {"type": "string"} for k in fields},
+                    "required": list(fields.keys()),
+                }
+            }
+
+        return {"type": "object", "properties": {}}
+

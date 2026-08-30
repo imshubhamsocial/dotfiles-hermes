@@ -72,13 +72,19 @@ class QwenMMCoreReader:
             media_type="image",
             metadata={"size_bytes": p.stat().st_size, "format": p.suffix.lstrip(".")},
         )
-        # Attempt identify/sips/file probe
         try:
-            cmd = ["file", str(p)]
-            out = subprocess.check_output(cmd, text=True).strip()
-            res.metadata["file_info"] = out
+            from PIL import Image
+            with Image.open(p) as img:
+                res.dimensions = f"{img.width}x{img.height}"
+                res.metadata["mode"] = img.mode
+                res.metadata["format"] = img.format
         except Exception:
-            pass
+            try:
+                cmd = ["file", str(p)]
+                out = subprocess.check_output(cmd, text=True).strip()
+                res.metadata["file_info"] = out
+            except Exception:
+                pass
         return res
 
     def _inspect_video(self, p: Path) -> MultimodalInspectionResult:
@@ -87,7 +93,6 @@ class QwenMMCoreReader:
             media_type="video",
             metadata={"size_bytes": p.stat().st_size},
         )
-        # Slicing up to 3 representative frames if ffmpeg is available
         frame_dir = self.output_dir / p.stem
         frame_dir.mkdir(parents=True, exist_ok=True)
         try:
@@ -101,14 +106,12 @@ class QwenMMCoreReader:
                 res.frames_extracted.append(str(f1))
         except Exception as e:
             res.metadata["ffmpeg_error"] = str(e)
-
         return res
 
     def _inspect_document(self, p: Path) -> MultimodalInspectionResult:
         content = ""
         try:
             if p.suffix == ".pdf":
-                # Fallback text representation
                 content = f"[PDF Document: {p.name} ({p.stat().st_size} bytes)]"
             else:
                 content = p.read_text(encoding="utf-8", errors="replace")[:1000]
@@ -121,6 +124,40 @@ class QwenMMCoreReader:
             extracted_text=content,
             metadata={"size_bytes": p.stat().st_size},
         )
+
+    @staticmethod
+    def validate_base64_image(b64_str: str) -> bool:
+        """Validate whether string is valid base64 image data (Issue #22)."""
+        import base64
+        import io
+        from PIL import Image
+        try:
+            raw = b64_str.split(",")[-1] if "," in b64_str else b64_str
+            data = base64.b64decode(raw)
+            with Image.open(io.BytesIO(data)) as img:
+                img.verify()
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def downsample_image(image_bytes: bytes, max_dim: int = 1024) -> bytes:
+        """Downsample image if width or height exceeds max_dim to avoid SLM VRAM exhaustion (Issue #22)."""
+        import io
+        from PIL import Image
+        try:
+            with Image.open(io.BytesIO(image_bytes)) as img:
+                if img.width <= max_dim and img.height <= max_dim:
+                    return image_bytes
+                
+                # Maintain aspect ratio
+                img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                out = io.BytesIO()
+                fmt = img.format or "PNG"
+                img.save(out, format=fmt)
+                return out.getvalue()
+        except Exception:
+            return image_bytes
 
 
 def create_qwen_mm_reader(output_dir: Optional[Path] = None) -> QwenMMCoreReader:

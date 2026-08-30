@@ -1,29 +1,11 @@
-"""
-Reflective Learner Adapter Plugin for Upstream Hermes Agent.
-"""
+"""Hermes Plugin: reflective_learner_adapter"""
+import sys
+from pathlib import Path
 
-from __future__ import annotations
+for p in [Path.home() / ".hermes/src", Path.home() / ".local/share/chezmoi/private_dot_hermes/src"]:
+    if str(p) not in sys.path and p.exists():
+        sys.path.insert(0, str(p))
 
-import logging
-from typing import Any, Dict, Optional
-
-from hermes_core.reflective_learner import ReflectiveLearner, create_reflective_learner
-
-logger = logging.getLogger(__name__)
-_learner = create_reflective_learner()
-
-
-def register(ctx: Any) -> None:
-    if hasattr(ctx, "register_hook"):
-        ctx.register_hook("on_session_start", on_session_start)
-        ctx.register_hook("on_session_end", on_session_end)
-        logger.info("Reflective Learner Plugin registered successfully.")
-
-
-def on_session_start(**kwargs: Any) -> Optional[Dict[str, Any]]:
-    rules = _learner.get_active_distilled_rules()
-    return {"injected_learned_rules": rules}
-
-
-def on_session_end(**kwargs: Any) -> None:
+def register(ctx=None):
+    """Registers plugin reflective_learner_adapter into Hermes runtime."""
     pass

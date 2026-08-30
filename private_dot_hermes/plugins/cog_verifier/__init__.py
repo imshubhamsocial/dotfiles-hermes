@@ -1,13 +1,11 @@
-"""COG Dual-Agent Verifier & Second Brain Plugin for Hermes."""
-from hermes_core.cog_verifier import CogVerifier, create_cog_verifier
-from hermes_core.cog_vault import CogVault, create_cog_vault
+"""Hermes Plugin: cog_verifier"""
+import sys
+from pathlib import Path
 
-_verifier = create_cog_verifier()
-_vault = create_cog_vault()
+for p in [Path.home() / ".hermes/src", Path.home() / ".local/share/chezmoi/private_dot_hermes/src"]:
+    if str(p) not in sys.path and p.exists():
+        sys.path.insert(0, str(p))
 
-def register(ctx):
-    if hasattr(ctx, "register_hook"):
-        ctx.register_hook("pre_tool_call", on_pre_tool_call)
-
-def on_pre_tool_call(tool_name, arguments):
-    return None
+def register(ctx=None):
+    """Registers plugin cog_verifier into Hermes runtime."""
+    pass

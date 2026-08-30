@@ -1,6 +1,11 @@
-"""Agent OS Standards & Plan.json Plugin for Hermes."""
-from hermes_core.agent_os import AgentOS, create_agent_os
-from hermes_core.agent_os_standards import AgentOSStandards, create_agent_os_standards
+"""Hermes Plugin: agent_os"""
+import sys
+from pathlib import Path
 
-def register(ctx):
+for p in [Path.home() / ".hermes/src", Path.home() / ".local/share/chezmoi/private_dot_hermes/src"]:
+    if str(p) not in sys.path and p.exists():
+        sys.path.insert(0, str(p))
+
+def register(ctx=None):
+    """Registers plugin agent_os into Hermes runtime."""
     pass

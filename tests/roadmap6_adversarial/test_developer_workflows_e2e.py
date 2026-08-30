@@ -38,6 +38,8 @@ def is_llama_server_running() -> bool:
 def run_hermes(prompt: str, cwd: Path | None = None, timeout: int = 180) -> tuple[int, str, str]:
     hermes_bin = shutil.which("hermes") or str(Path.home() / ".local/bin/hermes")
     cmd = [hermes_bin, "-z", prompt, "--yolo"]
+    if cwd:
+        cmd.extend(["--in", str(cwd)])
     res = subprocess.run(
         cmd,
         capture_output=True,

@@ -12,7 +12,10 @@ export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE
 HF_HUB_DIR="${HF_HUB_DIR:-${HOME}/.cache/huggingface/hub}"
 MODEL_MAIN="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/gemma-4-E4B-it-Q4_K_M.gguf"
 MODEL_DRAFT="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
-SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
+SERVER_BIN="/usr/bin/llama-server"
+if [[ -x "${HOME}/.local/bin/llama-server.bin" && "$(head -c 4 "${HOME}/.local/bin/llama-server.bin" 2>/dev/null)" == $'\x7fELF' ]]; then
+    SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
+fi
 
 DRAFT_FLAGS=()
 if [[ -f "$MODEL_DRAFT" ]]; then

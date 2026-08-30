@@ -317,6 +317,35 @@ def apply_to_agent(agent):
     return agent, role
 
 
+def validate_security_policy_path(filepath: str, is_write: bool = True) -> Tuple[bool, str]:
+    """Validates that a path is permitted under agent_capabilities.yaml."""
+    if not is_write:
+        return True, "read allowed."
+    fp = str(filepath).lower()
+    denied_targets = [".integrity", "agent_capabilities.yaml", ".git-credentials", ".ssh/id_", "etc/shadow", "etc/sudoers"]
+    for target in denied_targets:
+        if target in fp:
+            return False, f"SECURITY_POLICY_VIOLATION: Write/delete access to '{filepath}' is forbidden by agent_capabilities.yaml."
+    return True, "path allowed."
+
+
+def validate_security_policy_command(cmd: str) -> Tuple[bool, str]:
+    """Inspects shell commands for forbidden actions (tampering with audit logs, modifying policy)."""
+    c = str(cmd).lower()
+    dangerous_patterns = [
+        ("rm ", ".integrity"),
+        ("rm ", "agent_capabilities.yaml"),
+        ("truncate ", ".integrity"),
+        ("> ", ".integrity"),
+        ("sed ", "agent_capabilities.yaml"),
+        ("echo ", "agent_capabilities.yaml"),
+    ]
+    for action, target in dangerous_patterns:
+        if action in c and target in c:
+            return False, f"SECURITY_POLICY_VIOLATION: Command tampering with '{target}' is strictly forbidden."
+    return True, "command allowed."
+
+
 def get_schema_for_role(role: str) -> Dict[str, Any]:
     """Get full OpenAI tool schema for a role."""
     return ROLE_SCHEMAS.get(role, ROLE_SCHEMAS[DEFAULT_ROLE])

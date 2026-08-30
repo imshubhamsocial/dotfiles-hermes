@@ -38,7 +38,7 @@ class TestDataPipelinesAdversarial:
                 ])
                 .sort("avg_value", descending=True)
             )
-            df = q.collect(streaming=True)
+            df = q.collect(engine="streaming")
             assert df.shape[0] == 10, f"Expected 10 categories, got {df.shape[0]}"
             assert "avg_value" in df.columns
         finally:

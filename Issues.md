@@ -877,3 +877,30 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
        * Capture browser console errors (`page.on("console", ...)` and `page.on("pageerror", ...)`).
        * If unhandled JavaScript exceptions occur: fail the observer gate and return the exact browser stack trace to the Coder agent.
   4. **Manual Verification**: Generate an HTML file with an intentional `ReferenceError: foo is not defined`; run `observer_gate.py`; assert gate rejects the artifact with the browser console error trace.
+
+---
+
+### Issue #41: Heavy Python Wrapper De-Bloat: Modern High-Throughput Package Migration
+* **Classification**: Performance Engineering & Dependency Modernization
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`, `src/hermes_core/context_compactor.py`
+* **Symptom**: 
+  1. Spawning heavy PyTorch dependencies for embeddings consumed 2GB+ unnecessary RAM on a 6GB VRAM system.
+  2. Custom directory/file search loops in Python locked execution on 50,000+ file repositories.
+  3. `PyYAML` and custom regex scrapers introduced 200–500ms latency per turn.
+  4. Manual `/proc` string parsing in `process_guard.py` added CPU spin-wait overhead.
+* **Root Cause**: Custom ad-hoc Python loops and heavyweight legacy libraries instead of modern Rust/C-accelerated packages.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`, `src/hermes_core/extract_web_content.py`, `src/hermes_core/graph_engine.py`, `executable_setup.sh`.
+  2. **Modern Upstream Package Replacements**:
+     * **Ripgrep & Fd-Find (`ripgrep`, `fd-find` via JSON stream):** Replace Python `os.walk` / `re` search loops in `tools.py` with `rg --json` and `fd` (100x speedup, native `.gitignore` support).
+     * **FastEmbed (`fastembed` ONNX):** Replace heavyweight `torch` / `sentence-transformers` with `fastembed` (reduces memory from 2.2GB to <50MB with zero GPU VRAM impact).
+     * **Msgspec / Ruamel (`msgspec` PyPI):** Replace `PyYAML` and `json.loads` with `msgspec` (Rust/C-backed, 15x faster decoding with native Pydantic/struct validation).
+     * **Trafilatura + Selectolax (`trafilatura`, `selectolax`):** Replace custom BeautifulSoup scraping with C-accelerated DOM text extractors (20x faster than BS4).
+     * **Psutil (`psutil` C-Extension):** Replace `/proc` manual text reading in `process_guard.py` with `psutil.Process().children(recursive=True)` for instant sub-millisecond process tree teardowns.
+     * **Standard Graphlib (`graphlib.TopologicalSorter`):** Replace custom Kahn's loop with Python's optimized standard library DAG sorter.
+  3. **Concrete Changes**:
+     * In `executable_setup.sh`, add `pip install msgspec fastembed trafilatura selectolax psutil ripgrep`.
+     * In `tools.py:grep_search()`, dispatch directly to `subprocess.run(["rg", "--json", ...])`.
+     * In `process_guard.py:run_with_group_teardown()`, use `psutil` to reap child process trees instantly.
+  4. **Manual Verification**: Run repository-wide search across 10,000 files; assert `grep_search()` returns in $< 30\text{ms}$; verify memory footprint of the entire Hermes process stays $< 150\text{MB}$ RAM.

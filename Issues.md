@@ -989,3 +989,48 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
      * In `tests/eval_harness/garak_redteam.py`: configure Garak probes (`garak.probes.promptinject`, `garak.probes.encoding`, `garak.probes.leakage`) targeting `HermesRunner`.
      * In `tests/eval_harness/mcp_certification.py`: run programmatic MCP schema verification across all tools in `~/.hermes/src/hermes_core/tools.py`.
   4. **Manual Verification**: Run `python3 -m pytest tests/eval_harness/`; verify Google ADK evaluates 100% of trajectory steps, MCP Inspector validates all schemas, and NVIDIA Garak confirms 0 jailbreak vulnerabilities.
+
+---
+
+### Issue #45: Standardized Frontier Lab Benchmarking & Diagnostic Suite (SWE-bench, Tau-bench, & Automated Gap Analysis)
+* **Classification**: Benchmark Governance, Diagnostic Reporting & Capability Profiling
+* **Impact**: High
+* **Discovered In**: `tests/test_hermes_live_prompts.py`, `tests/roadmap6_adversarial/`
+* **Symptom**: Current test feedback produces binary pass/fail results without standard frontier benchmarks, quantitative regression scoring (pass@1, pass@5), latency profiling (TTFT, KV cache hit rate), or automated capability gap analysis that pinpoints exactly why a model/harness failed a task.
+* **Root Cause**: Lack of an integrated, standardized benchmarking harness modeled after Google, Anthropic, and NVIDIA evaluation frameworks.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `benchmark/` (New Subpackage), `benchmark/run_swebench.py`, `benchmark/run_taubench.py`, `benchmark/latency_profiler.py`, `benchmark/diagnostic_report.py`, `executable_setup.sh`.
+  2. **Standardized Frontier Lab Benchmark Suites**:
+     * **SWE-bench Lite / Verified (`swebench.harness`):**
+       * Evaluates real-world GitHub issue resolution in isolated container sandboxes.
+       * Measures patch accuracy, test pass rates, and localization precision across standard Python, JS, and Rust repositories.
+     * **Tau-bench (`sierra-research/tau-bench` / Anthropic Tool-Use Standard):**
+       * Evaluates multi-turn agent tool composition, dynamic user interaction, and state-machine transitions across real-world workflows.
+     * **Google ADK Trajectory & Response Profiler (`adk eval`):**
+       * Quantifies tool-selection accuracy, tool-call sequence optimality, and hallucinated argument rates.
+     * **NVIDIA NeMo & Garak Security / Red-Team Benchmark:**
+       * Quantifies jailbreak refusal rate, capability boundary enforcement, and prompt injection resistance.
+     * **Latency & KV-Cache Profiler:**
+       * Automatically logs: Time-To-First-Token (TTFT), tokens/second, KV cache hit rate ($>95\%$ target), memory high-water mark, and turn duration.
+  3. **Automated Diagnostic & Capability Gap Engine (`diagnostic_report.py`):**
+     * Automatically generates a structured Markdown / JSON report after every benchmark run:
+       ```
+       ┌──────────────────────────────────────────────────────────────────────────┐
+       │                   HERMES HARNESS CAPABILITY & GAP REPORT                 │
+       ├─────────────────────────┬──────────────┬───────────────┬─────────────────┤
+       │ Metric Domain           │ Score / Rate │ Industry Target│ Status          │
+       ├─────────────────────────┼──────────────┼───────────────┼─────────────────┤
+       │ SWE-bench Lite Pass@1   │ 38.5%        │ ≥ 35.0%       │ [PASS] Gold     │
+       │ Tool Trajectory Precision│ 96.2%       │ ≥ 95.0%       │ [PASS] Optimal  │
+       │ KV Cache Hit Rate       │ 97.8%        │ ≥ 95.0%       │ [PASS] Zero-KV  │
+       │ Time-To-First-Token     │ 48ms         │ ≤ 100ms       │ [PASS] Instant  │
+       │ Jailbreak Defense Rate  │ 100.0%       │ 100.0%        │ [PASS] Hardened │
+       │ Multi-Lang AST Format   │ 100.0%       │ 100.0%        │ [PASS] Ruff/Bio │
+       └─────────────────────────┴──────────────┴───────────────┴─────────────────┘
+       ```
+     * Identifies exact failure classifications:
+       * `FAILURE_REASON_TOOL_SCHEMA`: Model passed invalid parameter types (triggers Issue #32 fix).
+       * `FAILURE_REASON_AST_SYNTAX`: Code had unparseable syntax (triggers Issue #26/31 fix).
+       * `FAILURE_REASON_SUBPROCESS_STALL`: Subprocess deadlocked (triggers Issue #03 heartbeat).
+       * `FAILURE_REASON_STATE_LOSS`: Resumed session forgot previous skills (triggers Issue #29 fix).
+  4. **Manual Verification**: Run `python3 benchmark/run_benchmark.py --suite lite --report output/report.md`; verify automated gap report is generated with exact quantitative metrics and zero manual calculations.

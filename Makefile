@@ -114,7 +114,8 @@ test-domain: ## Run domain persistence, FastMCP, and Quorum/GEPA tests
 
 exam: ## Run final live integration exam and capability verification
 	@python3.13 tests/runners/run_final_integration_exam.py
-	@python3.13 $(HERMES_DIR)/bin/executable_verify_harness_integrity.py
+	@python3.13 $(HERMES_DIR)/bin/verify_harness_integrity.py
+
 
 doctor: ## Run Hermes system health and plugin contract diagnostics
 	@hermes doctor

@@ -885,3 +885,22 @@ This document registers all 48 operational bugs, loopholes, regressions, and arc
 │                          │                                     │ score against official test suites   │ overhead; runs locally in secs. │
 └──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
 ```
+
+---
+
+## 5. Mandatory Environment Provisioning & Synchronization Invariant (`ws-hermes`, `setup.sh`, & `package.json`)
+
+To guarantee 100% turnkey reproducibility, zero missing dependency regressions, and seamless portability across any machine:
+
+1. **Active Container Installation (`ws-hermes`):**
+   * Every package, tool, linter, formatter, or C/Rust library introduced during issue fixes (`tree-sitter`, `ruff`, `biome`, `sqlmodel`, `diskcache`, `fastembed`, `mcp[cli]`, `instructor`, `nemoguardrails`, `google-adk`, `duckduckgo-search`, `garak`, `swebench`, `tau-bench`, `flatbuffers`, `pygit2`, `extism`) must be **installed and verified inside the active Distrobox container `ws-hermes`**.
+
+2. **Master Setup Script Synchronization (`setup.sh` / `executable_setup.sh`):**
+   * All Python dependencies must be added to the `python3.13 -m pip install` block in `executable_setup.sh`.
+   * All Node.js / CLI tools (`@biomejs/biome`, `@modelcontextprotocol/inspector`, `pyright`, `prettier`) must be registered in the `npm install -g` block in `executable_setup.sh`.
+   * All system DNF libraries (`leveldb-devel`, `libgit2-devel`, `openssl-devel`) must be added to the `dnf install` block in `executable_setup.sh`.
+
+3. **Project Manifest Synchronization (`pyproject.toml` & `package.json`):**
+   * All Python dependencies must be declared under `[project.dependencies]` in `pyproject.toml`.
+   * All Node / MCP tool packages must be declared in `package.json`.
+   * Running `chezmoi apply --force` and `./setup.sh` on a fresh container must provision the entire Hermes harness with zero manual intervention.

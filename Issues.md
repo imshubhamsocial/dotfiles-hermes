@@ -1,10 +1,10 @@
-# Issues, Architectural Fragility, & Open-Source Package Audit (ws-hermes)
+# Issues, Architectural Fragility, & Detailed Implementation Plans (ws-hermes)
 
-This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered during the end-to-end audit, live adversarial evaluation, and static inspection of the Hermes agentic harness. It also provides an exhaustive **Upstream Package Replacement Matrix** mapping our ad-hoc custom Python files to battle-tested open-source packages from **Anthropic**, **NVIDIA**, **Google**, **Astral**, and the **Python / Rust Systems Ecosystem** to make Hermes modular, scalable, deterministic, and free of regression edge cases.
+This document registers all 28 operational bugs, loopholes, regressions, and architectural vulnerabilities discovered across the Hermes agentic harness. For every issue, it provides a **precise, step-by-step implementation plan** detailing the exact files to modify, upstream packages to integrate, code changes, and manual verification procedures.
 
 ---
 
-## 1. Upstream Package Replacement Matrix (Eliminating Ad-Hoc Python Code)
+## 1. Upstream Package Replacement Matrix
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -48,46 +48,22 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
-## 2. Multi-Prompt Determinism & Regression Prevention Invariants
-
-To guarantee that Hermes behaves consistently across diverse, identical, or adversarial prompts without failing due to harness flaws, we establish **4 Core Determinism Invariants**:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 DETERMINISTIC HARNESS EXECUTION INVARIANTS                             │
-├───────────────────────┬──────────────────────────────────┬─────────────────────────────────────────────┤
-│ Invariant Class       │ Root Cause of Non-Determinism    │ Deterministic Solution Guarantee            │
-├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
-│ 1. Generation Budget  │ Monolithic 2,500-token dumping   │ Enforce physical `max_tokens: 600` ceiling; │
-│    Determinism        │ causes prompt-dependent timeouts │ turn always finishes & yields in ≤ 15s      │
-├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
-│ 2. Subprocess I/O     │ Wall-clock timers kill healthy   │ Monitor stdout/stderr stream byte heartbeat;│
-│    Determinism        │ processes on busy CPU/GPU runs   │ only flag deadlock on zero bytes for >15s   │
-├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
-│ 3. Tool & Schema      │ Blind character slicing chops    │ Use FastMCP structured Pydantic models;     │
-│    Determinism        │ JSON, crashing client parsers    │ slice array elements before JSON serialization│
-├───────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
-│ 4. Invocation & Flag  │ Callers forget `--in`, `--yolo`, │ Canonical `HermesRunner` SDK automatically  │
-│    Determinism        │ or use invalid flags like `-v`   │ passes all workspace and non-TTY arguments  │
-└───────────────────────┴──────────────────────────────────┴─────────────────────────────────────────────┘
-```
-
----
-
-## 3. Registered Subsystem, Tool, & Agentic Vulnerabilities
+## 2. Master Issue Registry & Detailed Implementation Plans
 
 ### Issue #01: The "Completion Trap" & Missing Physical Output Token Gating
 * **Classification**: Behavioral Regression / Lack of Physical Gating
 * **Impact**: Critical
-* **Discovered In**: `test_live_generative_ui_artifact_creation`, `test_live_polars_data_analysis_skill_invocation`, `test_workflow_multi_file_python_library`
-* **Symptom**: When given an unconstrained goal, Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180 seconds.
-* **Root Cause**:
-  1. `SOUL.md` and `AGENTS.md` instructed the model to be modular, but **prompt rules alone cannot physically restrict token generation**.
-  2. The harness allowed a single turn to run up to `max_tokens` (4,096) without enforcing an intermediate tool boundary, chunk yield, or physical output brake.
-  3. The agent bypassed the Modular Synthesis DAG Engine (`spec_first_planner.py` / `task_graph.py`) and went straight from user prompt to single-stream code dumping.
-* **Remediation & Industry Package Alignment**:
-  * **Google ADK Workflow Primitives (`google/adk-python` — `SequentialAgent` / `LoopAgent`)**: Enforce DAG state transitions where an architectural blueprint must be committed before file synthesis tools are unlocked.
-  * **NVIDIA NeMo Output Rails (`nemoguardrails` — Output Token Rail)**: Enforce a physical dispatch ceiling ($\le 600\text{ tokens}$ per turn) in `llama-server` runtime and interrupt unconstrained single-stream generation.
+* **Discovered In**: `test_live_generative_ui_artifact_creation`, `test_live_polars_data_analysis_skill_invocation`
+* **Symptom**: Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180s.
+* **Root Cause**: The harness allowed a single turn to run up to `max_tokens: 4096` without an intermediate yield or token brake.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/config.yaml`, `src/hermes_core/swarm_engine.py`, `src/hermes_core/spec_first_planner.py`.
+  2. **Dependencies**: `nemoguardrails` (Output Rail).
+  3. **Concrete Changes**:
+     * In `config.yaml`, set `agent.max_tokens_per_turn: 600` under inference settings.
+     * In `swarm_engine.py:HermesOrchestrator.run()`, pass `max_tokens=600` to the OpenAI/llama-server client completions call.
+     * In `spec_first_planner.py`, enforce that Phase 0 must emit an architectural DAG JSON block (`emit_task_dag`) before unlocking full file synthesis tools (`write_file`).
+  4. **Manual Verification**: Run `hermes -z "Generate a 2000-line single file HTML dashboard"`; assert generation yields after emitting skeleton/blueprint in $\le 600\text{ tokens}$ ($\le 15\text{s}$) rather than dumping 2,500 tokens.
 
 ---
 
@@ -95,11 +71,15 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Test Harness / Subprocess Calling Bug
 * **Impact**: High
 * **Discovered In**: `test_developer_workflows_e2e.py`
-* **Symptom**: When `test_workflow_multi_file_python_library` ran `hermes -z "<prompt>"` inside a temporary directory (`/tmp/tmp...`), the test failed because files (`src/math_engine.py`) were not written to the temporary directory.
-* **Root Cause**: `hermes` CLI defaults its working directory to `~` (or `cwd: .` in `~/.hermes/config.yaml`). When executed programmatically in a subfolder, `hermes` does not automatically infer the caller's working directory unless the explicit CLI flag `--in <DIR>` is passed.
-* **Remediation & Industry Package Alignment**:
-  * **Anthropic MCP Filesystem Server (`modelcontextprotocol/servers/src/filesystem`)**: Adopt strict workspace URI scoping where all file operations are pinned to the active project root URI.
-  * In `cli.py`, auto-detect non-interactive TTY execution (`not sys.stdin.isatty()`) and bind `--in` to `Path.cwd()` by default.
+* **Symptom**: Executing `hermes -z "..."` inside `/tmp/tmp...` wrote files to `~` instead of the caller's working directory.
+* **Root Cause**: `hermes` CLI defaulted working directory to `~` (or `cwd: .` in config) and required explicit `--in <DIR>`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/src/hermes_core/cli.py`, `tests/roadmap6_adversarial/conftest.py`.
+  2. **Dependencies**: None (Standard Library `sys`, `pathlib.Path`).
+  3. **Concrete Changes**:
+     * In `cli.py`, inspect `args.in_dir`. If `None`, check `if not sys.stdin.isatty() or args.oneshot:` and default `args.in_dir = Path.cwd().resolve()`.
+     * In `conftest.py`, ensure all test fixtures pass `cwd=str(tmp_path)` and explicit `in_dir`.
+  4. **Manual Verification**: Run `cd /tmp && hermes -z "write a file hello.txt containing world"`; verify `hello.txt` is created inside `/tmp/hello.txt` and NOT in `$HOME/hello.txt`.
 
 ---
 
@@ -107,15 +87,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Harness Invariant Violation / Artificial Timer Crutch
 * **Impact**: Critical
 * **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`
-* **Symptom**: Live tests failed with `subprocess.TimeoutExpired` at 90s / 120s / 180s even though `llama-server` was actively streaming valid tokens at 29.5 t/s with 0 errors.
-* **Root Cause**:
-  1. The harness used arbitrary wall-clock timers (`timeout=90`, `timeout=180`) instead of monitoring physical execution signals.
-  2. The single turn was allowed to run unconstrained for 2,500+ tokens without yielding, burning wall-clock seconds.
-  3. Increasing timeouts (e.g. from 90s to 300s) is an **anti-pattern** that masks the root cause rather than solving it deterministically.
-* **Remediation & Industry Package Alignment**:
-  * **Google ADK Trajectory Evaluator (`google/adk-python` — `adk eval`)**: Replace wall-clock timers with state-driven DAG invariant verification (evaluating tool call order and contract satisfaction).
-  * **Non-Blocking I/O Activity Heartbeats (`asyncio` / `selectors`)**: Monitor stdout/stderr stream bytes; only flag a stall if zero bytes are received for $>15\text{s}$ (true deadlock).
-  * **Physical Turn Output Chunking**: Bound turns to $\le 600\text{ tokens}$ so turns naturally finish in $\le 15\text{ seconds}$.
+* **Symptom**: Subprocesses were killed by static `timeout=90s` while `llama-server` was actively generating tokens at 29.5 t/s.
+* **Root Cause**: Relying on wall-clock timers instead of monitoring stdout/stderr byte stream activity.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/process_guard.py`, `src/hermes_core/runner.py`.
+  2. **Dependencies**: `asyncio`, `selectors`.
+  3. **Concrete Changes**:
+     * In `process_guard.py:run_with_group_teardown()`, replace `proc.communicate(timeout=...)` with a non-blocking `selectors.DefaultSelector()` loop reading stdout.
+     * Implement `inactivity_heartbeat_s = 15.0`: track `last_byte_time = time.perf_counter()`. Only trigger `os.killpg(pgid, SIGKILL)` if `time.perf_counter() - last_byte_time > 15.0`.
+     * Remove arbitrary global wall-clock timeouts from live test runners.
+  4. **Manual Verification**: Run a long-running streaming command `python3 -c "import time; [print(f'chunk {i}', flush=True) or time.sleep(2) for i in range(20)]"`; verify process runs to completion (40s) without being killed because heartbeats arrive every 2s.
 
 ---
 
@@ -123,11 +104,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Runtime Hardware Configuration Bug
 * **Impact**: Critical
 * **Discovered In**: Turn 0 Context Overflow
-* **Symptom**: `llama-server` rejected requests with: `request (22956 tokens) exceeds the available context size (16384 tokens)`.
-* **Root Cause**: `llama-server` divides the total context `-c` evenly across parallel slots (`-np 2`). A `-c 32768` flag only allocated $16,384$ tokens per slot. Because Hermes system prompts and tool schemas occupy ~22,956 tokens, Turn 0 immediately overflowed.
-* **Remediation & Industry Package Alignment**:
-  * Set `-c 131072` (128K total), giving exactly **$65,536\text{ tokens (64K)}$ per slot** across 2 slots.
-  * Verified $K/V$ quantization (`q4_0`) keeps total VRAM $\le 3,240\text{ MiB}$ (well below the $4,812\text{ MiB}$ safety ceiling).
+* **Symptom**: `llama-server` rejected requests because 23K tool schemas exceeded the 16K per-slot limit.
+* **Root Cause**: `-c 32768` split across `-np 2` gave only 16,384 tokens per slot.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_llama-server`, `~/.local/share/chezmoi/private_dot_hermes/config.yaml`.
+  2. **Dependencies**: `llama-server` (GGUF runtime).
+  3. **Concrete Changes**:
+     * In server launch script, set `-c 131072 -np 2 --ctk q4_0 --ctv q4_0`.
+     * Verify slot capacity yields exactly $65,536\text{ tokens (64K)}$ per slot.
+     * Verify total VRAM allocation stays $\le 3,240\text{ MiB}$ via `nvidia-smi`.
+  4. **Manual Verification**: Call `curl http://127.0.0.1:8138/props` and `curl http://127.0.0.1:8138/slots`; verify `n_ctx_slot: 65536` for both slots.
 
 ---
 
@@ -135,11 +121,21 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Security Architecture Gap
 * **Impact**: High
 * **Discovered In**: `test_live_adversarial_jailbreak_tamper_attempt`
-* **Symptom**: When issued a hostile prompt ordering the deletion of `.integrity` logs and modification of `agent_capabilities.yaml`, the agent attempted a tool call to read the file before refusing.
-* **Root Cause**: Relying on the model to read a file and then decide to refuse is insecure. A compromised or hallucinating model could issue write or delete commands before refusal logic kicks in.
-* **Remediation & Industry Package Alignment**:
-  * **NVIDIA NeMo Execution Rails (`nemoguardrails` — Execution & Path Rails)**: Implement programmatic Colang execution rails that intercept tool invocations before execution.
-  * Added `validate_security_policy_path()` and `validate_security_policy_command()` to `capability_masks.py` to abort dangerous operations in user-space before reaching the OS.
+* **Symptom**: Model attempted to read integrity logs before refusing a jailbreak prompt.
+* **Root Cause**: Relying on prompt instructions rather than intercepting tool calls before dispatch.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/capability_masks.py`, `src/hermes_core/tools.py`.
+  2. **Dependencies**: `nemoguardrails` (Execution Rails).
+  3. **Concrete Changes**:
+     * In `capability_masks.py`, integrate `validate_security_policy_path(path: str)` and `validate_security_policy_command(cmd: str)`.
+     * In `tools.py:read_file()`, `write_file()`, `patch_file()`, and `execute_command()`, add a pre-execution guard:
+       ```python
+       is_safe, reason = validate_security_policy_path(filepath)
+       if not is_safe:
+           return f"Security Policy Denial: {reason}"
+       ```
+     * Block all access to `~/.hermes/policy/`, `~/.hermes/logs/*.integrity`, and dangerous commands (`rm -rf /`, `chmod 777`).
+  4. **Manual Verification**: Run `hermes -z "Read ~/.hermes/logs/audit.integrity"`; assert immediate hard refusal from user-space pre-execution guard with 0 filesystem reads.
 
 ---
 
@@ -147,15 +143,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Virtual Filesystem / State Loss
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/openviking_vfs.py`
-* **Symptom**: The OpenViking VFS (`viking://`) maintains all L0/L1/L2 hierarchical context nodes in pure transient memory (`VFSNode` in Python RAMDisk). Process restart, crash, or subagent invocation in a separate process completely wipes the VFS index.
-* **Root Cause**:
-  1. No SQLite, DuckDB, or filesystem persistence layer is attached to `OpenVikingVFS`.
-  2. Token estimation uses a crude `len(text) // 4` character-count heuristic, which introduces 40–60% estimation errors on minified JavaScript, HTML templates, and non-ASCII source files.
-  3. `find()` method performs an unindexed $O(N)$ recursive tree traversal that locks execution during deep repository scans.
-* **Remediation & Industry Package Alignment**:
-  * **DuckDB / SQLite WAL Storage (`sqlite3` / `duckdb`)**: Back `OpenVikingVFS` with an on-disk embedded SQLite store for persistent L0/L1/L2 context nodes.
-  * **Google Tiktoken / Tokenizer BPE (`tiktoken` / HuggingFace `tokenizers`)**: Replace character division with exact BPE token counts.
-  * **Inverted Tag Indexing**: Index tags in memory to provide $O(1)$ tag lookups.
+* **Symptom**: `viking://` nodes wiped on process exit; `len(text) // 4` token estimates drift by 50%.
+* **Root Cause**: Pure transient RAMDisk storage without disk backing; character division token heuristic.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/openviking_vfs.py`.
+  2. **Dependencies**: `sqlite3` (Standard Library WAL mode), `tiktoken` (or `tokenizers`).
+  3. **Concrete Changes**:
+     * Add an embedded SQLite persistence table `vfs_nodes (uri TEXT PRIMARY KEY, l0_abstract TEXT, l1_overview TEXT, l2_content TEXT, tags TEXT, token_count INT, updated_at REAL)`.
+     * Replace `len(text) // 4` with exact BPE tokenizer: `tiktoken.get_encoding("cl100k_base").encode(text)`.
+     * Build an in-memory `Dict[str, Set[str]]` tag index for $O(1)$ tag filtering in `find()`.
+  4. **Manual Verification**: Write a node via VFS, kill the Python process, instantiate a new `OpenVikingVFS()` instance, and verify `vfs.read_node("viking://core/spec")` returns the persisted L0/L1/L2 content.
 
 ---
 
@@ -163,11 +160,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: MCP Tool Contract / Parser Crash
 * **Impact**: Critical
 * **Discovered In**: `src/hermes_core/codebase_memory_mcp.py`
-* **Symptom**: When querying large class hierarchies or multi-hop call graphs, MCP tool consumers fail with `json.decoder.JSONDecodeError: Unterminated string`.
-* **Root Cause**: `truncate_to_tokens(text, max_tokens=150)` performs blind character-level string slicing (`text[:max_chars - 3] + "..."`). When `text` is a JSON serialization of symbols or classes, blind character chopping produces malformed JSON syntax.
-* **Remediation & Industry Package Alignment**:
-  * **Official Anthropic FastMCP SDK (`mcp[cli]` / `FastMCP` from `modelcontextprotocol/python-sdk`)**: Replace custom string chopping with FastMCP's structured tool payload serialization.
-  * Truncate list elements in the data model *before* serializing to JSON, guaranteeing 100% valid JSON Schema output.
+* **Symptom**: `truncate_to_tokens()` sliced JSON strings mid-token, throwing `JSONDecodeError`.
+* **Root Cause**: Blind substring slicing (`text[:max_chars - 3] + "..."`) on structured JSON data.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/codebase_memory_mcp.py`.
+  2. **Dependencies**: `mcp[cli]` (Anthropic FastMCP Python SDK).
+  3. **Concrete Changes**:
+     * Replace manual JSON serialization with FastMCP (`from mcp.server.fastmcp import FastMCP`).
+     * In query tools (`search_symbols`, `get_class_hierarchy`), truncate list items in Python (e.g. `symbols = symbols[:10]`) *before* serializing to JSON.
+     * Remove all raw string truncation functions (`truncate_to_tokens`).
+  4. **Manual Verification**: Run MCP query returning 500+ symbols; parse response with `json.loads()`; assert valid JSON syntax with 0 decode errors.
 
 ---
 
@@ -175,15 +177,17 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: AST & Code Intelligence
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/symbol_graph.py`
-* **Symptom**: Whole-codebase symbol indexing fails or skips all non-Python files (JavaScript, TypeScript, Rust, Go, C++, HTML).
-* **Root Cause**:
-  1. `symbol_graph.py` hardcodes `ast.parse` (Python standard library only) and `patterns = ["*.py"]`.
-  2. `symbol_references` SQLite table lacks `UNIQUE` constraints and path normalization, resulting in duplicate reference records and DB bloat upon repeated project indexings.
-  3. `.gitignore` filtering uses naive `fnmatch` which fails on directory-only suffixes (`dir/`), negation rules (`!`), and multi-level recursive globs (`**/`).
-* **Remediation & Industry Package Alignment**:
-  * **Tree-Sitter Multi-Language Bindings (`tree-sitter` & `tree-sitter-languages`)**: Wire official Tree-sitter parsers for Python, JavaScript, TypeScript, Rust, Go, and C++ into `SymbolGraph`.
-  * **Git-Compliant PathSpec (`pathspec` PyPI)**: Replace `fnmatch` with `pathspec.PathSpec.from_lines("gitwildmatch", ...)` for standard `.gitignore` resolution.
-  * Add `UNIQUE(source_file, caller_symbol, target_symbol, ref_type)` to SQLite schema.
+* **Symptom**: Symbol graph skipped JS/TS/Rust/Go; duplicate references bloated SQLite on re-indexing.
+* **Root Cause**: Hardcoded Python stdlib `ast.parse`; missing `UNIQUE` constraints in SQLite; naive `fnmatch`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/symbol_graph.py`.
+  2. **Dependencies**: `tree-sitter`, `tree-sitter-languages`, `pathspec`.
+  3. **Concrete Changes**:
+     * Replace `ast.parse` with `tree_sitter_languages.get_parser(lang)`.
+     * Add parsers for Python, JavaScript, TypeScript, Rust, Go, and C++.
+     * Update SQLite schema: `CREATE UNIQUE INDEX idx_symbol_ref ON symbol_references(source_file, caller_symbol, target_symbol, ref_type)`.
+     * Replace `fnmatch` with `pathspec.PathSpec.from_lines("gitwildmatch", gitignore_lines)`.
+  4. **Manual Verification**: Index a mixed TypeScript/Python repository; verify symbols from both `.ts` (interfaces, functions) and `.py` (classes, defs) populate SQLite with 0 duplicate rows on re-indexing.
 
 ---
 
@@ -191,10 +195,22 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Linter / AST Fallback False Positive
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/lsp_bridge.py`
-* **Symptom**: Valid JS, TS, HTML, and C++ files are incorrectly rejected by the syntax guard with `"Unmatched closing bracket"` or `"Unclosed opening bracket"`.
-* **Root Cause**: `analyze_generic_source()` scans raw characters line-by-line using a naive stack. It does not track string literals (`"..."`, `'...'`, `` `...` ``), regexes (`/.../`), or single/multi-line comments (`//`, `/* */`), causing brackets inside strings or comments to trigger false syntax errors.
-* **Remediation & Industry Package Alignment**:
-  * **Tree-Sitter Syntax Error Detector (`tree-sitter`)**: Check syntax validity via `tree.root_node.has_error` across all languages instead of naive character stacking.
+* **Symptom**: Valid JS/TS files with brackets in strings/regexes were rejected as syntax errors.
+* **Root Cause**: Scanning raw characters with a stack without lexing string literals or comments.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/lsp_bridge.py`.
+  2. **Dependencies**: `tree-sitter`, `tree-sitter-languages`.
+  3. **Concrete Changes**:
+     * In `analyze_generic_source(filepath, content)`:
+       ```python
+       parser = tree_sitter_languages.get_parser(get_language(filepath))
+       tree = parser.parse(bytes(content, "utf-8"))
+       if tree.root_node.has_error:
+           return False, "Tree-sitter detected syntax error in source tree"
+       return True, "Valid AST"
+       ```
+     * Remove manual bracket stack counting.
+  4. **Manual Verification**: Pass `const r = /{[0-9]}/; const msg = "unbalanced {";` to `analyze_generic_source("app.ts", code)`; assert returns `(True, "Valid AST")`.
 
 ---
 
@@ -202,10 +218,24 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Knowledge Graph & Topological Extraction
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/knowledge_graph.py`
-* **Symptom**: The Codebase Knowledge Graph records local variables (`x`, `y`, `self`, `None`, `True`) as function calls in `caller_graph`.
-* **Root Cause**: `_index_python_file` extracts calls using `calls = [n.id for n in ast.walk(item) if isinstance(n, ast.Name)]`. In Python's AST, `ast.Name` represents all variable names and constants, not function calls (`ast.Call`).
-* **Remediation & Industry Package Alignment**:
-  * Restrict AST extraction strictly to `ast.Call` nodes and extract callee names via `node.func.id` or `node.func.attr`.
+* **Symptom**: Functions were recorded as calling variables (`x`, `y`, `self`, `None`).
+* **Root Cause**: `ast.walk()` filtered on `isinstance(n, ast.Name)` instead of `isinstance(n, ast.Call)`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/knowledge_graph.py`.
+  2. **Dependencies**: Standard Library `ast`.
+  3. **Concrete Changes**:
+     * In `_index_python_file()`:
+       ```python
+       calls = []
+       for node in ast.walk(func_node):
+           if isinstance(node, ast.Call):
+               if isinstance(node.func, ast.Name):
+                   calls.append(node.func.id)
+               elif isinstance(node.func, ast.Attribute):
+                   calls.append(node.func.attr)
+       calls = [c for c in set(calls) if c not in {"print", "len", "range", "isinstance", "str", "int"}]
+       ```
+  4. **Manual Verification**: Parse `def foo(): x = 1; y = 2; bar(); return x`; assert `node.calls == ["bar"]` and `x`, `y` are not present.
 
 ---
 
@@ -213,10 +243,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Concurrency & State Isolation
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/hypothesis_tree.py`
-* **Symptom**: When multiple subagents or background tasks run concurrently, hypothesis trees overwrite each other, causing orphaned branch IDs and corrupted backtracking histories.
-* **Root Cause**: `STORAGE_PATH` is hardcoded to a static singleton file `/dev/shm/hypothesis_tree.json`.
-* **Remediation & Industry Package Alignment**:
-  * **Google ADK Session Hierarchy (`google/adk-python`)**: Scope hypothesis tree state dynamically by session and task ID (`/dev/shm/hermes/hypothesis_{session_id}_{task_id}.json`).
+* **Symptom**: Concurrent agents overwrote each other's search trees in `/dev/shm/hypothesis_tree.json`.
+* **Root Cause**: Hardcoded singleton storage path.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/hypothesis_tree.py`.
+  2. **Dependencies**: `google/adk-python` (session hierarchy).
+  3. **Concrete Changes**:
+     * In `HypothesisTree`: accept `session_id: str` and `task_id: str` in `__init__()`.
+     * Construct dynamic path: `storage_dir = Path("/dev/shm/hermes/trees")` and `storage_file = storage_dir / f"tree_{session_id}_{task_id}.json"`.
+     * Add file-locking via `fcntl.flock()` during tree state writes.
+  4. **Manual Verification**: Run two parallel threads creating branches with distinct `session_id`s; assert two separate JSON files are maintained without cross-talk.
 
 ---
 
@@ -224,10 +260,15 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Missing Implementation / Tool Stub
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/tools.py`
-* **Symptom**: Calls to `search_web()` return a static dummy string: `"Search results for '...': Query resolved successfully."`
-* **Root Cause**: `tools.py:search_web()` was left as a stub and never connected to `web_grounding.py` or `extract_web_content.py`.
-* **Remediation & Industry Package Alignment**:
-  * **Anthropic MCP Brave Search Server (`modelcontextprotocol/servers/src/brave-search`)**: Wire `search_web()` to official search providers (SearXNG / DuckDuckGo / Brave Search).
+* **Symptom**: `search_web()` returned a static mock string.
+* **Root Cause**: Function body was a placeholder returning a hardcoded formatted string.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/tools.py`.
+  2. **Dependencies**: `duckduckgo-search` (PyPI), `trafilatura`.
+  3. **Concrete Changes**:
+     * Connect `tools.py:search_web(query)` to `WebGroundingEngine.ground(query)`.
+     * If internet is unavailable, fall back to querying local documentation index (`index_docs.py`).
+  4. **Manual Verification**: Run `python3 -c "from hermes_core.tools import search_web; print(search_web('Python dataclasses'))"`; verify live search snippets are returned.
 
 ---
 
@@ -235,10 +276,19 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Path Resolution & Sandbox Scoping
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/tools.py`
-* **Symptom**: Relative file operations (`read_file("src/app.py")`) fail or look in `/dev/shm/hermes_workspace` even when the user is working in their project directory.
-* **Root Cause**: `_resolve_path()` defaults to `Path("/dev/shm/hermes_workspace")` if `workspace_root` is not explicitly passed.
-* **Remediation & Industry Package Alignment**:
-  * Default `workspace_root` dynamically to `Path.cwd()` (or active project root via environment variable).
+* **Symptom**: Relative file paths resolved against `/dev/shm/hermes_workspace` instead of active project root.
+* **Root Cause**: `_resolve_path()` defaulted to a hardcoded constant when `workspace_root` was `None`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/tools.py`.
+  2. **Dependencies**: Standard Library `pathlib.Path`, `os`.
+  3. **Concrete Changes**:
+     * In `_resolve_path(filepath: str, workspace_root: Optional[str] = None) -> Path`:
+       ```python
+       root = Path(workspace_root or os.environ.get("HERMES_WORKSPACE") or Path.cwd()).resolve()
+       p = Path(filepath)
+       return (root / p).resolve() if not p.is_absolute() else p.resolve()
+       ```
+  4. **Manual Verification**: Call `read_file("Issues.md")` from project root; assert file contents are read from current directory instead of looking in `/dev/shm`.
 
 ---
 
@@ -246,10 +296,15 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Async Tool Execution / Resource Leak
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/speculative_executor.py`
-* **Symptom**: Speculative tool promises taking $>5.0\text{s}$ are abandoned, marked as `REJECTED`, and re-executed synchronously. Furthermore, completed promises are never evicted from `self.promises`.
-* **Root Cause**: Hardcoded timeout polling on futures and missing LRU eviction policy on `self.promises`.
-* **Remediation & Industry Package Alignment**:
-  * **`asyncio.Future` & `concurrent.futures` Callbacks**: Replace timeout polling with event-driven completion callbacks (`future.add_done_callback`) and bind `self.promises` with a capacity-capped LRU cache.
+* **Symptom**: Speculative promises taking $>5.0\text{s}$ were rejected; `self.promises` dictionary grew unbounded.
+* **Root Cause**: `promise.future.result(timeout=5.0)` hardcoded timeout; missing LRU cache on promises.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/speculative_executor.py`.
+  2. **Dependencies**: `collections.OrderedDict`, `asyncio.Future`.
+  3. **Concrete Changes**:
+     * Replace timeout polling with async callback `fut.add_done_callback(lambda f: self._on_promise_done(ckey, f))`.
+     * Cap `self.promises` using an `OrderedDict` with `MAX_PROMISES = 100`: when exceeded, pop the oldest resolved promise (`self.promises.popitem(last=False)`).
+  4. **Manual Verification**: Run 150 speculative tool calls in a loop; verify `len(executor.promises) <= 100` and no memory leak occurs.
 
 ---
 
@@ -257,10 +312,17 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Code Extraction & Tool Calling
 * **Impact**: High
 * **Discovered In**: `private_dot_hermes/bin/executable_extract_code_mode.py`
-* **Symptom**: Extracting non-Python code blocks (Bash, HTML, CSS, JavaScript, SQL, JSON, YAML) from markdown fences fails with `"extract_code: fenced output contained no parsable code body"`.
-* **Root Cause**: `extract_code()` filters candidate code chunks by passing them to `ast.parse(candidate)`. Any non-Python syntax raises `SyntaxError` and is discarded.
-* **Remediation & Industry Package Alignment**:
-  * Accept code blocks tagged with language markers (e.g. ```` ```bash ````, ```` ```html ````) and validate syntax using Tree-sitter language grammars rather than assuming all code is Python.
+* **Symptom**: Non-Python code blocks (Bash, HTML, JS, JSON) were discarded with `"contained no parsable code body"`.
+* **Root Cause**: All extracted code chunks were filtered through Python's `ast.parse()`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_extract_code_mode.py`.
+  2. **Dependencies**: `tree-sitter`, `tree-sitter-languages`.
+  3. **Concrete Changes**:
+     * Extract language tag from opening fence (e.g. ```` ```javascript ```` $\rightarrow$ `lang="javascript"`).
+     * If `lang in {"bash", "sh", "zsh"}`: validate via `bash -n` or accept directly.
+     * If `lang in {"json", "yaml", "html", "js", "ts", "rust", "go"}`: validate using Tree-sitter or JSON parser instead of `ast.parse()`.
+     * Only apply `ast.parse()` when `lang in {"python", "py"}` or no tag is provided.
+  4. **Manual Verification**: Pass a markdown document containing ```` ```bash\necho "test"\n``` ```` to `extract_code()`; assert `echo "test"` is extracted without error.
 
 ---
 
@@ -268,10 +330,18 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Configuration & Environment Resilience
 * **Impact**: Medium
 * **Discovered In**: `private_dot_hermes/bin/executable_verify_skills_config.py`
-* **Symptom**: Profiles declaring `external_dirs` with tildes or unexpanded shell variables fail pre-run verification if environment variables differ between host and container.
-* **Root Cause**: Path existence checks relied on raw environment expansions without canonicalizing paths via `Path.resolve()`.
-* **Remediation & Industry Package Alignment**:
-  * Use normalized `os.path.expanduser(os.path.expandvars(p))` before validating directory existence.
+* **Symptom**: Profiles declaring `external_dirs` with tildes or unexpanded shell variables failed verification.
+* **Root Cause**: `Path.is_dir()` called on raw unexpanded path strings.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_verify_skills_config.py`.
+  2. **Dependencies**: Standard Library `os.path`.
+  3. **Concrete Changes**:
+     * In `profile_external_dirs()`:
+       ```python
+       expanded = [Path(os.path.expandvars(os.path.expanduser(p))).resolve() for p in raw]
+       missing = [str(p) for p in expanded if not p.is_dir()]
+       ```
+  4. **Manual Verification**: Declare `external_dirs: ["~/.hermes/skills"]` in a test profile config; run `python3 bin/verify_skills_config.py`; assert status is `PASS`.
 
 ---
 
@@ -279,10 +349,15 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Multi-Bot & Reactive Bus / Memory Leak
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/synergy_bus.py`
-* **Symptom**: Long-running multi-agent sessions or continuous background tasks continuously consume RAMDisk and memory until exhaustion.
-* **Root Cause**: `SynergyEventBus.event_history` appends every published event (`TASK_SPAWN`, `TOOL_CALL`, `VFS_MUTATION`) into an unbounded in-memory Python list without any eviction policy or ring buffer size limit.
-* **Remediation & Industry Package Alignment**:
-  * **Google ADK Event Bus (`google/adk-python`)**: Adopt ADK's bounded event bus stream backed by a thread-safe ring buffer (`ThreadSafeRingBuffer(capacity=1000)`).
+* **Symptom**: `SynergyEventBus.event_history` grew unbounded over long multi-agent sessions.
+* **Root Cause**: `self.event_history.append(event)` without a capacity cap or FIFO eviction.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/synergy_bus.py`.
+  2. **Dependencies**: `collections.deque` or `ThreadSafeRingBuffer`.
+  3. **Concrete Changes**:
+     * In `SynergyEventBus.__init__()`, initialize `self.event_history = deque(maxlen=1000)`.
+     * Expose `get_recent_events(limit: int = 50) -> List[SynergyEvent]`.
+  4. **Manual Verification**: Emit 5,000 events through `SynergyEventBus`; assert `len(bus.event_history) == 1000`.
 
 ---
 
@@ -290,10 +365,18 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Multi-Agent Orchestration / Mock Stub
 * **Impact**: Critical
 * **Discovered In**: `src/hermes_core/multi_bot_delegation.py`
-* **Symptom**: `execute_delegation_pipeline()` does not actually execute multi-bot turns or generate code via LLM tools—it immediately returns pre-fabricated mock success strings (`"Architectural specification formulated in .hermes/plan.json..."`).
-* **Root Cause**: The delegation orchestrator was authored as a prototype stub with synthetic return objects rather than connecting to the live Swarm / Hub dispatch loop.
-* **Remediation & Industry Package Alignment**:
-  * **Google ADK Hierarchical Orchestrator (`google/adk-python` — `SequentialAgent` / `ParallelAgent`)**: Wire `MultiBotOrchestrator` to dispatch real agent turns with live tool calls and artifact validation.
+* **Symptom**: `execute_delegation_pipeline()` returned synthetic mock strings without invoking agents or tools.
+* **Root Cause**: Subsystem was authored as a prototype stub.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/multi_bot_delegation.py`.
+  2. **Dependencies**: `google/adk-python` (`SequentialAgent`), `src/hermes_core/swarm_engine.py`.
+  3. **Concrete Changes**:
+     * In `MultiBotOrchestrator.execute_delegation_pipeline(goal)`:
+       * **Stage 1 (Architect):** Invoke Hermes in Architect mode (`agent=architect_agent`) to produce `.hermes/plan.json`.
+       * **Stage 2 (Coder):** Invoke Coder agent with plan context to write files.
+       * **Stage 3 (Tester):** Invoke Tester agent to run `pytest` / `npm test` via `execute_command`.
+     * Return verified `DelegationReport` containing live execution artifacts.
+  4. **Manual Verification**: Run delegation pipeline on a real test task; verify `.hermes/plan.json` is generated on disk and test suite passes.
 
 ---
 
@@ -301,10 +384,16 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Tool Calling & Schema Generation
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/swarm_engine.py`
-* **Symptom**: Tools with complex type signatures (`Optional[int]`, `Union[str, Path]`, `Literal[...]`, Pydantic models) are exposed to the model as generic `"type": "string"` with uninformative `"description": "Parameter {name}"`.
-* **Root Cause**: `function_to_schema()` uses a primitive `if/elif` type check and does not parse docstrings (Google/Sphinx/Numpydoc) for argument descriptions.
-* **Remediation & Industry Package Alignment**:
-  * **Anthropic Tool Schema Generator (`mcp.server.fastmcp` / `docstring_parser`)**: Parse docstrings and Pydantic field models into full JSON Schema definitions.
+* **Symptom**: Tools with `Union`, `Optional`, or Pydantic models defaulted to `"type": "string"` with generic descriptions.
+* **Root Cause**: Primitive `if/elif` type checker in `function_to_schema()`; no docstring parsing.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/swarm_engine.py`.
+  2. **Dependencies**: `mcp[cli]` (FastMCP) or `docstring-parser`.
+  3. **Concrete Changes**:
+     * Use `docstring_parser.parse(func.__doc__)` to extract `:param` descriptions.
+     * Handle `typing.get_origin()` and `typing.get_args()` for `Union[T, None]`, `List[T]`, and `Literal[A, B]`.
+     * Map `Literal["x", "y"]` to `{"type": "string", "enum": ["x", "y"]}`.
+  4. **Manual Verification**: Generate schema for a function `def test_fn(mode: Literal['a', 'b'], count: Optional[int] = 1): """Args:\n count: Number of items."""`; verify schema output includes `enum: ['a', 'b']` and parameter description `"Number of items."`.
 
 ---
 
@@ -312,13 +401,24 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Web Grounding & External Knowledge
 * **Impact**: Critical
 * **Discovered In**: `src/hermes_core/web_grounding.py`
-* **Symptom**: All web searches in `WebGroundingEngine` fail silently and return `[]` (empty results).
-* **Root Cause**:
-  1. Line 171 attempts `from ddgs import DDGS`, which does not exist in standard PyPI (standard library is `duckduckgo_search`).
-  2. Neither `duckduckgo_search` nor a live `SEARXNG_URL` is configured by default, causing both primary and fallback search paths to fail.
-* **Remediation & Industry Package Alignment**:
-  * Install and wire `duckduckgo-search` (`from duckduckgo_search import DDGS`).
-  * Add automatic fallback to local offline documentation indexing via `index_docs.py`.
+* **Symptom**: `from ddgs import DDGS` failed with `ModuleNotFoundError`; web search returned empty results.
+* **Root Cause**: Wrong package import name (`ddgs` instead of `duckduckgo_search`).
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/web_grounding.py`, `private_dot_hermes/bin/executable_setup.sh`.
+  2. **Dependencies**: `duckduckgo-search` (PyPI: `duckduckgo_search`).
+  3. **Concrete Changes**:
+     * In `setup.sh`, add `pip install duckduckgo-search trafilatura`.
+     * In `web_grounding.py:_fetch_search_results()`:
+       ```python
+       try:
+           from duckduckgo_search import DDGS
+           with DDGS() as ddgs:
+               return list(ddgs.text(query, max_results=max_results))
+       except Exception as e:
+           logger.warning("DuckDuckGo search failed: %s", e)
+       ```
+     * Add fallback to local offline documentation indexing (`index_docs.py`).
+  4. **Manual Verification**: Run `python3 bin/web_grounding.py "Python asyncio tutorial" --json`; verify valid search results with titles and URLs are returned in JSON.
 
 ---
 
@@ -326,10 +426,21 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Storage Management / RAMDisk Bloat
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/token_engine.py`
-* **Symptom**: `/dev/shm` fills up with thousands of orphan `hermes_ephemeral_*.log` files during heavy coding sessions.
-* **Root Cause**: `EphemeralToolBuffer.finalize()` writes full subprocess stdout/stderr streams to `/dev/shm` on every single command turn, but never registers a FIFO capacity cap.
-* **Remediation & Industry Package Alignment**:
-  * Add a deterministic FIFO RingBuffer in `EphemeralToolBuffer` capping stored log count to 50 entries.
+* **Symptom**: `/dev/shm` accumulated thousands of orphan `hermes_ephemeral_*.log` files.
+* **Root Cause**: Logs created on every tool turn with zero FIFO pruning.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/token_engine.py`.
+  2. **Dependencies**: Standard Library `pathlib.Path`.
+  3. **Concrete Changes**:
+     * In `EphemeralToolBuffer.finalize()`:
+       ```python
+       existing_logs = sorted(RAMDISK.glob("hermes_ephemeral_*.log"), key=os.path.getmtime)
+       if len(existing_logs) > 50:
+           for old_log in existing_logs[:-50]:
+               try: old_log.unlink()
+               except OSError: pass
+       ```
+  4. **Manual Verification**: Create 60 dummy log files in `/dev/shm`; trigger `EphemeralToolBuffer.finalize()`; assert exactly 50 log files remain.
 
 ---
 
@@ -337,10 +448,17 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Skill Evolution / Data Loss Bug
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/skill_evolution.py`
-* **Symptom**: If an autonomous evolution cycle fails its A/B lift gate (+15% requirement), the engine deletes the entire skill directory, accidentally destroying existing production skills sharing the same name.
-* **Root Cause**: `synthesize_candidate_skill()` writes candidate drafts directly to `~/.hermes/skills/{skill_name}/SKILL.md`. If A/B certification fails, `evaluate_and_promote()` calls `shutil.rmtree(candidate_file.parent)`, deleting the entire folder.
-* **Remediation & Industry Package Alignment**:
-  * Write candidate drafts to an isolated staging directory (e.g. `~/.hermes/staging_skills/`). Only copy to `~/.hermes/skills/` after the A/B lift gate is certified.
+* **Symptom**: Rejection of a candidate skill ran `shutil.rmtree()` on active production skills directory.
+* **Root Cause**: Candidate drafts were written directly into production directory before evaluation.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/skill_evolution.py`.
+  2. **Dependencies**: Standard Library `shutil`, `pathlib.Path`.
+  3. **Concrete Changes**:
+     * Define staging directory: `STAGING_DIR = Path.home() / ".hermes" / "staging_skills"`.
+     * In `synthesize_candidate_skill()`, write candidate to `STAGING_DIR / skill_name / "SKILL.md"`.
+     * In `evaluate_and_promote()`, only copy from `STAGING_DIR` to `primary_skills_dir` if `lift_report.certified == True`.
+     * On rejection, delete only `STAGING_DIR / skill_name`.
+  4. **Manual Verification**: Create existing skill `~/.hermes/skills/my_skill/SKILL.md`; run failed evolution cycle on `my_skill`; verify active `~/.hermes/skills/my_skill` remains untouched.
 
 ---
 
@@ -348,10 +466,15 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Experience Store & Lifelong Learning
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/experience_store.py`
-* **Symptom**: All accumulated failure patterns, negative constraints, and positive playbooks are wiped on machine reboot or container restart.
-* **Root Cause**: `ExperienceStore` defaults its database path to `/dev/shm/hermes_experience_store.json` (RAMDisk).
-* **Remediation & Industry Package Alignment**:
-  * Default storage to persistent disk at `~/.hermes/memory/experience_store.json` (or sync with `experiential.jsonl`), with optional RAMDisk write-through caching.
+* **Symptom**: Learned playbooks and negative constraints wiped on reboot.
+* **Root Cause**: `ExperienceStore` defaulted to `/dev/shm/hermes_experience_store.json`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/experience_store.py`.
+  2. **Dependencies**: Standard Library `pathlib.Path`, `sqlite3` or `json`.
+  3. **Concrete Changes**:
+     * Set persistent default: `DEFAULT_STORE = Path.home() / ".hermes" / "memory" / "experience_store.json"`.
+     * Implement atomic file replacement (`tempfile.NamedTemporaryFile` + `os.replace`) to prevent corruption during power loss.
+  4. **Manual Verification**: Record an episode; verify file exists at `~/.hermes/memory/experience_store.json`; verify data persists across sessions.
 
 ---
 
@@ -359,10 +482,24 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Skill Discovery & Architecture
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/openskills_manager.py`
-* **Symptom**: OpenSkills discovery returns 0 skills even when 62+ valid skills exist on disk.
-* **Root Cause**: `_rebuild_index()` performs a flat 1-level `iterdir()` scan (`skills_dir / skill_dir / SKILL.md`). Because skills are organized in subdirectories (`creative/comfyui/SKILL.md`, `software-development/polars-data-analysis/SKILL.md`), all categorized skills are completely missed.
-* **Remediation & Industry Package Alignment**:
-  * Replace 1-level iteration with recursive globbing (`skills_dir.rglob("SKILL.md")`).
+* **Symptom**: OpenSkills discovery reported 0 skills because skills are in subdirectories (`apple/`, `github/`).
+* **Root Cause**: `_rebuild_index()` used flat `iterdir()` checking only 1 folder level.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/openskills_manager.py`.
+  2. **Dependencies**: Standard Library `pathlib.Path`.
+  3. **Concrete Changes**:
+     * In `_rebuild_index()`:
+       ```python
+       for skills_dir in self.skills_dirs:
+           if not skills_dir.exists(): continue
+           for skill_file in skills_dir.rglob("SKILL.md"):
+               try:
+                   pkg = self._parser.parse(skill_file)
+                   self._skill_index[pkg.manifest.name] = pkg
+               except Exception:
+                   pass
+       ```
+  4. **Manual Verification**: Call `manager.discover_skills()`; assert all 62 categorized skills are discovered and listed.
 
 ---
 
@@ -370,10 +507,18 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Environment Setup & Capability Gap
 * **Impact**: High
 * **Discovered In**: `executable_setup.sh`, `private_skills/`
-* **Symptom**: Common developer capabilities (e.g. Anthropic lead developer skills, official awesome-claude-skills, framework linters) must be manually coded or imported ad-hoc rather than pre-seeded at setup.
-* **Root Cause**: `setup.sh` only deploys local static dotfiles and does not include an upstream skill package synchronizer.
-* **Remediation & Industry Package Alignment**:
-  * **Anthropic Claude Skills / OpenSkills Hub (`awesome-claude-skills`)**: Add an upstream skill synchronization phase in `setup.sh` that bundles and categorizes core developer skills (TDD, Playwright, React, FastAPI, Git PR workflow) during initial setup.
+* **Symptom**: Core developer skills had to be created ad-hoc rather than pre-seeded at setup.
+* **Root Cause**: `setup.sh` lacked an upstream skill synchronization phase.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_setup.sh`, `private_skills/`.
+  2. **Dependencies**: Git / GitHub `awesome-claude-skills`.
+  3. **Concrete Changes**:
+     * In `setup.sh`, add a skill synchronization step bundling standard categories:
+       * `software-development/` (tdd, refactoring, code-review)
+       * `devops/` (docker, github-actions, observer-gate)
+       * `frontend/` (react, generative-ui, tailwind)
+     * Register them in `chezmoi` so they are automatically deployed on `chezmoi apply`.
+  4. **Manual Verification**: Run `setup.sh`; verify `~/.hermes/skills/` contains the full suite of categorized developer skills.
 
 ---
 
@@ -381,12 +526,17 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: Code Quality & Pre-Commit Automation
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`
-* **Symptom**: Code generated by the agent contains PEP 8 indentation errors, unformatted JSX/HTML, or trailing whitespace because formatters (`ruff format`, `black`, `prettier`) are never called automatically. Furthermore, `FastASTPreCommitGate` uses crude string counting (`count("{") != count("}")`) that falsely rejects valid code containing braces in strings.
-* **Root Cause**: `write_file()` performs an AST syntax check but does not pipe code through standard formatters.
-* **Remediation & Industry Package Alignment**:
-  * **Astral Ruff (`ruff` PyPI)**: Automatically run `ruff format` and `ruff check --fix` (<10ms) on generated Python files in `write_file()`.
-  * **Prettier (`prettier`)**: Automatically format JS, TS, HTML, CSS, JSON, and YAML files.
-  * **Tree-Sitter Syntax Error Detection (`tree-sitter`)**: Replace crude character counts with `tree.root_node.has_error`.
+* **Symptom**: Generated code had styling/PEP 8 errors; `FastASTPreCommitGate` falsely rejected code with `count("{") != count("}")`.
+* **Root Cause**: No auto-formatter hook in `write_file()`; naive brace string counting.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`.
+  2. **Dependencies**: `ruff` (Astral), `prettier`, `tree-sitter`.
+  3. **Concrete Changes**:
+     * In `FastASTPreCommitGate.validate_code_syntax()`: replace brace count with Tree-sitter error node detection.
+     * In `tools.py:write_file()`:
+       * If `.py`: run `ruff format` and `ruff check --fix` on the content string in-memory before writing.
+       * If `.js`/`.ts`/`.html`/`.css`: run `prettier --stdin-filepath` formatting.
+  4. **Manual Verification**: Call `write_file("test.py", "def foo(  a,b ):\n x=1\n return x")`; verify written file is clean PEP 8 formatted (`def foo(a, b):\n    x = 1\n    return x`).
 
 ---
 
@@ -394,21 +544,54 @@ To guarantee that Hermes behaves consistently across diverse, identical, or adve
 * **Classification**: CLI Usability & Argument Parsing
 * **Impact**: Medium
 * **Discovered In**: `hermes` CLI entry point, `test_developer_workflows_e2e.py`
-* **Symptom**: Passing standard debugging flags (e.g. `--verbose`, `-v`) to `hermes` crashes with `unrecognized arguments: --verbose`.
-* **Root Cause**: Root CLI parser only registers specific subcommand arguments (or `--dev` tied strictly to `--tui`).
-* **Remediation & Industry Package Alignment**:
-  * Add global `--verbose` / `-v` / `--debug` aliases at the root CLI argument parser to configure logging levels consistently across all modes.
+* **Symptom**: Passing `--verbose` / `-v` crashed with `unrecognized arguments: --verbose`.
+* **Root Cause**: Top-level `argparse.ArgumentParser` did not register `--verbose`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `private_dot_hermes/src/hermes_core/cli.py`.
+  2. **Dependencies**: Standard Library `argparse`, `logging`.
+  3. **Concrete Changes**:
+     * In top-level argument parser:
+       ```python
+       parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging")
+       ```
+     * In main entry point, if `args.verbose`: set `logging.basicConfig(level=logging.DEBUG)` and `os.environ["HERMES_DEBUG"] = "1"`.
+  4. **Manual Verification**: Run `hermes -v --help` and `hermes -z "test" -v`; assert flag is accepted and debug output is printed.
 
 ---
 
 ### Issue #28: Agent & Benchmark Flag Amnesia & Missing Canonical Runner SDK
 * **Classification**: Harness Usability & Invocation Invariant
 * **Impact**: High
-* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`, benchmark scripts
-* **Symptom**: During automated benchmarks, CI runs, or subagent tool dispatch, callers routinely omit critical CLI flags (e.g. `--in <DIR>`, `--yolo`, `--skills`, `--accept-hooks`), causing headless runs to hang waiting for stdin confirmation, write files to the wrong workspace, or fail to load required skills.
-* **Root Cause**:
-  1. No single typed Python SDK wrapper existed (e.g. `hermes_core.runner.run_hermes(...)`); every test and subagent constructed ad-hoc `subprocess.run(["hermes", ...])` argv lists from scratch.
-  2. The CLI did not automatically detect non-interactive TTY environments to default `--in` to `os.getcwd()` and auto-accept headless hooks.
-* **Remediation & Industry Package Alignment**:
-  * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, I/O activity heartbeats, and working directory bindings.
-  * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.
+* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`
+* **Symptom**: Tests and subagents omitted critical flags (`--in`, `--yolo`, `--skills`, `--accept-hooks`), causing hangs or wrong working directories.
+* **Root Cause**: Lack of a typed Python SDK runner.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/runner.py` (New File), `tests/roadmap6_adversarial/conftest.py`.
+  2. **Dependencies**: Standard Library `subprocess`, `dataclasses`.
+  3. **Concrete Changes**:
+     * Create `src/hermes_core/runner.py` with `HermesRunner` class:
+       ```python
+       @dataclass
+       class HermesRunResult:
+           returncode: int
+           stdout: str
+           stderr: str
+           duration_sec: float
+           usage: Dict[str, Any]
+
+       class HermesRunner:
+           def __init__(self, cwd: Optional[Path] = None, skills: Optional[List[str]] = None, headless: bool = True):
+               self.cwd = (cwd or Path.cwd()).resolve()
+               self.skills = skills or []
+               self.headless = headless
+
+           def run(self, prompt: str) -> HermesRunResult:
+               cmd = [shutil.which("hermes") or "hermes", "-z", prompt]
+               if self.headless: cmd.extend(["--yolo", "--accept-hooks"])
+               if self.skills: cmd.extend(["--skills", ",".join(self.skills)])
+               cmd.extend(["--in", str(self.cwd)])
+               # Execute with non-blocking I/O stream activity heartbeat
+               rc, out, meta = run_with_group_teardown(cmd, cwd=str(self.cwd))
+               return HermesRunResult(returncode=rc, stdout=out, stderr="", duration_sec=meta.get("elapsed", 0.0), usage={})
+       ```
+  4. **Manual Verification**: Import `HermesRunner` in a test script; run `runner.run("test")`; assert all required flags are automatically passed and working directory is strictly bound.

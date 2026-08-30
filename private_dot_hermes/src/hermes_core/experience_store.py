@@ -23,20 +23,25 @@ try:
     SQLMODEL_AVAILABLE = True
 except ImportError:
     SQLMODEL_AVAILABLE = False
+    SQLModel = object  # type: ignore
+    Field = lambda **kwargs: None  # type: ignore
 
 
-class EpisodeModel(SQLModel, table=True):
-    """SQLModel table for durable episodic memory persistence (Issue #11)."""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    episode_id: str = Field(index=True)
-    task_description: str
-    subsystem: str = "general"
-    tool_calls_json: str = "[]"
-    outcome: str = "SUCCESS"
-    token_usage: int = 0
-    duration_sec: float = 0.0
-    error_traces_json: str = "[]"
-    timestamp: float = Field(default_factory=time.time)
+if SQLMODEL_AVAILABLE:
+    class EpisodeModel(SQLModel, table=True):
+        """SQLModel table for durable episodic memory persistence (Issue #11)."""
+        id: Optional[int] = Field(default=None, primary_key=True)
+        episode_id: str = Field(index=True)
+        task_description: str
+        subsystem: str = "general"
+        tool_calls_json: str = "[]"
+        outcome: str = "SUCCESS"
+        token_usage: int = 0
+        duration_sec: float = 0.0
+        error_traces_json: str = "[]"
+        timestamp: float = Field(default_factory=time.time)
+else:
+    EpisodeModel = None  # type: ignore
 
 
 @dataclass

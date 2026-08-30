@@ -111,3 +111,4 @@ tests/test_convergence_queue_staleness.py
 tests/test_feedback_truncation.py
 tests/test_grader_contracts.py
 tests/test_hilo_ab_compare_offline.py
+tests/test_quorum_and_gepa.py

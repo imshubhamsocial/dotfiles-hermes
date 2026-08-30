@@ -80,6 +80,7 @@ pyproject.toml
 .hermes/src/hermes_core/synergy_bus.py
 .hermes/src/hermes_core/task_graph.py
 .hermes/src/hermes_core/template_retriever.py
+.hermes/src/hermes_core/test_time_sampler.py
 .hermes/src/hermes_core/thread_safe_ringbuffer.py
 .hermes/src/hermes_core/token_engine.py
 .hermes/src/hermes_core/tools.py

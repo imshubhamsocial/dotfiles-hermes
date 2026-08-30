@@ -62,7 +62,7 @@ def build_bwrap_cmd(command: str, workspace: Path = DEFAULT_WORKSPACE) -> list:
 def sanitize_output(output: str) -> str:
     """Collapse kernel denials touching protected roots into canonical guidance."""
     # Check for bwrap NETLINK/loopback errors (container environment)
-    if "loopback" in output.lower() and "netlink" in output.lower():
+    if "loopback" in output.lower() or ("bwrap:" in output.lower() and "not permitted" in output.lower()):
         return SANDBOX_DENIAL_GUIDANCE
     
     if any(p in output for p in _PROTECTED_MARKERS) and any(

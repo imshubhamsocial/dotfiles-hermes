@@ -83,13 +83,56 @@ class ContextWindowGuard:
         return 65536
 
     def read_live_gpu_vram(self) -> Optional[int]:
-        """Query nvidia-smi for current allocated VRAM in MiB."""
+        """Query official NVML bindings (nvidia-ml-py) or nvidia-smi fallback for current allocated VRAM in MiB."""
+        # 1. Official NVIDIA NVML Python bindings (nvidia-ml-py)
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            used_mib = int(mem_info.used // (1024 * 1024))
+            pynvml.nvmlShutdown()
+            return used_mib
+        except Exception:
+            pass
+
+        # 2. Fallback to nvidia-smi CLI
         try:
             cmd = ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"]
             out = subprocess.check_output(cmd, text=True).strip()
             return int(out.splitlines()[0])
         except Exception:
             return None
+
+    def get_detailed_vram_info(self) -> Dict[str, Any]:
+        """Query NVML for total, used, free, and headroom VRAM in MiB."""
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            total = int(mem_info.total // (1024 * 1024))
+            used = int(mem_info.used // (1024 * 1024))
+            free = int(mem_info.free // (1024 * 1024))
+            pynvml.nvmlShutdown()
+            return {
+                "source": "nvidia-ml-py",
+                "total_mib": total,
+                "used_mib": used,
+                "free_mib": free,
+                "hard_ceiling_mib": self.ceiling,
+                "ceiling_headroom_mib": max(0, self.ceiling - used),
+            }
+        except Exception:
+            live = self.read_live_gpu_vram() or 0
+            return {
+                "source": "fallback",
+                "total_mib": 6144,
+                "used_mib": live,
+                "free_mib": max(0, 6144 - live),
+                "hard_ceiling_mib": self.ceiling,
+                "ceiling_headroom_mib": max(0, self.ceiling - live),
+            }
 
     def update_config_context_length(self, config_path: Path, context_length: int) -> bool:
         if not config_path.exists():

@@ -25,6 +25,7 @@ try:
     from .cog_vault import CogVault, get_cog_vault
     from .spec_first_planner import SpecFirstPlanner, get_spec_first_planner
     from .opencode_mem import get_opencode_memory_engine
+    from .quorum_gate import QuorumAuditGate, QuorumAuditReceipt, BlastRadius
 except ImportError:
     import sys
     from pathlib import Path
@@ -32,6 +33,7 @@ except ImportError:
     from cog_vault import CogVault, get_cog_vault
     from spec_first_planner import SpecFirstPlanner, get_spec_first_planner
     from opencode_mem import get_opencode_memory_engine
+    from quorum_gate import QuorumAuditGate, QuorumAuditReceipt, BlastRadius
 
 
 # =============================================================================
@@ -358,6 +360,7 @@ class CogVerifier:
         self.vault = vault or get_cog_vault()
         self.verifier_name = verifier_name
         self._lock = threading.RLock()
+        self.quorum = QuorumAuditGate()
         self._checks = [
             VerificationChecks.check_python_ast,
             VerificationChecks.check_js_braces,
@@ -366,6 +369,30 @@ class CogVerifier:
             VerificationChecks.check_vram_bounds,
             VerificationChecks.check_contract_tests,
         ]
+
+    def quorum_audit(
+        self,
+        task_id: str,
+        author_agent: str,
+        affected_files: List[str],
+        diff_text: str = "",
+        session_id: str = "default",
+    ) -> QuorumAuditReceipt:
+        """Run Quorum cross-model consensus audit on author changes."""
+        receipt = self.verify_task(task_id, author_agent, affected_files)
+        ast_ok = all(c.status == "PASS" for c in receipt.checks if "AST" in c.name)
+        tests_ok = all(c.status == "PASS" for c in receipt.checks if "Contract Tests" in c.name)
+        return self.quorum.audit_step(
+            task_id=task_id,
+            author_agent=author_agent,
+            auditor_agent=self.verifier_name,
+            affected_files=affected_files,
+            ast_valid=ast_ok,
+            tests_passed=tests_ok,
+            pass_rate=1.0 if receipt.verdict == "VERIFIED" else 0.0,
+            diff_text=diff_text,
+            session_id=session_id,
+        )
     
     def verify_task(
         self,

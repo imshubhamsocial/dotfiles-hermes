@@ -176,9 +176,48 @@ class DraftDetective:
         ast_ok, ast_errs = self.validate_code_ast(code_diff)
         report.ast_valid = ast_ok
         report.ast_errors = ast_errs
-
         report.approved = (report.failed_claims == 0 and report.ast_valid)
         return report
+
+    def quorum_pre_commit_audit(
+        self,
+        markdown_summary: str,
+        code_diff: str,
+        author_agent: str = "coder",
+        auditor_agent: str = "draft_detective",
+        known_files: Optional[Set[str]] = None,
+        known_symbols: Optional[Set[str]] = None,
+        task_id: str = "pre_commit",
+    ) -> Dict[str, Any]:
+        """Runs Quorum cross-model consensus audit over draft output."""
+        try:
+            from .quorum_gate import QuorumAuditGate
+        except ImportError:
+            from quorum_gate import QuorumAuditGate
+
+        report = self.full_pre_commit_audit(
+            markdown_summary=markdown_summary,
+            code_diff=code_diff,
+            known_files=known_files,
+            known_symbols=known_symbols,
+        )
+        gate = QuorumAuditGate()
+        affected = list(known_files) if known_files else []
+        receipt = gate.audit_step(
+            task_id=task_id,
+            author_agent=author_agent,
+            auditor_agent=auditor_agent,
+            affected_files=affected,
+            ast_valid=report.ast_valid,
+            tests_passed=report.approved,
+            pass_rate=1.0 if report.approved else 0.0,
+            diff_text=code_diff,
+        )
+        return {
+            "report": report.to_dict(),
+            "quorum_receipt": receipt.to_dict(),
+            "approved": report.approved and receipt.verdict == "AGREED",
+        }
 
 
 def create_draft_detective(workspace_root: Optional[Union[str, Path]] = None) -> DraftDetective:

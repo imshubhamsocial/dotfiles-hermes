@@ -100,3 +100,8 @@ from .flatbuffers_state import FlatBufferCheckpoint
 from .formatter_pipeline import PolyglotFormatterPipeline, format_source_file
 from .test_time_sampler import TestTimeComputeSampler, create_test_time_sampler
 
+# Quorum & GEPA-Lite First-Party Substrates
+from .quorum_gate import QuorumAuditGate, QuorumAuditReceipt, BlastRadius
+from .gepa_optimizer import GEPALiteOptimizer, GEPACandidate, GEPAResult, create_gepa_optimizer
+
+

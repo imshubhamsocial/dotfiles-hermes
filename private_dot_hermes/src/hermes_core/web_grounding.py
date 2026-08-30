@@ -166,12 +166,12 @@ class WebGroundingEngine:
         )
 
     def _fetch_search_results(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
-        # 1. Try DuckDuckGo Search (duckduckgo_search / DDGS)
+        # 1. Try DuckDuckGo Search (ddgs / duckduckgo_search)
         try:
             try:
-                from duckduckgo_search import DDGS
-            except ImportError:
                 from ddgs import DDGS
+            except ImportError:
+                from duckduckgo_search import DDGS
             with DDGS() as ddgs:
                 results = list(ddgs.text(query, max_results=max_results))
                 if results:

@@ -39,9 +39,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 try:
     from .presets import estimate_prompt_tokens
     from .replay import replay_trajectory
+    from .gepa_optimizer import GEPALiteOptimizer, GEPACandidate, GEPAResult, create_gepa_optimizer
 except ImportError:  # packageless loaders (integrity probes)
     from hermes_core.presets import estimate_prompt_tokens
     from hermes_core.replay import replay_trajectory
+    from hermes_core.gepa_optimizer import GEPALiteOptimizer, GEPACandidate, GEPAResult, create_gepa_optimizer
 
 LAMBDA_TOKEN_PENALTY = 0.01
 FILLER_PHRASES = (

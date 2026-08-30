@@ -252,8 +252,15 @@ def probe_pre_commit_observer_gate() -> Tuple[bool, List[str]]:
     """Verifies 6-point AST observer gate on synthesized artifacts."""
     evidence = []
     try:
-        gate_script = ROOT / ".hermes" / "bin" / "observer_gate.py"
-        if not gate_script.exists():
+        candidates = [
+            Path.home() / ".hermes" / "bin" / "observer_gate.py",
+            ROOT / ".hermes" / "bin" / "observer_gate.py",
+            Path(__file__).parent / "observer_gate.py",
+            Path(__file__).parent / "executable_observer_gate.py",
+            ROOT / ".local/share/chezmoi/private_dot_hermes/bin/executable_observer_gate.py",
+        ]
+        gate_script = next((p for p in candidates if p.exists()), None)
+        if not gate_script:
             return False, [".hermes/bin/observer_gate.py not found"]
 
         with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as tf:
@@ -286,9 +293,11 @@ const scene = new THREE.Scene();
 def run_contract_spike_suite() -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ and returns pass status."""
     try:
+        ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
+        target_dir = ws_root if (ws_root / "tests/harness_contracts").exists() else ROOT
         res = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/harness_contracts/", "-q"],
-            capture_output=True, text=True, timeout=90, cwd=str(ROOT)
+            capture_output=True, text=True, timeout=90, cwd=str(target_dir)
         )
         passed = (res.returncode == 0)
         output_tail = res.stdout.strip().splitlines()[-1] if res.stdout.strip() else res.stderr.strip()

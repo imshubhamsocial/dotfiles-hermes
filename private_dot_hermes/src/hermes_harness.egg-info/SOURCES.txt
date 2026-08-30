@@ -25,6 +25,7 @@ pyproject.toml
 .hermes/src/hermes_core/fastmcp.py
 .hermes/src/hermes_core/flatbuffers_state.py
 .hermes/src/hermes_core/formatter_pipeline.py
+.hermes/src/hermes_core/gepa_optimizer.py
 .hermes/src/hermes_core/google_agentic_substrate.py
 .hermes/src/hermes_core/graph_engine.py
 .hermes/src/hermes_core/harness_evolution.py
@@ -52,6 +53,7 @@ pyproject.toml
 .hermes/src/hermes_core/prime_kernel.py
 .hermes/src/hermes_core/process_guard.py
 .hermes/src/hermes_core/prompt_slotting.py
+.hermes/src/hermes_core/quorum_gate.py
 .hermes/src/hermes_core/qwen_mm_core.py
 .hermes/src/hermes_core/recirculation.py
 .hermes/src/hermes_core/reflective_learner.py

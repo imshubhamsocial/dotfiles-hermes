@@ -1005,3 +1005,26 @@ To further evolve, harden, and scale the Hermes harness, the table below catalog
        * Automatically generate a paired `test_skill.py` unit suite for every synthesized `SKILL.md`.
      * Run Anthropic Prompt Evaluator on candidate prompts to verify instruction adherence before launching A/B benchmarks.
   4. **Manual Verification**: Trigger a skill evolution cycle; verify generated skill includes a curated `SKILL.md` and automated unit test suite passing in staging.
+
+---
+
+### Issue #48: Test-Time Compute Multi-Candidate Speculative Patch Selection across Dual Slots
+* **Classification**: Test-Time Compute & Speculative Execution
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/speculative_executor.py`, `src/hermes_core/swarm_engine.py`
+* **Symptom**: When attempting difficult bug fixes or algorithmic refactors, 4B–8B models currently generate a single patch attempt sequentially. If that single patch contains a subtle edge-case defect, the entire turn fails, burning context and requiring multi-turn conversational repair loops.
+* **Root Cause**: The harness did not utilize its 2 parallel inference slots (`-np 2`) to perform DeepSeek/Gemini-style test-time compute sampling (generating 2 diverse candidate patches simultaneously and selecting the verified passing patch in memory).
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/test_time_sampler.py` (New File), `src/hermes_core/speculative_executor.py`, `src/hermes_core/swarm_engine.py`.
+  2. **Dependencies**: `asyncio`, `concurrent.futures`, `pygit2`.
+  3. **Concrete Changes**:
+     * Implement `TestTimeComputeSampler`:
+       * When generating a repair patch for a failing test, dispatch two concurrent inference requests to `llama-server`:
+         * **Candidate A (Slot 0):** Greedy / Low Temperature (`temperature=0.1`) $\rightarrow$ Conservative minimal fix.
+         * **Candidate B (Slot 1):** Creative / Higher Temperature (`temperature=0.6`) $\rightarrow$ Structural alternative.
+       * Evaluate both candidate patches in isolated in-memory worktrees (`/dev/shm/worktree_a`, `/dev/shm/worktree_b`) by executing the unit test suite (`pytest -q` / `npm test`).
+       * **Selection Logic:**
+         * If Candidate A passes: commit Candidate A immediately.
+         * If Candidate A fails but Candidate B passes: commit Candidate B immediately (zero human or turn penalty).
+         * If both fail: select the candidate with the higher test pass ratio, feed its exact failure trace into the next turn, and record a negative Tabu constraint.
+  4. **Manual Verification**: Run a challenging bug-fix test where standard greedy generation fails; verify `TestTimeComputeSampler` generates 2 candidates in parallel across Slot 0 & Slot 1 and automatically commits the candidate that passes 100% of the unit tests.

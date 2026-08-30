@@ -450,3 +450,17 @@ This document registers all operational bugs, loopholes, regressions, and archit
 11. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
 12. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.
 13. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.
+
+---
+
+### Issue #28: Agent & Benchmark Flag Amnesia & Missing Canonical Runner SDK
+* **Classification**: Harness Usability & Invocation Invariant
+* **Impact**: High
+* **Discovered In**: `test_hermes_live_prompts.py`, `test_developer_workflows_e2e.py`, benchmark scripts
+* **Symptom**: During automated benchmarks, CI runs, or subagent tool dispatch, callers routinely omit critical CLI flags (e.g. `--in <DIR>`, `--yolo`, `--skills`, `--accept-hooks`), causing headless runs to hang waiting for stdin confirmation, write files to the wrong workspace, or fail to load required skills.
+* **Root Cause**:
+  1. No single typed Python SDK wrapper existed (e.g. `hermes_core.runner.run_hermes(...)`); every test and subagent constructed ad-hoc `subprocess.run(["hermes", ...])` argv lists from scratch.
+  2. The CLI did not automatically detect non-interactive TTY environments to default `--in` to `os.getcwd()` and auto-accept headless hooks.
+* **Remediation**:
+  * Implement a canonical, typed `HermesRunner` SDK module in `src/hermes_core/runner.py` that encapsulates all flags, timeouts, and working directory bindings.
+  * In `cli.py`, auto-detect non-TTY environments (`not sys.stdin.isatty()`) and automatically bind `cwd` to current working directory if `--in` is omitted.

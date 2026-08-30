@@ -4,7 +4,7 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
-## 1. Registered Adversarial & Architecture Findings
+## 1. Registered Subsystem, Tool, & Agentic Vulnerabilities
 
 ### Issue #01: The "Completion Trap" & Missing Physical Output Token Gating
 * **Classification**: Behavioral Regression / Lack of Physical Gating
@@ -200,6 +200,86 @@ This document registers all operational bugs, loopholes, regressions, and archit
 
 ---
 
+### Issue #17: Inter-Bot Communication & Synergy Bus Memory Leak
+* **Classification**: Multi-Bot & Reactive Bus / Memory Leak
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/synergy_bus.py`
+* **Symptom**: Long-running multi-agent sessions or continuous background tasks continuously consume RAMDisk and memory until exhaustion.
+* **Root Cause**: `SynergyEventBus.event_history` appends every published event (`TASK_SPAWN`, `TOOL_CALL`, `VFS_MUTATION`) into an unbounded in-memory Python list without any eviction policy or ring buffer size limit.
+* **Remediation**:
+  * Replace unbounded list with `ThreadSafeRingBuffer(capacity=1000)` from `thread_safe_ringbuffer.py`.
+
+---
+
+### Issue #18: Multi-Bot Delegation Hardcoded Mock Orchestration
+* **Classification**: Multi-Agent Orchestration / Mock Stub
+* **Impact**: Critical
+* **Discovered In**: `src/hermes_core/multi_bot_delegation.py`
+* **Symptom**: `execute_delegation_pipeline()` does not actually execute multi-bot turns or generate code via LLM tools—it immediately returns pre-fabricated mock success strings (`"Architectural specification formulated in .hermes/plan.json..."`).
+* **Root Cause**: The delegation orchestrator was authored as a prototype stub with synthetic return objects rather than connecting to the live Swarm / Hub dispatch loop.
+* **Remediation**:
+  * Wire `MultiBotOrchestrator` to invoke real agent turns via `HermesOrchestrator.run()` / `hub_cli.py` with actual tool dispatch and output verification.
+
+---
+
+### Issue #19: Swarm Engine Function Schema Type Coercion & Docstring Loss
+* **Classification**: Tool Calling & Schema Generation
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/swarm_engine.py`
+* **Symptom**: Tools with complex type signatures (`Optional[int]`, `Union[str, Path]`, `Literal[...]`, Pydantic models) are exposed to the model as generic `"type": "string"` with uninformative `"description": "Parameter {name}"`.
+* **Root Cause**: `function_to_schema()` uses a primitive `if/elif` type check and does not parse docstrings (Google/Sphinx/Numpydoc) for argument descriptions.
+* **Remediation**:
+  * Parse docstrings via `inspect.getdoc()` or `docstring_parser` to extract precise parameter semantics and generate full JSON Schema constraints (`enum`, `minimum`, `format`).
+
+---
+
+### Issue #20: Web Grounding Module Import Failure & Search Black Hole
+* **Classification**: Web Grounding & External Knowledge
+* **Impact**: Critical
+* **Discovered In**: `src/hermes_core/web_grounding.py`
+* **Symptom**: All web searches in `WebGroundingEngine` fail silently and return `[]` (empty results).
+* **Root Cause**:
+  1. Line 171 attempts `from ddgs import DDGS`, which does not exist in standard PyPI (standard library is `duckduckgo_search`).
+  2. Neither `duckduckgo_search` nor a live `SEARXNG_URL` is configured by default, causing both primary and fallback search paths to fail.
+* **Remediation**:
+  * Fix import to `from duckduckgo_search import DDGS` and install `duckduckgo_search`.
+  * Add automatic fallback to `executable_extract_web_content.py` and local offline documentation index (`index_docs.py`).
+
+---
+
+### Issue #21: Ephemeral Tool Buffer Disk Growth & Missing Cleanup
+* **Classification**: Storage Management / RAMDisk Bloat
+* **Impact**: Medium
+* **Discovered In**: `src/hermes_core/token_engine.py`
+* **Symptom**: `/dev/shm` fills up with thousands of orphan `hermes_ephemeral_*.log` files during heavy coding sessions.
+* **Root Cause**: `EphemeralToolBuffer.finalize()` writes full subprocess stdout/stderr streams to `/dev/shm` on every single command turn, but never registers a TTL or cleanup reaper.
+* **Remediation**:
+  * Add an automatic ring-buffer reaper in `EphemeralToolBuffer` that keeps only the last 50 execution logs and removes files older than 1 hour.
+
+---
+
+### Issue #22: Destructive Skill Promotion Folder Pruning Bug
+* **Classification**: Skill Evolution / Data Loss Bug
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/skill_evolution.py`
+* **Symptom**: If an autonomous evolution cycle fails its A/B lift gate (+15% requirement), the engine deletes the entire skill directory, accidentally destroying existing production skills sharing the same name.
+* **Root Cause**: `synthesize_candidate_skill()` writes candidate drafts directly to `~/.hermes/skills/{skill_name}/SKILL.md`. If A/B certification fails, `evaluate_and_promote()` calls `shutil.rmtree(candidate_file.parent)`, deleting the entire folder.
+* **Remediation**:
+  * Write candidate drafts to an isolated staging directory (e.g. `~/.hermes/staging_skills/`). Only copy to `~/.hermes/skills/` after the A/B lift gate is certified.
+
+---
+
+### Issue #23: Metacognitive Memory Ephemerality & RAMDisk State Loss
+* **Classification**: Experience Store & Lifelong Learning
+* **Impact**: High
+* **Discovered In**: `src/hermes_core/experience_store.py`
+* **Symptom**: All accumulated failure patterns, negative constraints, and positive playbooks are wiped on machine reboot or container restart.
+* **Root Cause**: `ExperienceStore` defaults its database path to `/dev/shm/hermes_experience_store.json` (RAMDisk).
+* **Remediation**:
+  * Default storage to persistent disk at `~/.hermes/memory/experience_store.json` (or sync with `experiential.jsonl`), with optional RAMDisk write-through caching.
+
+---
+
 ## 2. Exhaustive Codebase Audit: Timeouts, Budgets, Sleeps & Fragile Heuristics
 
 ```
@@ -210,6 +290,20 @@ This document registers all operational bugs, loopholes, regressions, and archit
 ├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
 │ `private_dot_hermes/config.yaml`     │ `timeout: 180`          │ Arbitrary terminal kill timer;  │
 │                                      │ `inactivity_timeout: 120│ can kill heavy builds mid-run   │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/synergy_bus.py`     │ Unbounded list append   │ Memory leak; events never purged│
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/multi_bot_deleg...` │ Synthetic mock returns  │ Fakes architect/coder execution │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/swarm_engine.py`    │ Naive `function_to_sch..` Loss of param types & docstrings│
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/web_grounding.py`   │ `from ddgs import DDGS` │ Broken import; searches return[]│
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/token_engine.py`    │ Unreaped `/dev/shm` logs│ RAMDisk bloat on heavy runs     │
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/skill_evolution.py` │ `shutil.rmtree` on fail │ Destroys pre-existing user skill│
+├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
+│ `src/hermes_core/experience_store.py`│ `/dev/shm` default path │ State loss on system reboot     │
 ├──────────────────────────────────────┼─────────────────────────┼─────────────────────────────────┤
 │ `src/hermes_core/capability_masks.py`│ `ROLE_POLICIES`         │ Read-only fallback is good, but │
 │                                      │ (Prompt & dispatch)     │ requires path-level gating      │
@@ -300,5 +394,8 @@ This document registers all operational bugs, loopholes, regressions, and archit
 3. **Structured Tree-Sitter MCP Slicing**: Truncate JSON AST elements structurally before serialization.
 4. **Polyglot AST Symbol Graph**: Connect `tree_sitter_language_pack` to `symbol_graph.py` with `pathspec` gitignore resolution.
 5. **Polyglot Markdown Code Extractor**: Remove Python-only AST filter from `extract_code_mode.py`.
-6. **Session-Isolated State**: Scope `/dev/shm` temporary storage by `{session_id}_{task_id}` across all engines.
-7. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.
+6. **Live Multi-Bot Orchestration**: Replace mock turn generators in `multi_bot_delegation.py` with real agent dispatch.
+7. **Production Web Grounding**: Fix DuckDuckGo import, install `duckduckgo_search`, and link to offline doc search.
+8. **Safe Skill Staging**: Stage candidate skills in `~/.hermes/staging_skills/` to prevent destructive deletion of active skills.
+9. **Persistent Experience Store**: Migrate `/dev/shm/hermes_experience_store.json` to persistent disk at `~/.hermes/memory/`.
+10. **Pre-Execution Policy Filter**: Intercept file writes and command executions in `capability_masks.py` before touching the OS.

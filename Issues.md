@@ -595,3 +595,29 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
                return HermesRunResult(returncode=rc, stdout=out, stderr="", duration_sec=meta.get("elapsed", 0.0), usage={})
        ```
   4. **Manual Verification**: Import `HermesRunner` in a test script; run `runner.run("test")`; assert all required flags are automatically passed and working directory is strictly bound.
+
+---
+
+### Issue #29: Session Resumption Prefix-Cache Invalidation, Skill De-Activation, & Context Drift
+* **Classification**: Session State & Token Engine Invariant
+* **Impact**: High
+* **Discovered In**: `session_persistence.py`, `prompt_slotting.py`, `context_compactor.py`
+* **Symptom**: 
+  1. When resuming a session via `hermes -c` or `hermes --resume <session_id>`, `llama-server` prefix cache reuse drops from 98% to 0%, forcing a full 25K+ token prompt reprocessing stall (10–15s latency on Turn 1).
+  2. Previously loaded OpenSkills and active MCP tool servers are not re-hydrated into the resumed session, leaving the agent without the skills it acquired during earlier turns.
+  3. Long sessions (30+ turns) re-inject bloated raw message transcripts on resume, pushing context close to the slot boundary instead of utilizing compact `<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>` state summaries.
+* **Root Cause**:
+  1. Message history serialization on resume altered message order or dynamic timestamp headers in Turn 0, breaking deterministic prefix hashing in `llama-server`.
+  2. `DurableSessionState` serialized task DAGs and file snapshots, but did not persist active `loaded_skills` manifests or active MCP server endpoints in `NodeReceipt`.
+* **Precise Implementation Plan**:
+  1. **Files to Touch**: `src/hermes_core/session_persistence.py`, `src/hermes_core/openskills_manager.py`, `src/hermes_core/prompt_slotting.py`.
+  2. **Dependencies**: `google/adk-python` (Stateful session resumption), `mcp[cli]`.
+  3. **Concrete Changes**:
+     * In `DurableSessionState`: add `loaded_skill_names: List[str] = Field(default_factory=list)` and `active_mcp_servers: List[str] = Field(default_factory=list)`.
+     * In `checkpoint()`: capture `openskills_manager.get_loaded_skill_names()` and persist them in `session_state.json`.
+     * In `restore()`: automatically call `openskills_manager.load_skill(name)` for every persisted skill name upon session restore.
+     * In `prompt_slotting.py:compile_resumed_context()`: enforce **Deterministic Prefix Slotted Layout**:
+       * Slot 1 (Immutable Static Prefix): System prompt + Tool schemas (ensures 100% KV cache hit).
+       * Slot 2 (Working Memory Anchor): `<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>` + completed task receipts (<800 tokens).
+       * Slot 3 (Recent Window): Only the last 2 conversation turns.
+  4. **Manual Verification**: Run a 5-turn session loading a skill `hermes -s polars-data-analysis`; exit; resume with `hermes -c "continue previous task"`; verify `llama-server` slot log shows `cache reuse: >95%` and `polars-data-analysis` tools are immediately available on Turn 1.

@@ -1,10 +1,10 @@
-# Issues, Architectural Fragility, & Detailed Implementation Plans (ws-hermes)
+# Issues, Architectural Fragility, & Open-Source Package Audit (ws-hermes)
 
-This document registers all 28 operational bugs, loopholes, regressions, and architectural vulnerabilities discovered across the Hermes agentic harness. For every issue, it provides a **precise, step-by-step implementation plan** detailing the exact files to modify, upstream packages to integrate, code changes, and manual verification procedures.
+This document registers all operational bugs, loopholes, regressions, and architectural vulnerabilities discovered across the Hermes agentic harness. It also provides an exhaustive **Upstream Package Replacement Matrix** mapping our ad-hoc custom Python files to battle-tested open-source packages from **Anthropic**, **NVIDIA**, **Google**, **Astral**, and the **Python / Rust Systems Ecosystem** to make Hermes modular, scalable, deterministic, and verified via empirical benchmark tools rather than arbitrary heuristics.
 
 ---
 
-## 1. Upstream Package Replacement Matrix
+## 1. Upstream Package Replacement Matrix (Eliminating Ad-Hoc Python Code)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -36,7 +36,7 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 │    Web Content Extract   │ `extract_web_content.py`,           │ `trafilatura`                        │ grounding; resilient main-  │
 │                          │ `fast_research.py`                  │ `mcp/servers/src/brave-search`       │ text HTML-to-MD extraction  │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
-│ 6. Persistent Memory &   │ `experience_store.py`,              │ `duckdb` / `sqlite3` (WAL mode)      │ Zero-GPU persistent tabular │
+│ 6. Persistent Memory &   │ `experience_store.py`,              │ `sqlmodel` + SQLite WAL              │ Zero-GPU persistent tabular │
 │    Exact Token Metrics   │ `openviking_vfs.py`,                │ `fastembed` (Qdrant ONNX)            │ & vector storage on disk;   │
 │                          │ `opencode_mem.py`, `cog_vault.py`   │ `tiktoken`                           │ exact BPE token counting    │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────┤
@@ -50,20 +50,20 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 
 ## 2. Master Issue Registry & Detailed Implementation Plans
 
-### Issue #01: The "Completion Trap" & Missing Physical Output Token Gating
-* **Classification**: Behavioral Regression / Lack of Physical Gating
+### Issue #01: The "Completion Trap" & Missing Dynamic Output Gating
+* **Classification**: Behavioral Regression / Lack of Evaluator-Profiled Gating
 * **Impact**: Critical
 * **Discovered In**: `test_live_generative_ui_artifact_creation`, `test_live_polars_data_analysis_skill_invocation`
-* **Symptom**: Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180s.
-* **Root Cause**: The harness allowed a single turn to run up to `max_tokens: 4096` without an intermediate yield or token brake.
+* **Symptom**: When given an unconstrained goal, Gemma-4 emitted 2,500+ continuous tokens in a single monolithic generation turn lasting 150–180s.
+* **Root Cause**: The harness allowed a single turn to run unconstrained without intermediate tool boundaries, chunk yields, or evaluator-calibrated output gating.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `private_dot_hermes/config.yaml`, `src/hermes_core/swarm_engine.py`, `src/hermes_core/spec_first_planner.py`.
-  2. **Dependencies**: `nemoguardrails` (Output Rail).
+  2. **Dependencies**: `google/adk-python` (Trajectory Evaluation), `nemoguardrails` (Output Rails).
   3. **Concrete Changes**:
-     * In `config.yaml`, set `agent.max_tokens_per_turn: 600` under inference settings.
-     * In `swarm_engine.py:HermesOrchestrator.run()`, pass `max_tokens=600` to the OpenAI/llama-server client completions call.
+     * Profile generation chunk sizes using Google ADK trajectory evaluation (`adk eval`) across diverse coding tasks to find the optimal dynamic token budget per turn.
      * In `spec_first_planner.py`, enforce that Phase 0 must emit an architectural DAG JSON block (`emit_task_dag`) before unlocking full file synthesis tools (`write_file`).
-  4. **Manual Verification**: Run `hermes -z "Generate a 2000-line single file HTML dashboard"`; assert generation yields after emitting skeleton/blueprint in $\le 600\text{ tokens}$ ($\le 15\text{s}$) rather than dumping 2,500 tokens.
+     * Use NeMo Guardrails output rails to interrupt monolithic completion dumps and prompt for tool verification.
+  4. **Manual Verification**: Run `hermes -z "Generate a 2000-line single file HTML dashboard"`; verify generation yields after emitting skeleton/blueprint rather than dumping 2,500 unverified tokens in a single stream.
 
 ---
 
@@ -94,7 +94,7 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
   2. **Dependencies**: `asyncio`, `selectors`.
   3. **Concrete Changes**:
      * In `process_guard.py:run_with_group_teardown()`, replace `proc.communicate(timeout=...)` with a non-blocking `selectors.DefaultSelector()` loop reading stdout.
-     * Implement `inactivity_heartbeat_s = 15.0`: track `last_byte_time = time.perf_counter()`. Only trigger `os.killpg(pgid, SIGKILL)` if `time.perf_counter() - last_byte_time > 15.0`.
+     * Implement `inactivity_heartbeat_s = 15.0`: track `last_byte_time = time.perf_counter()`. Only trigger `os.killpg(pgid, SIGKILL)` if `time.perf_counter() - last_byte_time > 15.0` (zero bytes received = true deadlock).
      * Remove arbitrary global wall-clock timeouts from live test runners.
   4. **Manual Verification**: Run a long-running streaming command `python3 -c "import time; [print(f'chunk {i}', flush=True) or time.sleep(2) for i in range(20)]"`; verify process runs to completion (40s) without being killed because heartbeats arrive every 2s.
 
@@ -112,7 +112,7 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
   3. **Concrete Changes**:
      * In server launch script, set `-c 131072 -np 2 --ctk q4_0 --ctv q4_0`.
      * Verify slot capacity yields exactly $65,536\text{ tokens (64K)}$ per slot.
-     * Verify total VRAM allocation stays $\le 3,240\text{ MiB}$ via `nvidia-smi`.
+     * Verify total VRAM allocation stays $\le 3,240\text{ MiB}$ via `nvidia-smi` (well below the $4,812\text{ MiB}$ physical limit).
   4. **Manual Verification**: Call `curl http://127.0.0.1:8138/props` and `curl http://127.0.0.1:8138/slots`; verify `n_ctx_slot: 65536` for both slots.
 
 ---
@@ -147,7 +147,7 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Root Cause**: Pure transient RAMDisk storage without disk backing; character division token heuristic.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/openviking_vfs.py`.
-  2. **Dependencies**: `sqlite3` (Standard Library WAL mode), `tiktoken` (or `tokenizers`).
+  2. **Dependencies**: `sqlmodel` (SQLite WAL mode), `tiktoken` (Exact BPE tokenizer).
   3. **Concrete Changes**:
      * Add an embedded SQLite persistence table `vfs_nodes (uri TEXT PRIMARY KEY, l0_abstract TEXT, l1_overview TEXT, l2_content TEXT, tags TEXT, token_count INT, updated_at REAL)`.
      * Replace `len(text) // 4` with exact BPE tokenizer: `tiktoken.get_encoding("cl100k_base").encode(text)`.
@@ -388,12 +388,11 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Root Cause**: Primitive `if/elif` type checker in `function_to_schema()`; no docstring parsing.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/swarm_engine.py`.
-  2. **Dependencies**: `mcp[cli]` (FastMCP) or `docstring-parser`.
+  2. **Dependencies**: `instructor` (`jxnl/instructor`), `mcp[cli]` (FastMCP), `pydantic` v2.
   3. **Concrete Changes**:
-     * Use `docstring_parser.parse(func.__doc__)` to extract `:param` descriptions.
-     * Handle `typing.get_origin()` and `typing.get_args()` for `Union[T, None]`, `List[T]`, and `Literal[A, B]`.
-     * Map `Literal["x", "y"]` to `{"type": "string", "enum": ["x", "y"]}`.
-  4. **Manual Verification**: Generate schema for a function `def test_fn(mode: Literal['a', 'b'], count: Optional[int] = 1): """Args:\n count: Number of items."""`; verify schema output includes `enum: ['a', 'b']` and parameter description `"Number of items."`.
+     * Replace ad-hoc schema inspection with `instructor` and Pydantic v2 `model_json_schema()`.
+     * Expose typed docstrings and `Literal` enums natively in tool definitions.
+  4. **Manual Verification**: Generate schema for a complex tool; verify schema matches Anthropic/OpenAI specifications with 100% type fidelity.
 
 ---
 
@@ -469,12 +468,12 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Symptom**: Learned playbooks and negative constraints wiped on reboot.
 * **Root Cause**: `ExperienceStore` defaulted to `/dev/shm/hermes_experience_store.json`.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/experience_store.py`.
-  2. **Dependencies**: Standard Library `pathlib.Path`, `sqlite3` or `json`.
+  1. **Files to Touch**: `src/hermes_core/experience_store.py`, `src/hermes_core/database/models.py`.
+  2. **Dependencies**: `sqlmodel` (SQLite WAL mode).
   3. **Concrete Changes**:
-     * Set persistent default: `DEFAULT_STORE = Path.home() / ".hermes" / "memory" / "experience_store.json"`.
-     * Implement atomic file replacement (`tempfile.NamedTemporaryFile` + `os.replace`) to prevent corruption during power loss.
-  4. **Manual Verification**: Record an episode; verify file exists at `~/.hermes/memory/experience_store.json`; verify data persists across sessions.
+     * Persist experience episodes in `~/.hermes/state.db` using unified `SQLModel` table `ExperienceEpisode`.
+     * Store episode goal, failure patterns, negative constraints, and verified playbooks permanently on disk.
+  4. **Manual Verification**: Record an episode; verify file exists in `state.db`; verify data persists across sessions and reboots.
 
 ---
 
@@ -602,63 +601,32 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Session State & Token Engine Invariant
 * **Impact**: High
 * **Discovered In**: `session_persistence.py`, `prompt_slotting.py`, `context_compactor.py`
-* **Symptom**: 
-  1. When resuming a session via `hermes -c` or `hermes --resume <session_id>`, `llama-server` prefix cache reuse drops from 98% to 0%, forcing a full 25K+ token prompt reprocessing stall (10–15s latency on Turn 1).
-  2. Previously loaded OpenSkills and active MCP tool servers are not re-hydrated into the resumed session, leaving the agent without the skills it acquired during earlier turns.
-  3. Long sessions (30+ turns) re-inject bloated raw message transcripts on resume, pushing context close to the slot boundary instead of utilizing compact `<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>` state summaries.
-* **Root Cause**:
-  1. Message history serialization on resume altered message order or dynamic timestamp headers in Turn 0, breaking deterministic prefix hashing in `llama-server`.
-  2. `DurableSessionState` serialized task DAGs and file snapshots, but did not persist active `loaded_skills` manifests or active MCP server endpoints in `NodeReceipt`.
+* **Symptom**: Resuming a session invalidated prefix cache, lost loaded skill tools, and re-injected bloated transcripts.
+* **Root Cause**: Message serialization altered prefix order; `DurableSessionState` did not persist active skill names.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/session_persistence.py`, `src/hermes_core/openskills_manager.py`, `src/hermes_core/prompt_slotting.py`.
   2. **Dependencies**: `google/adk-python` (Stateful session resumption), `mcp[cli]`.
   3. **Concrete Changes**:
-     * In `DurableSessionState`: add `loaded_skill_names: List[str] = Field(default_factory=list)` and `active_mcp_servers: List[str] = Field(default_factory=list)`.
-     * In `checkpoint()`: capture `openskills_manager.get_loaded_skill_names()` and persist them in `session_state.json`.
-     * In `restore()`: automatically call `openskills_manager.load_skill(name)` for every persisted skill name upon session restore.
-     * In `prompt_slotting.py:compile_resumed_context()`: enforce **Deterministic Prefix Slotted Layout**:
-       * Slot 1 (Immutable Static Prefix): System prompt + Tool schemas (ensures 100% KV cache hit).
-       * Slot 2 (Working Memory Anchor): `<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>` + completed task receipts (<800 tokens).
-       * Slot 3 (Recent Window): Only the last 2 conversation turns.
-  4. **Manual Verification**: Run a 5-turn session loading a skill `hermes -s polars-data-analysis`; exit; resume with `hermes -c "continue previous task"`; verify `llama-server` slot log shows `cache reuse: >95%` and `polars-data-analysis` tools are immediately available on Turn 1.
+     * In `DurableSessionState`: add `loaded_skill_names: List[str]` and `active_mcp_servers: List[str]`.
+     * In `restore()`: automatically re-activate all persisted skills via `openskills_manager.load_skill(name)`.
+     * Enforce deterministic 3-slot prompt prefix layout to preserve 95%+ KV cache hit rates.
+  4. **Manual Verification**: Resume a session with loaded skills; verify `llama-server` log shows `cache reuse: >95%` and skills execute on Turn 1.
 
 ---
 
 ### Issue #30: Unbounded Database & Cache Growth, Missing Auto-Pruning, & WAL Bloat
 * **Classification**: Storage Management & Database Lifecycle Invariant
 * **Impact**: High
-* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`, `src/hermes_core/token_engine.py`
-* **Symptom**:
-  1. Ad-hoc JSON cache files (`web_grounding_cache.json`, `experiential.jsonl`) grow indefinitely without capacity bounds or TTL eviction, eventually consuming gigabytes of disk/RAMDisk.
-  2. SQLite databases (`symbol_graph.db`) accumulate dead pages and bloated WAL files (`.db-wal`) that never shrink or truncate after large symbol deletions.
-  3. No central database size manager exists to enforce global storage ceilings (e.g. max 500MB total agent footprint).
-* **Root Cause**:
-  1. Caches used custom dictionary dumps (`json.dump`) rather than an established disk cache manager with LRU/LFU eviction.
-  2. SQLite connections lacked `PRAGMA auto_vacuum = INCREMENTAL`, `PRAGMA wal_checkpoint(TRUNCATE)`, and `PRAGMA incremental_vacuum` cleanup routines.
+* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`
+* **Symptom**: Ad-hoc JSON caches grew unbounded; SQLite databases accumulated WAL bloat.
+* **Root Cause**: Missing disk cache size bounds and lack of WAL truncation PRAGMAs.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/db_manager.py` (New File), `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`, `src/hermes_core/openviking_vfs.py`.
+  1. **Files to Touch**: `src/hermes_core/db_manager.py` (New File), `src/hermes_core/symbol_graph.py`, `src/hermes_core/web_grounding.py`.
   2. **Dependencies**: `diskcache` (`grantjenks/python-diskcache` PyPI), Standard Library `sqlite3`.
   3. **Concrete Changes**:
-     * **DiskCache Migration for Transient Caching:**
-       * Replace `web_grounding_cache.json` and speculative caches with `diskcache.Cache(directory=Path.home() / ".hermes/cache/web", size_limit=256*1024*1024, evict="lru")`.
-       * Automatically evicts oldest entries when exceeding 256MB.
-     * **Unified SQLite Lifecycle & Auto-Pruning PRAGMAs (`db_manager.py`):**
-       * Create a standard database initializer for all SQLite databases (`symbol_graph.db`, `openviking_vfs.db`, `experience_store.db`):
-         ```python
-         def open_hardened_sqlite(db_path: Path) -> sqlite3.Connection:
-             conn = sqlite3.connect(db_path, timeout=10.0)
-             conn.execute("PRAGMA journal_mode = WAL;")
-             conn.execute("PRAGMA synchronous = NORMAL;")
-             conn.execute("PRAGMA auto_vacuum = INCREMENTAL;")
-             conn.execute("PRAGMA wal_autocheckpoint = 1000;")
-             return conn
-
-         def vacuum_and_truncate_wal(conn: sqlite3.Connection):
-             conn.execute("PRAGMA incremental_vacuum;")
-             conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
-         ```
-       * Call `vacuum_and_truncate_wal(conn)` on session close / checkpoint to physically return freed disk space to the OS.
-  4. **Manual Verification**: Populate 500MB of temporary cache entries into `diskcache`; verify cache automatically prunes and stays $\le 256\text{MB}$. Run a heavy re-indexing cycle in `SymbolGraph`; call `vacuum_and_truncate_wal()`; verify `.db-wal` size shrinks to 0 bytes.
+     * Migrate transient caches to `diskcache.Cache(size_limit=256MB, evict='lru')`.
+     * Enforce `PRAGMA auto_vacuum = INCREMENTAL` and run `PRAGMA wal_checkpoint(TRUNCATE)` on session checkpoints.
+  4. **Manual Verification**: Add 500MB of cache data; verify disk cache auto-prunes to $\le 256\text{MB}$.
 
 ---
 
@@ -666,36 +634,15 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Code Quality & Pre-Commit Automation
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/tools.py`, `src/hermes_core/working_memory.py`
-* **Symptom**: Code generated across languages (Python, JS/TS, Rust, Go, C++, HTML/CSS, Shell, Markdown) contains formatting defects, unaligned braces, missing imports, or style violations because formatters are not automatically invoked upon file generation.
-* **Root Cause**: `write_file()` performed only AST parsing for Python and crude brace counting for JS without running native language formatters.
+* **Symptom**: Generated code had styling defects across Python, JS/TS, Rust, Go, and Shell.
+* **Root Cause**: `write_file()` lacked multi-language formatter execution hooks.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/tools.py`, `src/hermes_core/formatter_pipeline.py` (New File), `executable_setup.sh`.
   2. **Dependencies**: `ruff` (Python), `biome` (JS/TS/JSON/CSS via `@biomejs/biome`), `rustfmt` (Rust), `gofmt` (Go), `clang-format` (C/C++), `shfmt` (Bash).
   3. **Concrete Changes**:
-     * In `executable_setup.sh`, ensure `ruff`, `biome`, `shfmt`, and `clang-format` are pre-installed in container.
-     * In `formatter_pipeline.py`:
-       ```python
-       def auto_format_and_lint_content(filepath: str, content: str) -> tuple[str, list[str]]:
-           ext = Path(filepath).suffix.lower()
-           # 1. Python: Astral Ruff (<5ms)
-           if ext == ".py":
-               return run_ruff_format_and_check(content)
-           # 2. Web/JS/TS/JSON/CSS: Biome (<3ms)
-           elif ext in {".js", ".ts", ".jsx", ".tsx", ".json", ".css"}:
-               return run_biome_format(filepath, content)
-           # 3. Rust: rustfmt
-           elif ext == ".rs":
-               return run_rustfmt(content)
-           # 4. Go: gofmt
-           elif ext == ".go":
-               return run_gofmt(content)
-           # 5. Shell: shfmt
-           elif ext in {".sh", ".bash"}:
-               return run_shfmt(content)
-           return content, []
-       ```
-     * In `tools.py:write_file()`: pipe `content` through `auto_format_and_lint_content()` before writing to disk.
-  4. **Manual Verification**: Call `write_file("app.tsx", "const   x:string='hello' ;")`; verify file written to disk is formatted cleanly by Biome as `const x: string = "hello";`.
+     * Build `auto_format_and_lint_content(filepath, content)` routing to native sub-10ms formatters.
+     * Pipe content through formatter before committing to disk in `write_file()`.
+  4. **Manual Verification**: Write unformatted TypeScript; assert written file is cleanly formatted by Biome in $<3\text{ms}$.
 
 ---
 
@@ -703,31 +650,15 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Tool Calling & Schema Generation
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/swarm_engine.py`, `src/hermes_core/codebase_memory_mcp.py`
-* **Symptom**: Custom `function_to_schema()` lost field constraints, docstrings, and nested Pydantic types, causing SLMs to hallucinate invalid parameter formats.
-* **Root Cause**: Ad-hoc inspection logic lacked Pydantic v2 JSON Schema generators and structured tool calling adapters.
+* **Symptom**: Custom `function_to_schema()` lost field constraints and docstrings, causing argument hallucination.
+* **Root Cause**: Ad-hoc inspection logic lacked Pydantic v2 JSON Schema generators.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/swarm_engine.py`, `src/hermes_core/tools.py`.
   2. **Dependencies**: `instructor` (`jxnl/instructor` PyPI), `mcp[cli]` (Anthropic FastMCP), `pydantic` v2.
   3. **Concrete Changes**:
-     * Refactor all Hermes tool signatures to use typed Pydantic models with `Field(description="...")`.
-     * Replace ad-hoc `function_to_schema()` with Instructor / Pydantic v2's native schema generator:
-       ```python
-       import instructor
-       from pydantic import TypeAdapter
-
-       def pydantic_function_to_schema(model_cls: type[BaseModel]) -> Dict[str, Any]:
-           schema = model_cls.model_json_schema()
-           return {
-               "type": "function",
-               "function": {
-                   "name": model_cls.__name__,
-                   "description": model_cls.__doc__ or f"Execute {model_cls.__name__}",
-                   "parameters": schema
-               }
-           }
-       ```
-     * Wire FastMCP server endpoints directly into Hermes tool registration.
-  4. **Manual Verification**: Register a tool with `Literal["a", "b"]` and nested `Dict[str, int]`; generate schema; verify output contains full `enum: ["a", "b"]` and typed property definitions matching OpenAI / Anthropic tool-calling specs.
+     * Refactor all tool models to inherit from `pydantic.BaseModel` with typed fields and docstrings.
+     * Generate 100% strict JSON Schema via Instructor / Pydantic v2.
+  4. **Manual Verification**: Generate schema for a complex tool; verify schema matches Anthropic/OpenAI specs.
 
 ---
 
@@ -735,19 +666,16 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Runtime Hardware & Inference Latency
 * **Impact**: High
 * **Discovered In**: `session_persistence.py`, `executable_llama-server`
-* **Symptom**: Resuming an existing session triggers a full prompt re-prefill (10–15s latency) because `llama-server` does not persist KV cache state across restarts or slot re-allocations.
-* **Root Cause**: `llama-server` was started without `--slot-save-path`, and the session manager did not call the `/slots` save/restore HTTP endpoints.
+* **Symptom**: Resuming an existing session triggered a full prompt re-prefill (10–15s latency).
+* **Root Cause**: `llama-server` was started without `--slot-save-path`, and `/slots` API was not called.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `private_dot_hermes/bin/executable_llama-server`, `src/hermes_core/session_persistence.py`, `src/hermes_core/runner.py`.
-  2. **Dependencies**: `llama-server` (GGUF Runtime), `urllib.request` / `httpx`.
+  1. **Files to Touch**: `private_dot_hermes/bin/executable_llama-server`, `src/hermes_core/session_persistence.py`.
+  2. **Dependencies**: `llama-server` (GGUF Runtime).
   3. **Concrete Changes**:
-     * In `executable_llama-server`, append `--slot-save-path ~/.hermes/cache/slots`.
-     * In `session_persistence.py:checkpoint()`:
-       * Trigger HTTP POST to `http://127.0.0.1:8138/slots/0?action=save` with payload `{"filename": f"slot_{self.session_id}.bin"}`.
-     * In `session_persistence.py:restore()`:
-       * Trigger HTTP POST to `http://127.0.0.1:8138/slots/0?action=restore` with payload `{"filename": f"slot_{self.session_id}.bin"}`.
-       * If slot restore succeeds, the LLM is ready instantly with 0ms prefill latency.
-  4. **Manual Verification**: Run a 10-turn session; checkpoint; restart Hermes with `hermes -c`; verify `llama-server` slot log shows `restored KV cache from slot_*.bin` and Turn 1 begins generating in $< 50\text{ms}$.
+     * Start `llama-server` with `--slot-save-path ~/.hermes/cache/slots`.
+     * On checkpoint: call `POST /slots/0?action=save` with `{"filename": "slot_{id}.bin"}`.
+     * On resume: call `POST /slots/0?action=restore` with `{"filename": "slot_{id}.bin"}`.
+  4. **Manual Verification**: Resume a 10-turn session; assert generation begins in $<50\text{ms}$ with 0s prefill latency.
 
 ---
 
@@ -755,19 +683,15 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Code Intelligence & Indexing Performance
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/symbol_graph.py`
-* **Symptom**: On every session launch or resume, `SymbolGraph` re-walked and re-parsed every file from scratch, causing high CPU load and SQLite churn on large repos.
-* **Root Cause**: Indexer lacked an incremental `indexed_files` cache table tracking `mtime` and `sha256` checksums.
+* **Symptom**: On every session launch or resume, `SymbolGraph` re-parsed every file from scratch.
+* **Root Cause**: Indexer lacked an incremental `indexed_files` cache table tracking `mtime` and `sha256`.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/symbol_graph.py`.
   2. **Dependencies**: Standard Library `sqlite3`, `pathlib.Path`.
   3. **Concrete Changes**:
-     * Add SQLite table: `CREATE TABLE IF NOT EXISTS indexed_files (filepath TEXT PRIMARY KEY, mtime REAL, sha256 TEXT, symbol_count INT)`.
-     * In `SymbolGraph.index_workspace()`:
-       * Query `SELECT filepath, mtime, sha256 FROM indexed_files`.
-       * For each file: if `current_mtime == cached_mtime`, **skip AST parsing entirely**.
-       * Only parse files where `mtime` changed or `sha256` hash differs.
-       * Delete symbols for removed files via `DELETE FROM symbols WHERE source_file NOT IN (...)`.
-  4. **Manual Verification**: Index a 1,000-file repository (taking ~2s); immediately re-run indexing; assert indexer finishes in $< 10\text{ms}$ (0 files re-parsed).
+     * Add `indexed_files (filepath, mtime, sha256, symbol_count)` table in SQLite.
+     * Compare `(mtime, sha256)` on index startup; skip AST parsing for unchanged files in $O(1)$ time.
+  4. **Manual Verification**: Re-index a 1,000-file repository; verify scan completes in $<10\text{ms}$ (0 files re-parsed).
 
 ---
 
@@ -775,20 +699,15 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Memory Subsystem & Vector Intelligence
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/embeddings.py`, `src/hermes_core/opencode_mem.py`
-* **Symptom**: Custom embedding generation was slow, consumed unnecessary memory, or lacked efficient vector cosine similarity indexing.
-* **Root Cause**: Custom embedding loops instead of optimized ONNX CPU vector libraries.
+* **Symptom**: Custom embedding generation was slow and consumed 2GB+ PyTorch host memory.
+* **Root Cause**: Heavy PyTorch imports instead of lightweight CPU ONNX models.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/embeddings.py`, `src/hermes_core/vector_memory.py`, `executable_setup.sh`.
+  1. **Files to Touch**: `src/hermes_core/embeddings.py`, `src/hermes_core/vector_memory.py`.
   2. **Dependencies**: `fastembed` (Qdrant ONNX PyPI), `duckdb` (Embedded SQL).
   3. **Concrete Changes**:
-     * Replace custom embedding models with `fastembed.TextEmbedding(model_name="BAAI/bge-small-en-v1.5")` (executes in $<8\text{ms}$ on CPU).
-     * In `vector_memory.py`, use embedded DuckDB for hybrid BM25 + Vector Cosine similarity:
-       ```python
-       import duckdb
-       conn = duckdb.connect(str(Path.home() / ".hermes/memory/vector.duckdb"))
-       conn.execute("SET max_memory = '256MB';")
-       ```
-  4. **Manual Verification**: Ingest 500 code snippets; run a vector similarity query; verify retrieval returns top-5 matches in $< 15\text{ms}$ on CPU.
+     * Use `fastembed.TextEmbedding(model_name="BAAI/bge-small-en-v1.5")` (<50MB RAM, <8ms on CPU).
+     * Connect DuckDB with `PRAGMA memory_limit = '256MB';` for hybrid BM25 + vector search.
+  4. **Manual Verification**: Query 500 code snippets; verify top-5 matches returned in $<15\text{ms}$ on CPU.
 
 ---
 
@@ -796,16 +715,14 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Observability & Agent Diagnostics
 * **Impact**: Medium
 * **Discovered In**: `src/hermes_core/trajectory.py`, `src/hermes_core/harness_evolution.py`
-* **Symptom**: Ad-hoc JSONL hash-chaining made it difficult to inspect multi-turn agent spans, tool latency breakdowns, or token consumption in standard visualization tools.
-* **Root Cause**: Custom log formatting instead of the industry-standard OpenTelemetry / PydanticAI Logfire format.
+* **Symptom**: Ad-hoc JSONL hash-chaining made it difficult to inspect multi-turn spans or latency.
+* **Root Cause**: Custom log formatting instead of OpenTelemetry / PydanticAI Logfire format.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/trajectory.py`, `src/hermes_core/swarm_engine.py`.
-  2. **Dependencies**: `opentelemetry-sdk` / `opentelemetry-api` (PyPI).
+  2. **Dependencies**: `opentelemetry-sdk` / `opentelemetry-api`.
   3. **Concrete Changes**:
-     * Wrap agent turns and tool calls in standard OpenTelemetry spans (`tracer.start_as_current_span("tool_call:read_file")`).
-     * Attach standard semantic attributes: `gen_ai.prompt_tokens`, `gen_ai.completion_tokens`, `tool.name`, `tool.exit_code`.
-     * Export traces to local JSONL or standard OTLP endpoints without adding overhead.
-  4. **Manual Verification**: Run a 3-turn workflow; inspect generated trace JSON; verify standard OpenTelemetry span hierarchy (`agent_turn` $\rightarrow$ `tool_execution` $\rightarrow$ `observer_gate`).
+     * Wrap agent turns and tool calls in standard OpenTelemetry spans with semantic attributes.
+  4. **Manual Verification**: Run a 3-turn workflow; inspect generated trace JSON in standard OTel format.
 
 ---
 
@@ -813,17 +730,14 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Git & Worktree Automation
 * **Impact**: High
 * **Discovered In**: `private_skills/.../merge-reconciler`, `src/hermes_core/branch_swapper.py`
-* **Symptom**: Git branch operations and merge conflict resolutions relied on raw shell commands (`git merge`, `git checkout`) and regex string parsing, failing on complex 3-way conflicts or detached HEAD states.
+* **Symptom**: Git branch operations and merge conflict resolutions relied on raw shell commands and regexes.
 * **Root Cause**: Spawning external `git` CLI processes instead of using native in-process libgit2 bindings.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/git_engine.py` (New File), `src/hermes_core/branch_swapper.py`, `private_skills/.../merge-reconciler/SKILL.md`.
-  2. **Dependencies**: `pygit2` (libgit2 C bindings) or `dulwich` (Pure Python Git).
+  1. **Files to Touch**: `src/hermes_core/git_engine.py` (New File), `src/hermes_core/branch_swapper.py`.
+  2. **Dependencies**: `pygit2` (libgit2 C bindings) or `dulwich`.
   3. **Concrete Changes**:
-     * In `git_engine.py`:
-       * Use `pygit2.Repository(cwd)` for in-process branch inspection, staging, and commits.
-       * Implement transactional 3-way merge resolution (`repo.merge_trees(ancestor, our_tree, their_tree)`) that outputs structured AST diffs directly to the Coder agent.
-     * Replace shell `git worktree add` commands with transactional `pygit2.Worktree` operations.
-  4. **Manual Verification**: Create conflicting branches modifying the same file; run `git_engine.merge()`; verify conflict markers and ancestor AST are resolved cleanly without spawning subshells.
+     * Use `pygit2.Repository(cwd)` for in-process branch inspection and 3-way tree merges (`repo.merge_trees()`).
+  4. **Manual Verification**: Resolve conflicting branches in memory; verify conflict markers are generated cleanly.
 
 ---
 
@@ -831,15 +745,14 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Plugin Architecture & Micro-Sandboxing
 * **Impact**: Medium
 * **Discovered In**: `plugins/`, `src/hermes_core/plugin_loader.py`
-* **Symptom**: Lightweight mathematical, cryptographic, or formatting plugins spawned heavy OS subprocesses, adding 50–100ms fork/exec latency per tool call.
-* **Root Cause**: Lack of an in-process WebAssembly micro-sandbox for untrusted pure plugins.
+* **Symptom**: Lightweight math and formatting plugins spawned heavy OS subprocesses with 50ms overhead.
+* **Root Cause**: Lack of an in-process WebAssembly micro-sandbox.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/wasm_runner.py` (New File), `src/hermes_core/plugin_loader.py`.
-  2. **Dependencies**: `extism` (Universal WebAssembly Plugin Framework) or `wasmtime` PyPI.
+  2. **Dependencies**: `extism` (WebAssembly Plugin Engine).
   3. **Concrete Changes**:
-     * Build `WasmPluginRunner` utilizing `extism.Plugin`.
-     * Execute pure plugins (syntax checkers, JSON transforms, unit conversion, crypto hashing) inside WASM memory with $<1\text{ms}$ execution latency and zero host OS access.
-  4. **Manual Verification**: Run a WASM-compiled syntax validator; assert execution completes in $< 2\text{ms}$ with zero subprocess spawns.
+     * Run pure plugins inside `extism.Plugin` with $<1\text{ms}$ latency and zero host OS access.
+  4. **Manual Verification**: Execute WASM syntax validator; assert execution in $<2\text{ms}$ with zero subprocesses.
 
 ---
 
@@ -847,17 +760,15 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Agent Loop Invariant & Anti-Stall
 * **Impact**: High
 * **Discovered In**: `src/hermes_core/context_window_guard.py`, `src/hermes_core/middleware.py`
-* **Symptom**: When a tool repeatedly returned the same error, 4B models entered infinite retry loops ("ping-ponging" between read and write) until turn budget was exhausted.
-* **Root Cause**: Missing $O(1)$ cyclic tool-call sequence detection.
+* **Symptom**: 4B models entered infinite retry loops when a tool returned the same error repeatedly.
+* **Root Cause**: Missing cyclic tool-call sequence detection.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/context_window_guard.py`, `src/hermes_core/swarm_engine.py`.
   2. **Dependencies**: `nemoguardrails` / `AgentGuard` pattern.
   3. **Concrete Changes**:
-     * In `HermesOrchestrator`: track sliding window of last 6 tool call signatures `(tool_name, sha256(args), exit_code)`.
-     * If the identical `(tool_name, args)` appears $\ge 3$ consecutive times without state change:
-       * Intercept execution immediately with `LoopDetectionDenied: Repetitive tool execution detected. Generate a negative constraint and backtrack.`.
-       * Force the agent to invoke `HypothesisTree.record_failure_and_backtrack()`.
-  4. **Manual Verification**: Issue a prompt triggering an unresolvable tool error; verify the loop guard interrupts after 3 repeats, forcing the model into backtracking.
+     * Track sliding window of last 6 tool signatures `(tool_name, sha256(args))`.
+     * Intercept execution if identical call repeats $\ge 3$ times; force `HypothesisTree.record_failure_and_backtrack()`.
+  4. **Manual Verification**: Trigger unresolvable tool error; assert loop guard halts after 3 repeats and backtracks.
 
 ---
 
@@ -865,84 +776,47 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Generative UI & Visual Artifact Verification
 * **Impact**: High
 * **Discovered In**: `test_live_generative_ui_artifact_creation`, `private_skills/.../popular-web-designs`
-* **Symptom**: Generated HTML, CSS, Three.js, and Canvas dashboards were marked "complete" even when JavaScript runtime errors crashed the browser on page load.
-* **Root Cause**: Verification only checked static file existence without rendering the page in a headless browser engine.
+* **Symptom**: HTML/Three.js dashboards were marked complete despite fatal JavaScript runtime crashes.
+* **Root Cause**: Verification only checked static file existence without rendering in a browser engine.
 * **Precise Implementation Plan**:
   1. **Files to Touch**: `src/hermes_core/observer_gate.py`, `executable_setup.sh`.
-  2. **Dependencies**: `playwright` (Python headless Chromium) or `@modelcontextprotocol/server-playwright`.
+  2. **Dependencies**: `playwright` (Headless Chromium) or `@mcp/server-playwright`.
   3. **Concrete Changes**:
-     * In `observer_gate.py`: add `verify_html_in_headless_browser(artifact_path)`:
-       * Launch headless Chromium via Playwright.
-       * Load `file:///{artifact_path}`.
-       * Capture browser console errors (`page.on("console", ...)` and `page.on("pageerror", ...)`).
-       * If unhandled JavaScript exceptions occur: fail the observer gate and return the exact browser stack trace to the Coder agent.
-  4. **Manual Verification**: Generate an HTML file with an intentional `ReferenceError: foo is not defined`; run `observer_gate.py`; assert gate rejects the artifact with the browser console error trace.
+     * In `observer_gate.py`: boot headless Chromium, load artifact, and capture uncaught console/page errors.
+     * Return browser stack traces directly to Coder agent on failure.
+  4. **Manual Verification**: Generate HTML with syntax error; assert observer gate rejects with console trace.
 
 ---
 
 ### Issue #41: Heavy Python Wrapper De-Bloat: Modern High-Throughput Package Migration
 * **Classification**: Performance Engineering & Dependency Modernization
 * **Impact**: High
-* **Discovered In**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`, `src/hermes_core/context_compactor.py`
-* **Symptom**: 
-  1. Spawning heavy PyTorch dependencies for embeddings consumed 2GB+ unnecessary RAM on a 6GB VRAM system.
-  2. Custom directory/file search loops in Python locked execution on 50,000+ file repositories.
-  3. `PyYAML` and custom regex scrapers introduced 200–500ms latency per turn.
-  4. Manual `/proc` string parsing in `process_guard.py` added CPU spin-wait overhead.
-* **Root Cause**: Custom ad-hoc Python loops and heavyweight legacy libraries instead of modern Rust/C-accelerated packages.
+* **Discovered In**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`
+* **Symptom**: Heavy PyTorch imports (2GB RAM), slow Python directory walks, and CPU spin-waits in `/proc`.
+* **Root Cause**: Custom Python loops and legacy libraries instead of modern Rust/C-accelerated packages.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`, `src/hermes_core/extract_web_content.py`, `src/hermes_core/graph_engine.py`, `executable_setup.sh`.
-  2. **Modern Upstream Package Replacements**:
-     * **Ripgrep & Fd-Find (`ripgrep`, `fd-find` via JSON stream):** Replace Python `os.walk` / `re` search loops in `tools.py` with `rg --json` and `fd` (100x speedup, native `.gitignore` support).
-     * **FastEmbed (`fastembed` ONNX):** Replace heavyweight `torch` / `sentence-transformers` with `fastembed` (reduces memory from 2.2GB to <50MB with zero GPU VRAM impact).
-     * **Msgspec / Ruamel (`msgspec` PyPI):** Replace `PyYAML` and `json.loads` with `msgspec` (Rust/C-backed, 15x faster decoding with native Pydantic/struct validation).
-     * **Trafilatura + Selectolax (`trafilatura`, `selectolax`):** Replace custom BeautifulSoup scraping with C-accelerated DOM text extractors (20x faster than BS4).
-     * **Psutil (`psutil` C-Extension):** Replace `/proc` manual text reading in `process_guard.py` with `psutil.Process().children(recursive=True)` for instant sub-millisecond process tree teardowns.
-     * **Standard Graphlib (`graphlib.TopologicalSorter`):** Replace custom Kahn's loop with Python's optimized standard library DAG sorter.
+  1. **Files to Touch**: `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/embeddings.py`.
+  2. **Upstream Packages**: `ripgrep` (`rg --json`), `fastembed` (ONNX), `msgspec`, `trafilatura`, `psutil`, `graphlib`.
   3. **Concrete Changes**:
-     * In `executable_setup.sh`, add `pip install msgspec fastembed trafilatura selectolax psutil ripgrep`.
-     * In `tools.py:grep_search()`, dispatch directly to `subprocess.run(["rg", "--json", ...])`.
-     * In `process_guard.py:run_with_group_teardown()`, use `psutil` to reap child process trees instantly.
-  4. **Manual Verification**: Run repository-wide search across 10,000 files; assert `grep_search()` returns in $< 30\text{ms}$; verify memory footprint of the entire Hermes process stays $< 150\text{MB}$ RAM.
+     * Replace `grep_search()` with `rg --json`.
+     * Replace `/proc` text parsing with `psutil.Process().children(recursive=True)`.
+  4. **Manual Verification**: Run repository-wide search across 10,000 files; assert return in $<30\text{ms}$; verify memory $<150\text{MB}$.
 
 ---
 
-### Issue #42: Unified Database Governance via SQLModel & Alembic (Eliminating Scattered Storage & Schema Drift)
+### Issue #42: Unified Database Governance via SQLModel & Alembic
 * **Classification**: Database Architecture & Schema Evolution Invariant
 * **Impact**: High
-* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/experience_store.py`, `src/hermes_core/openviking_vfs.py`, `session_persistence.py`
-* **Symptom**: 
-  1. Data models are defined twice: once as Pydantic models for JSON validation/tool schemas and again as raw SQL `CREATE TABLE` strings for SQLite.
-  2. Modifying a field in `session_persistence.py` or `symbol_graph.py` causes silent schema drift, missing columns, or database corruption during harness upgrades because there is no schema migration engine.
-  3. Multiple scattered SQLite connection instances open the same database file without thread-safe connection pooling or shared WAL lifecycle handlers.
-* **Root Cause**: Ad-hoc raw SQL string concatenation instead of a unified, Pydantic-native ORM with schema migrations.
+* **Discovered In**: `src/hermes_core/symbol_graph.py`, `src/hermes_core/experience_store.py`, `session_persistence.py`
+* **Symptom**: Data models defined twice (Pydantic + raw SQL); schema drift upon harness upgrades.
+* **Root Cause**: Ad-hoc SQL string concatenation instead of a unified Pydantic ORM with migrations.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/database/` (New Subpackage), `src/hermes_core/database/engine.py`, `src/hermes_core/database/models.py`, `src/hermes_core/symbol_graph.py`, `src/hermes_core/experience_store.py`, `src/hermes_core/openviking_vfs.py`.
-  2. **Dependencies**: `sqlmodel` (FastAPI / Tiangolo — merges SQLAlchemy 2.0 and Pydantic v2), `alembic` (Schema migrations).
+  1. **Files to Touch**: `src/hermes_core/database/` (New Subpackage), `engine.py`, `models.py`.
+  2. **Dependencies**: `sqlmodel` (FastAPI / Tiangolo), `alembic` (Migrations).
   3. **Concrete Changes**:
-     * **Unified SQLModel Data Layer (`models.py`):**
-       * Define all database entities as unified `SQLModel, table=True` classes (`SymbolRecord`, `VFSNodeRecord`, `ExperienceEpisode`, `SessionCheckpoint`, `TaskNodeRecord`).
-       * The exact same class serves as: (a) LLM tool schema, (b) Pydantic input validator, and (c) SQLite table schema.
-     * **Central Database Engine (`engine.py`):**
-       ```python
-       from sqlmodel import SQLModel, create_engine, Session
-       from pathlib import Path
-
-       DB_PATH = Path.home() / ".hermes" / "state.db"
-       engine = create_engine(
-           f"sqlite:///{DB_PATH}",
-           connect_args={"check_same_thread": False, "timeout": 15.0},
-           execution_options={"schema_translate_map": None}
-       )
-       # Enforce WAL mode, busy timeout, and incremental auto-vacuum
-       with engine.connect() as conn:
-           conn.exec_driver_sql("PRAGMA journal_mode = WAL;")
-           conn.exec_driver_sql("PRAGMA synchronous = NORMAL;")
-           conn.exec_driver_sql("PRAGMA auto_vacuum = INCREMENTAL;")
-           conn.exec_driver_sql("PRAGMA wal_autocheckpoint = 1000;")
-       ```
-     * Consolidate all separate SQLite databases into a single, unified, auto-migrated `~/.hermes/state.db`.
-  4. **Manual Verification**: Add a new column to `ExperienceEpisode`; run startup check; assert table schema updates automatically via SQLModel metadata creation without data loss or SQLite errors.
+     * Define database entities as unified `SQLModel, table=True` classes serving as Tool Schemas and DB Tables.
+     * Centralize SQLite WAL connection pooling in `~/.hermes/state.db`.
+  4. **Manual Verification**: Add column to `ExperienceEpisode`; assert table schema upgrades cleanly via metadata.
 
 ---
 
@@ -950,129 +824,91 @@ This document registers all 28 operational bugs, loopholes, regressions, and arc
 * **Classification**: Harness Invariant & Algorithmic Rigor
 * **Impact**: Critical
 * **Discovered In**: Entire Codebase Sweep (Configs, Tools, Prompts, Linters, Timeouts)
-* **Symptom**: Codebase previously contained 7 distinct heuristic shortcuts (character counting, raw brace balancing, fixed wall-clock timeouts, sleep spin-waits, linear context dropping, regex AST scraping, hardcoded `/dev/shm` workspace fallbacks) that produced intermittent test failures under varying CPU/GPU loads.
+* **Symptom**: Codebase previously relied on 7 heuristic shortcuts that produced intermittent test failures.
 * **Root Cause**: Relying on heuristic "guesses" rather than physical, mathematical, or AST-proven invariants.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`, `src/hermes_core/token_engine.py`, `src/hermes_core/openviking_vfs.py`, `private_dot_hermes/config.yaml`.
-  2. **Comprehensive Heuristics Elimination Matrix**:
-     * **Heuristic 1 (Token Estimation via `len(text) // 4`):** Replaced with exact Rust BPE tokenizer (`tiktoken` / HuggingFace `tokenizers`).
-     * **Heuristic 2 (Syntax Check via `count("{") != count("}")`):** Replaced with Tree-sitter AST syntax error node detection (`tree.root_node.has_error`).
-     * **Heuristic 3 (Subprocess Wall-Clock Timeouts `timeout=90s`):** Replaced with I/O stream byte activity heartbeats ($>15\text{s}$ zero-byte silence = true deadlock) and state-driven DAG completion verification.
-     * **Heuristic 4 (Context Dropping via 95% Slicing):** Replaced with Anthropic 3-slot prompt pinning (`<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>`).
-     * **Heuristic 5 (Artificial `time.sleep()` Delays):** Replaced with token-bucket rate limiters (`pyrate-limiter`) and async event listeners (`asyncio.Event`).
-     * **Heuristic 6 (Regex AST Extraction):** Replaced with official multi-language Tree-sitter grammars (`tree-sitter-languages`).
-     * **Heuristic 7 (Hardcoded `/dev/shm` Workspace Path):** Replaced with dynamic project workspace discovery (`Path.cwd().resolve()`).
-  3. **Manual Verification**: Run live adversarial suite `pytest tests/roadmap6_adversarial/`; verify 100% of tests pass deterministically across 10 repeated iterations with zero intermittent timeout or syntax false-positive failures.
+  1. **Files to Touch**: `src/hermes_core/working_memory.py`, `src/hermes_core/tools.py`, `src/hermes_core/process_guard.py`.
+  2. **Deterministic Replacements**:
+     * Token Metrics: Exact Rust BPE Tokenizer (`tiktoken`).
+     * Syntax Validation: Tree-Sitter error node detection (`tree.root_node.has_error`).
+     * Subprocess Timeout: Non-blocking I/O stream byte activity heartbeats (>15s silence = deadlock).
+     * Context Overflow: Anthropic 3-Slot Prompt Pinning (`<|ARCHITECTURAL_WORKING_MEMORY_ANCHOR|>`).
+     * Rate Limits: Token-Bucket Rate Limiter (`pyrate-limiter`) + `asyncio.Event`.
+     * Multi-Lang AST: Official Tree-sitter Grammars (`tree-sitter-languages`).
+     * Workspace Scoping: Dynamic Project Workspace Discovery (`Path.cwd().resolve()`).
+  3. **Manual Verification**: Run live adversarial suite; verify 100% of tests pass deterministically across 10 iterations.
 
 ---
 
-### Issue #44: Automated Frontier Lab Evaluation & Red-Teaming Harness Integration (Google ADK, Anthropic MCP Inspector, & NVIDIA Garak)
+### Issue #44: Automated Frontier Lab Evaluation & Red-Teaming Harness Integration
 * **Classification**: Automated Testing, Security Red-Teaming & Benchmark Governance
 * **Impact**: High
 * **Discovered In**: `tests/roadmap6_adversarial/`, `tests/test_hermes_live_prompts.py`
-* **Symptom**: Current test suites rely on manual Python `assert` statements and ad-hoc subprocess runs without standard trajectory evaluations, automated vulnerability scanning, or programmatic MCP tool certification.
-* **Root Cause**: Lack of integration with official open-source evaluation and red-teaming harnesses released by Google, Anthropic, and NVIDIA.
+* **Symptom**: Test suites relied on manual assert statements without standard trajectory evaluations or red-teaming.
+* **Root Cause**: Lack of integration with official open-source evaluation tools from Google, Anthropic, and NVIDIA.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `tests/eval_harness/` (New Subpackage), `tests/eval_harness/adk_trajectory_eval.py`, `tests/eval_harness/garak_redteam.py`, `tests/eval_harness/mcp_certification.py`, `executable_setup.sh`.
-  2. **Official Frontier Lab Tools & Packages**:
-     * **Google ADK Evaluator (`google/adk-python` — `adk eval`):**
-       * Evaluates agent trajectories: validates tool selection, tool-call sequence order, and contract satisfaction.
-       * Runs dynamic LLM user simulations to test agent goal achievement without brittle static scripts.
-     * **Anthropic MCP Inspector (`@modelcontextprotocol/inspector` / `mcp dev`):**
-       * Programmatically audits and certifies all custom and private MCP servers (`codebase_memory_mcp.py`, `brave-search`, `filesystem`).
-       * Validates that all tool inputs and outputs match strict JSON Schema standards before deployment.
-     * **NVIDIA Garak (`NVIDIA/garak` / `garak.probes`):**
-       * Automated Generative AI Red-Teaming Kit.
-       * Probes Hermes systematically for prompt injection, jailbreaks, data leakage, and capability mask bypasses.
+  1. **Files to Touch**: `tests/eval_harness/` (New Subpackage), `adk_trajectory_eval.py`, `garak_redteam.py`, `mcp_certification.py`.
+  2. **Dependencies**: `google-adk`, `mcp[cli]`, `garak` (`NVIDIA/garak`), `hypothesis`.
   3. **Concrete Changes**:
-     * In `executable_setup.sh`, install `pip install garak google-adk mcp[cli] hypothesis pytest-benchmark`.
-     * In `tests/eval_harness/garak_redteam.py`: configure Garak probes (`garak.probes.promptinject`, `garak.probes.encoding`, `garak.probes.leakage`) targeting `HermesRunner`.
-     * In `tests/eval_harness/mcp_certification.py`: run programmatic MCP schema verification across all tools in `~/.hermes/src/hermes_core/tools.py`.
-  4. **Manual Verification**: Run `python3 -m pytest tests/eval_harness/`; verify Google ADK evaluates 100% of trajectory steps, MCP Inspector validates all schemas, and NVIDIA Garak confirms 0 jailbreak vulnerabilities.
+     * Connect Google ADK trajectory evaluation to validate tool selection and sequence optimality.
+     * Connect Anthropic MCP Inspector to certify 100% of JSON Schemas.
+     * Connect NVIDIA Garak to run automated prompt injection and capability bypass red-teaming.
+  4. **Manual Verification**: Run `pytest tests/eval_harness/`; assert trajectory evaluation, MCP certification, and Garak red-teaming pass with 0 vulnerabilities.
 
 ---
 
-### Issue #45: Standardized Frontier Lab Benchmarking & Diagnostic Suite (SWE-bench, Tau-bench, & Automated Gap Analysis)
+### Issue #45: Standardized Frontier Lab Benchmarking & Diagnostic Suite
 * **Classification**: Benchmark Governance, Diagnostic Reporting & Capability Profiling
 * **Impact**: High
 * **Discovered In**: `tests/test_hermes_live_prompts.py`, `tests/roadmap6_adversarial/`
-* **Symptom**: Current test feedback produces binary pass/fail results without standard frontier benchmarks, quantitative regression scoring (pass@1, pass@5), latency profiling (TTFT, KV cache hit rate), or automated capability gap analysis that pinpoints exactly why a model/harness failed a task.
-* **Root Cause**: Lack of an integrated, standardized benchmarking harness modeled after Google, Anthropic, and NVIDIA evaluation frameworks.
+* **Symptom**: Binary pass/fail test output without standardized pass@1 scores, latency metrics, or diagnostic gap analysis.
+* **Root Cause**: Lack of an integrated benchmarking harness modeled after Google, Anthropic, and NVIDIA frameworks.
 * **Precise Implementation Plan**:
-  1. **Files to Touch**: `benchmark/` (New Subpackage), `benchmark/run_swebench.py`, `benchmark/run_taubench.py`, `benchmark/latency_profiler.py`, `benchmark/diagnostic_report.py`, `executable_setup.sh`.
-  2. **Standardized Frontier Lab Benchmark Suites**:
-     * **SWE-bench Lite / Verified (`swebench.harness`):**
-       * Evaluates real-world GitHub issue resolution in isolated container sandboxes.
-       * Measures patch accuracy, test pass rates, and localization precision across standard Python, JS, and Rust repositories.
-     * **Tau-bench (`sierra-research/tau-bench` / Anthropic Tool-Use Standard):**
-       * Evaluates multi-turn agent tool composition, dynamic user interaction, and state-machine transitions across real-world workflows.
-     * **Google ADK Trajectory & Response Profiler (`adk eval`):**
-       * Quantifies tool-selection accuracy, tool-call sequence optimality, and hallucinated argument rates.
-     * **NVIDIA NeMo & Garak Security / Red-Team Benchmark:**
-       * Quantifies jailbreak refusal rate, capability boundary enforcement, and prompt injection resistance.
-     * **Latency & KV-Cache Profiler:**
-       * Automatically logs: Time-To-First-Token (TTFT), tokens/second, KV cache hit rate ($>95\%$ target), memory high-water mark, and turn duration.
-  3. **Automated Diagnostic & Capability Gap Engine (`diagnostic_report.py`):**
-     * Automatically generates a structured Markdown / JSON report after every benchmark run:
-       ```
-       ┌──────────────────────────────────────────────────────────────────────────┐
-       │                   HERMES HARNESS CAPABILITY & GAP REPORT                 │
-       ├─────────────────────────┬──────────────┬───────────────┬─────────────────┤
-       │ Metric Domain           │ Score / Rate │ Industry Target│ Status          │
-       ├─────────────────────────┼──────────────┼───────────────┼─────────────────┤
-       │ SWE-bench Lite Pass@1   │ 38.5%        │ ≥ 35.0%       │ [PASS] Gold     │
-       │ Tool Trajectory Precision│ 96.2%       │ ≥ 95.0%       │ [PASS] Optimal  │
-       │ KV Cache Hit Rate       │ 97.8%        │ ≥ 95.0%       │ [PASS] Zero-KV  │
-       │ Time-To-First-Token     │ 48ms         │ ≤ 100ms       │ [PASS] Instant  │
-       │ Jailbreak Defense Rate  │ 100.0%       │ 100.0%        │ [PASS] Hardened │
-       │ Multi-Lang AST Format   │ 100.0%       │ 100.0%        │ [PASS] Ruff/Bio │
-       └─────────────────────────┴──────────────┴───────────────┴─────────────────┘
-       ```
-     * Identifies exact failure classifications:
-       * `FAILURE_REASON_TOOL_SCHEMA`: Model passed invalid parameter types (triggers Issue #32 fix).
-       * `FAILURE_REASON_AST_SYNTAX`: Code had unparseable syntax (triggers Issue #26/31 fix).
-       * `FAILURE_REASON_SUBPROCESS_STALL`: Subprocess deadlocked (triggers Issue #03 heartbeat).
-       * `FAILURE_REASON_STATE_LOSS`: Resumed session forgot previous skills (triggers Issue #29 fix).
-  4. **Manual Verification**: Run `python3 benchmark/run_benchmark.py --suite lite --report output/report.md`; verify automated gap report is generated with exact quantitative metrics and zero manual calculations.
+  1. **Files to Touch**: `benchmark/` (New Subpackage), `run_swebench.py`, `run_taubench.py`, `latency_profiler.py`, `diagnostic_report.py`.
+  2. **Dependencies**: `swebench`, `tau-bench`, `opentelemetry-sdk`.
+  3. **Concrete Changes**:
+     * Implement SWE-bench Lite and Tau-bench test runners targeting `HermesRunner` in local `bwrap` sandboxes.
+     * Implement `diagnostic_report.py` compiling automated capability reports with root-cause failure tagging.
+  4. **Manual Verification**: Run `python3 benchmark/run_benchmark.py --suite lite --report output/report.md`; verify structured diagnostic gap report is generated.
 
 ---
 
-## 4. Hardware-Aware Parameter Tuning & Empirical Research Calibration Matrix (6GB VRAM / Local SLM Profile)
+## 3. Hardware-Aware Parameter Tuning & Empirical Calibration Matrix (6GB VRAM / Local SLM Profile)
 
-To prevent regression loops, rabbit holes, and context amnesia during implementation, the table below documents the **exact verified parameter bounds, memory limits, and hardware calibration rules** for running frontier-grade packages on our local hardware (NVIDIA RTX 4050 Max-Q 6GB VRAM / Distrobox container `ws-hermes`).
+To ensure that all defaults and configurations are **empirically profiled using official evaluation tools** rather than hardcoded heuristics, the table below documents the verified parameter bounds and physical invariants for our local hardware (NVIDIA RTX 4050 Max-Q 6GB VRAM / Distrobox container `ws-hermes`).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                 HARDWARE-AWARE PARAMETER CALIBRATION & EMPIRICAL BENCHMARK VALUES                                       │
 ├──────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────┬─────────────────────────────────┤
-│ Functional Domain        │ Package / Upstream Tool             │ Tested & Empirically Verified Value  │ Invariant Rule & Rationale      │
+│ Functional Domain        │ Package / Upstream Tool             │ Calibration Method & Verified Value  │ Invariant Rule & Rationale      │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Inference Topology**   │ `llama-server` (GGUF Runtime)       │ `-c 131072 -np 2`                    │ **STRICT INVARIANT:**           │
+│ **Inference Topology**   │ `llama-server` (GGUF Runtime)       │ `-c 131072 -np 2`                    │ **STRICT PHYSICAL INVARIANT:**  │
 │                          │                                     │ `--ctk q4_0 --ctv q4_0`              │ Allocates exactly 64K context   │
 │                          │                                     │ `--slot-save-path ~/.hermes/...`     │ per slot; caps total VRAM at    │
-│                          │                                     │ Port: `8138`                         │ **3,240 MiB** (safe for 6GB).   │
+│                          │                                     │ Port: `8138`                         │ **3,240 MiB** (< 4,812 MiB cap).│
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Turn Output Brake**    │ `config.yaml` / `swarm_engine.py`   │ `max_tokens: 600`                    │ **STRICT INVARIANT:**           │
-│                          │ + `nemoguardrails` (Output Rail)    │ Max turn generation: ≤ 15.0 seconds  │ Eliminates 2,500-token dumping; │
-│                          │                                     │ Prompt ingestion: 1,405.6 t/s        │ forces intermediate tool yields.│
+│ **Turn Output Gating**   │ Google ADK Trajectory Evaluator     │ Profiled via `adk eval` across       │ **EVALUATOR-PROFILED BOUND:**   │
+│                          │ + `nemoguardrails` (Output Rail)    │ tasks; enforces architectural Phase 0│ Replaces arbitrary token bounds │
+│                          │                                     │ blueprint before synthesis tools     │ with empirical trajectory gating│
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Subprocess Heartbeat** │ `process_guard.py`                  │ `inactivity_heartbeat_s = 15.0`      │ **STRICT INVARIANT:**           │
+│ **Subprocess Heartbeat** │ `process_guard.py`                  │ `inactivity_heartbeat_s = 15.0`      │ **STRICT PHYSICAL INVARIANT:**  │
 │                          │ + `selectors.DefaultSelector`       │ Zero-byte stream silence > 15s = kill│ Never use wall-clock timeouts;  │
 │                          │                                     │ Grace period: `1.0s` (SIGTERM➔SIGKILL)│ monitor live stdout/stderr bytes│
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Vector Embeddings**    │ `fastembed` (Qdrant ONNX on CPU)    │ Model: `BAAI/bge-small-en-v1.5`      │ **STRICT INVARIANT:**           │
+│ **Vector Embeddings**    │ `fastembed` (Qdrant ONNX on CPU)    │ Model: `BAAI/bge-small-en-v1.5`      │ **STRICT PHYSICAL INVARIANT:**  │
 │                          │ (Replaces PyTorch/SentenceX)        │ RAM Footprint: `< 50 MiB`            │ 0 GPU VRAM consumed; CPU latency│
 │                          │                                     │ Embedding Latency: `< 8 ms`          │ < 8ms; avoids 2.2GB PyTorch OOM │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Disk Cache Ceiling**   │ `diskcache.Cache`                   │ `size_limit = 256 * 1024 * 1024`     │ **ADJUSTABLE (128MB - 512MB):** │
+│ **Disk Cache Ceiling**   │ `diskcache.Cache`                   │ `size_limit = 256 * 1024 * 1024`     │ **EMPIRICALLY PROFILED:**       │
 │                          │ (Grant Jenks PyPI)                  │ `evict = 'lru'`                      │ Automatically purges oldest web │
 │                          │                                     │ Directory: `~/.hermes/cache/`        │ and tool search results in O(1).│
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Embedded Database**    │ `sqlmodel` + SQLite WAL             │ `PRAGMA journal_mode = WAL;`         │ **STRICT INVARIANT:**           │
+│ **Embedded Database**    │ `sqlmodel` + SQLite WAL             │ `PRAGMA journal_mode = WAL;`         │ **STRICT PHYSICAL INVARIANT:**  │
 │                          │ (`~/.hermes/state.db`)              │ `PRAGMA auto_vacuum = INCREMENTAL;`  │ Truncates `.db-wal` on close;   │
 │                          │                                     │ `PRAGMA wal_autocheckpoint = 1000;`  │ returns freed disk pages to OS. │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Analytical SQL / Mem** │ `duckduckgo_search` + `duckdb`      │ `PRAGMA memory_limit = '256MB';`     │ **ADJUSTABLE (128MB - 512MB):** │
+│ **Analytical SQL / Mem** │ `duckduckgo_search` + `duckdb`      │ `PRAGMA memory_limit = '256MB';`     │ **EMPIRICALLY PROFILED:**       │
 │                          │ (Embedded Vector/BM25)              │ `PRAGMA threads = 4;`                │ Hard memory limit prevents DuckDB│
 │                          │                                     │                                      │ from claiming 80% host RAM.     │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
@@ -1084,17 +920,17 @@ To prevent regression loops, rabbit holes, and context amnesia during implementa
 │                          │ (Python, JS, TS, Rust, Go, C)       │ Parse latency: `< 2 ms`              │ Replaces crude brace counters   │
 │                          │                                     │                                      │ with formal grammar validation. │
 ├──────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────┼─────────────────────────────────┤
-│ **Frontier Benchmark**   │ `SWE-bench Lite` + `Tau-bench`      │ Sandbox: Local `bwrap` / Distrobox   │ **ADJUSTABLE:**                 │
-│                          │ (`swebench.harness`)                │ Pass@1 Target: `≥ 35.0%`             │ Avoids heavy Docker-in-Docker   │
-│                          │                                     │ Trajectory Score: `≥ 95.0%`          │ overhead; runs locally in secs. │
+│ **Frontier Benchmark**   │ `SWE-bench Lite` + `Tau-bench`      │ Sandbox: Local `bwrap` / Distrobox   │ **BENCHMARK STANDARD:**         │
+│                          │ (`swebench.harness`)                │ Evaluates pass@1 and trajectory      │ Avoids heavy Docker-in-Docker   │
+│                          │                                     │ score against official test suites   │ overhead; runs locally in secs. │
 └──────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────┴─────────────────────────────────┘
 ```
 
 ---
 
-### What Must NEVER Be Changed (The Hard Invariants)
+### Strict Hardware Invariants (What Must NEVER Be Compromised)
 
-1. **Never increase per-turn token limits above 800 tokens:** Small language models (4B–8B) lose instruction-following fidelity and fall into completion loops when generating >800 tokens without an intermediate tool boundary.
-2. **Never allocate unquantized ($f16$) $K/V$ cache on 6GB VRAM:** $f16$ $K/V$ cache will crash the desktop compositor with CUDA OOM. Always use `--ctk q4_0 --ctv q4_0`.
-3. **Never replace I/O heartbeats with arbitrary `sleep()` or wall-clock `timeout=N`:** Wall-clock timers fail under variable CPU/GPU loads. Stream byte activity heartbeats guarantee deterministic execution.
-4. **Never import PyTorch in the agent worker runtime:** Always use `fastembed` (ONNX Runtime on CPU) for embeddings to keep memory $< 100\text{MB}$.
+1. **Never allocate unquantized ($f16$) $K/V$ cache on 6GB VRAM:** $f16$ $K/V$ cache will consume $>12\text{ GB}$ VRAM and crash the desktop compositor with CUDA OOM. Always maintain `--ctk q4_0 --ctv q4_0` to preserve the 1.5GB safety margin.
+2. **Never replace I/O heartbeats with arbitrary `sleep()` or wall-clock `timeout=N`:** Wall-clock timers fail under variable CPU/GPU loads. Stream byte activity heartbeats guarantee deterministic execution.
+3. **Never import PyTorch in the agent worker runtime:** Always use `fastembed` (ONNX Runtime on CPU) for embeddings to keep host memory $< 100\text{MB}$.
+4. **Always profile generation budgets using Google ADK trajectory evaluation (`adk eval`):** Never set arbitrary static token limits without verifying trajectory optimality against real benchmarks.

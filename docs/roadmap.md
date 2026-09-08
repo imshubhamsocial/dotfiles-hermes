@@ -329,10 +329,12 @@ Replaces `fast_research.py` (470 LOC) with async LLM-friendly Markdown extractio
 
 | ID | Action | Effort |
 |----|--------|--------|
-| D7-13 | Evaluate Google ADK: wrap `HermesOrchestrator` as ADK `CustomAgent` first | ✅ Completed |
-| D7-14 | Migrate `domain_fleet.py` multi-bot roles to Google ADK `Agent` composition | 1 day |
-| D7-15 | Evaluate LangGraph for `task_graph.py` + `branch_swapper.py` state machine | 3-5 days |
-| D7-16 | Choose ADK vs LangGraph as primary orchestration layer (mutually exclusive) | 1 day eval |
+| D7-13 | Evaluate Google ADK: wrap `HermesOrchestrator` as ADK `CustomAgent` first | ✅ Completed (`HermesADKCustomAgent` + `docs/evaluations/google_adk_evaluation.md`) |
+| D7-14 | Migrate `domain_fleet.py` multi-bot roles to native Google ADK `Agent` composition | ✅ Completed (`build_adk_agent`, `build_adk_fleet`, `build_adk_pipeline` + 5 contract tests green) |
+| D7-15 | Evaluate LangGraph vs ADK for `task_graph.py` state machine & `branch_swapper.py` | ✅ Completed (`docs/evaluations/orchestration_selection.md`) |
+| D7-16 | Choose ADK vs LangGraph as primary orchestration layer (mutually exclusive) | ✅ Completed (Selected Google ADK; LangGraph rejected to prevent framework redundancy) |
+
+> **Architectural Guardrail**: With D7-13 through D7-16 complete, Google ADK is Hermes's sole primary agent orchestration layer. Law #8 is strictly satisfied: native Google ADK handles agent execution and multi-agent workflows, while thin calibration adapters bind roles to local hardware constraints (port 8138, CPU ONNX, ≤ 4,812 MiB VRAM).
 
 ### Priority 4 — Long-Term (Keep Custom)
 

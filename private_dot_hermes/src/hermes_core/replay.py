@@ -1,6 +1,6 @@
 """
-U7 Deterministic Trajectory Replay & Distillation Runner (Phase 4.2)
-=====================================================================
+U7 Deterministic Trajectory Replay & Distillation Runner (Phase 4.2 & Milestone D7-10)
+====================================================================================
 Answers the distillation question OFFLINE: "with TODAY'S prompts,
 linters and gates, which recorded tool outcomes would change?"
 
@@ -20,7 +20,14 @@ Drift semantics:
                      (new rules reject what passed before, or vice versa).
   - CONTRADICTION  : recorded stream internally inconsistent
                      (gate REJECT yet result_ok=True, etc.).
+
+OpenTelemetry Integration (Milestone D7-10):
+  - Every replayed step is optionally emitted as an OTel custom span
+    (`hermes.replay.{tool}`) for distributed tracing and observability.
+  - `export_replay_to_otel_spans()` bridges ReplayReports to OTel trace sinks.
 """
+
+from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
@@ -28,9 +35,23 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 try:
-    from .trajectory import load_events, verify_chain
+    from .trajectory import (
+        load_events,
+        verify_chain,
+        get_trajectory_tracer,
+        Status,
+        StatusCode,
+        OPENTELEMETRY_AVAILABLE,
+    )
 except ImportError:  # packageless loaders (integrity probes) hit this branch
-    from hermes_core.trajectory import load_events, verify_chain
+    from hermes_core.trajectory import (
+        load_events,
+        verify_chain,
+        get_trajectory_tracer,
+        Status,
+        StatusCode,
+        OPENTELEMETRY_AVAILABLE,
+    )
 
 
 class TrajectoryTamperError(ValueError):
@@ -47,7 +68,7 @@ class ReplayStep:
     replayed_gate: str
     recorded_result_ok: Optional[bool]
     drift: bool
-    drift_kind: str = ""          # "" | LINTER_DRIFT | CONTRADICTION
+    drift_kind: str = ""  # "" | LINTER_DRIFT | CONTRADICTION
     detail: str = ""
 
 
@@ -87,7 +108,6 @@ def _replay_gate(role: str, tool: str, args_head: str) -> tuple:
         args = json.loads(args_head) if args_head else {}
         if not isinstance(args, dict):
             args = {}
-        parse_note = ""
     except json.JSONDecodeError:
         # Truncated payload head: only structural lint of the raw text is
         # possible; treat unparseable heads conservatively as PASS-through
@@ -103,8 +123,11 @@ def _replay_gate(role: str, tool: str, args_head: str) -> tuple:
     return hook_ok, ("hook:" + hook_msg.splitlines()[0]) if not hook_ok else "payload validated."
 
 
-def replay_trajectory(source: Union[str, Path],
-                      max_steps: Optional[int] = None) -> ReplayReport:
+def replay_trajectory(
+    source: Union[str, Path],
+    max_steps: Optional[int] = None,
+    tracer: Optional[Any] = None,
+) -> ReplayReport:
     src = Path(source)
     ok_chain, chain_detail = verify_chain(src)
     if not ok_chain:
@@ -115,6 +138,7 @@ def replay_trajectory(source: Union[str, Path],
 
     pending: Dict[tuple, Dict[str, Any]] = {}
     last_gate_by_key: Dict[tuple, str] = {}
+    active_tracer = tracer if tracer is not None else get_trajectory_tracer("hermes.replay")
 
     for ev in events:
         etype = ev.get("event")
@@ -136,8 +160,8 @@ def replay_trajectory(source: Union[str, Path],
                 continue
 
             replayed_ok, note = _replay_gate(
-                call_ev.get("role", ""), ev.get("tool", ""),
-                call_ev.get("args_head", ""))
+                call_ev.get("role", ""), ev.get("tool", ""), call_ev.get("args_head", "")
+            )
             replayed_gate = "PASS" if replayed_ok else "REJECT"
 
             drift = False
@@ -153,11 +177,16 @@ def replay_trajectory(source: Union[str, Path],
                 details.append("current gates reject payload that recorded success")
 
             step = ReplayStep(
-                seq=ev.get("seq"), turn=ev.get("turn"),
-                role=call_ev.get("role", ""), tool=ev.get("tool", ""),
-                recorded_gate=recorded_gate, replayed_gate=replayed_gate,
-                recorded_result_ok=expected_ok, drift=drift,
-                drift_kind="+".join(kinds), detail=" | ".join(details),
+                seq=ev.get("seq"),
+                turn=ev.get("turn"),
+                role=call_ev.get("role", ""),
+                tool=ev.get("tool", ""),
+                recorded_gate=recorded_gate,
+                replayed_gate=replayed_gate,
+                recorded_result_ok=expected_ok,
+                drift=drift,
+                drift_kind="+".join(kinds),
+                detail=" | ".join(details),
             )
             report.steps.append(step)
             report.replayed_steps += 1
@@ -167,6 +196,27 @@ def replay_trajectory(source: Union[str, Path],
             else:
                 report.clean_steps += 1
 
+            # Emit OTel span for replayed step if tracing is enabled
+            if active_tracer:
+                try:
+                    with active_tracer.start_as_current_span(f"hermes.replay.{step.tool}") as span:
+                        span.set_attribute("hermes.replay.seq", step.seq)
+                        span.set_attribute("hermes.replay.turn", str(step.turn))
+                        span.set_attribute("hermes.replay.role", step.role)
+                        span.set_attribute("hermes.replay.tool", step.tool)
+                        span.set_attribute("hermes.replay.drift", step.drift)
+                        span.set_attribute("hermes.replay.drift_kind", step.drift_kind)
+                        span.set_attribute("hermes.replay.recorded_gate", step.recorded_gate)
+                        span.set_attribute("hermes.replay.replayed_gate", step.replayed_gate)
+                        if step.drift:
+                            if Status and StatusCode:
+                                span.set_status(Status(StatusCode.ERROR, description=step.drift_kind))
+                        else:
+                            if Status and StatusCode:
+                                span.set_status(Status(StatusCode.OK))
+                except Exception:
+                    pass
+
             if max_steps and report.replayed_steps >= max_steps:
                 break
 
@@ -175,3 +225,39 @@ def replay_trajectory(source: Union[str, Path],
 
     report.skipped_events += len(pending)  # calls never resolved to results
     return report
+
+
+def export_replay_to_otel_spans(report: ReplayReport, tracer: Optional[Any] = None) -> int:
+    """Exports replayed steps from a ReplayReport to OpenTelemetry spans."""
+    t = tracer or get_trajectory_tracer("hermes.replay.export")
+    if not t:
+        return 0
+    count = 0
+    try:
+        with t.start_as_current_span("hermes.replay.summary") as summary_span:
+            summary_span.set_attribute("hermes.replay.total_events", report.total_events)
+            summary_span.set_attribute("hermes.replay.replayed_steps", report.replayed_steps)
+            summary_span.set_attribute("hermes.replay.clean_steps", report.clean_steps)
+            summary_span.set_attribute("hermes.replay.drifted_steps", report.drifted_steps)
+            summary_span.set_attribute("hermes.replay.deterministic_match", report.deterministic_match)
+            for s in report.steps:
+                with t.start_as_current_span(f"hermes.replay.step.{s.tool}") as span:
+                    span.set_attribute("hermes.replay.seq", s.seq)
+                    span.set_attribute("hermes.replay.tool", s.tool)
+                    span.set_attribute("hermes.replay.drift", s.drift)
+                    span.set_attribute("hermes.replay.drift_kind", s.drift_kind)
+                    span.set_attribute("hermes.replay.recorded_gate", s.recorded_gate)
+                    span.set_attribute("hermes.replay.replayed_gate", s.replayed_gate)
+                    count += 1
+    except Exception:
+        pass
+    return count
+
+
+__all__ = [
+    "ReplayStep",
+    "ReplayReport",
+    "TrajectoryTamperError",
+    "replay_trajectory",
+    "export_replay_to_otel_spans",
+]

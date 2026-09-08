@@ -22,7 +22,8 @@ python3.13 -m pip install --break-system-packages \
     fastembed fastmcp mcp mcp-agent-gate mnemory chromadb qdrant-client \
     sqlmodel diskcache duckdb instructor flatbuffers \
     tree-sitter==0.26.0 tree-sitter-language-pack==1.15.8 \
-    numpy sympy ruff polars pypdf trafilatura tiktoken gguf duckduckgo-search \
+    numpy sympy ruff polars pypdf trafilatura tiktoken gguf ddgs crawl4ai \
+    openlit opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc nemoguardrails google-adk \
     nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13
 
 echo "==> Installing Playwright Chromium browser & headless Linux runtime libs..."

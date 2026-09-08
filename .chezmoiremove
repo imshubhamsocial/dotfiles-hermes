@@ -1,0 +1,7 @@
+# Chezmoi remove patterns - automatically cleans deprecated files on apply
+compute_latency.py
+src/
+.hermes/bin/hermes_os_cli.py
+.hermes/bin/executable_hermes_os_cli.py
+.hermes/bin/speculative_tool_executor.py
+.hermes/bin/executable_speculative_tool_executor.py

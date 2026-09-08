@@ -135,6 +135,93 @@ class DomainFleetManager:
             token_budget=profile.context_ceiling_tok,
         )
 
+    def build_adk_agent(
+        self,
+        bot_class: str,
+        task_prompt: str = "",
+        orchestrator: Optional[Any] = None,
+        tools: Optional[List[Any]] = None,
+        sub_agents: Optional[List[Any]] = None,
+        session_id: str = "default",
+    ) -> Any:
+        """
+        Domain 7 / Milestone D7-14:
+        Instantiate a native Google ADK CustomAgent for a specialized domain bot.
+
+        Applies Invariant R5-3 & Hardware Grounding:
+        - Injects clean-room scratchpad and isolated role instructions.
+        - Enforces strict hardware token ceiling (context_ceiling_tok <= 350).
+        - Directs tool execution through thin capability masks.
+        """
+        try:
+            from hermes_core.adk_custom_agent import HermesADKCustomAgent
+            from hermes_core.agent import Agent
+            from hermes_core.swarm_engine import HermesOrchestrator
+        except ImportError as e:
+            raise RuntimeError(f"Google ADK or Hermes core dependencies missing: {e}")
+
+        profile = self.get_bot(bot_class)
+        if not profile:
+            profile = self.intent_router.profiles.get(bot_class, self.intent_router.profiles.get("coder"))
+
+        state = self.prepare_bot_turn(
+            bot_class=bot_class,
+            task_prompt=task_prompt or f"Autonomous execution turn for {bot_class}",
+            session_id=session_id,
+        )
+
+        hermes_agent_inner = Agent(
+            name=f"bot_{bot_class.replace('-', '_')}",
+            instructions=state.system_prompt,
+            tools=tools or [],
+        )
+
+        orch = orchestrator or HermesOrchestrator()
+
+        return HermesADKCustomAgent(
+            name=f"bot_{bot_class.replace('-', '_')}",
+            description=profile.description if profile else f"Domain bot {bot_class}",
+            instructions=state.system_prompt,
+            orchestrator=orch,
+            hermes_agent=hermes_agent_inner,
+            sub_agents=sub_agents or [],
+        )
+
+    def build_adk_fleet(
+        self,
+        bot_classes: Optional[List[str]] = None,
+        task_prompt: str = "",
+        orchestrator: Optional[Any] = None,
+        session_id: str = "default",
+    ) -> Dict[str, Any]:
+        """Build full domain fleet as a dictionary of native Google ADK agents."""
+        classes = bot_classes or ["architect", "coder", "tester", "researcher", "code-review", "security"]
+        fleet = {}
+        for b_class in classes:
+            fleet[b_class] = self.build_adk_agent(
+                bot_class=b_class,
+                task_prompt=task_prompt,
+                orchestrator=orchestrator,
+                session_id=session_id,
+            )
+        return fleet
+
+    def build_adk_pipeline(
+        self,
+        stages: List[str],
+        pipeline_name: str = "hermes_fleet_pipeline",
+        orchestrator: Optional[Any] = None,
+        session_id: str = "default",
+    ) -> Any:
+        """Compose a sequence of domain bots into a native Google ADK pipeline."""
+        stage_agents = [
+            self.build_adk_agent(s, orchestrator=orchestrator, session_id=session_id)
+            for s in stages
+        ]
+
+        from google.adk.agents import SequentialAgent
+        return SequentialAgent(name=pipeline_name, sub_agents=stage_agents)
+
 
 def create_domain_fleet_manager(**kwargs) -> DomainFleetManager:
     return DomainFleetManager(**kwargs)

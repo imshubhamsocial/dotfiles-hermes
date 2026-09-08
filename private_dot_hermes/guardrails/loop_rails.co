@@ -1,0 +1,16 @@
+# Hermes NeMo Guardrails — Loop & Termination Rails
+# Detects infinite loops, repeated failure cycles, and enforces termination contracts
+
+define user signal loop breach
+  "max iterations reached"
+  "consecutive failure limit tripped"
+  "vram budget ceiling exceeded"
+  "tabu failure limit breached"
+
+define flow check loop termination
+  user signal loop breach
+  bot halt loop execution
+  stop
+
+define bot halt loop execution
+  "Execution Halted: Machine-checkable stop condition tripped by NeMo loop contract rail."

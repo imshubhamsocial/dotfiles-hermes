@@ -298,65 +298,57 @@ def process():
         assert result.variables_exported.get("y") == 84
 
     # ── Entrypoint Tests ────────────────────────────────────────────────
-    def test_hermes_os_cli_entypoint_help(self):
-        """bin/hermes_os_cli.py shows help."""
+    def _run_cli(self, args, extra_env=None, timeout=30):
         root = Path(__file__).resolve().parents[2]
-        result = subprocess.run(
-            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "--help"],
-            capture_output=True, text=True,
-            cwd=str(root)
+        env = {
+            **os.environ,
+            "PYTHONPATH": f"{root / '.hermes/src'}:{os.environ.get('PYTHONPATH', '')}",
+            **(extra_env or {})
+        }
+        cmd = [sys.executable, "-m", "hermes_core.cli"] + args
+        return subprocess.run(
+            cmd,
+            capture_output=True, text=True, timeout=timeout,
+            cwd=str(root),
+            env=env
         )
+
+    def test_hermes_os_cli_entypoint_help(self):
+        """Hermes OS CLI shows help."""
+        result = self._run_cli(["--help"])
         assert result.returncode == 0
         assert "hermes" in result.stdout.lower()
         assert "usage" in result.stdout.lower()
 
     def test_hermes_os_cli_direct_prompt(self, temp_workspace):
-        """bin/hermes_os_cli.py accepts direct prompt as positional args."""
+        """Hermes OS CLI accepts direct prompt as positional args."""
         (temp_workspace / "test.py").write_text("print('test')\n")
-        root = Path(__file__).resolve().parents[2]
-        
-        result = subprocess.run(
-            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "Create", "a", "test", "file"],
-            capture_output=True, text=True, timeout=60,
-            cwd=str(root),
-            env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
+        result = self._run_cli(
+            ["Create", "a", "test", "file"],
+            extra_env={"HERMES_WORKSPACE": str(temp_workspace)},
+            timeout=60
         )
-        
         # Should run without crashing (exit code 0, 1, or 130)
         assert result.returncode in (0, 1, 130)
 
     def test_hermes_os_cli_yolo_flag(self, temp_workspace):
-        """bin/hermes_os_cli.py accepts --yolo -z flags with prompt."""
+        """Hermes OS CLI accepts --yolo -z flags with prompt."""
         (temp_workspace / "test.py").write_text("print('test')\n")
-        root = Path(__file__).resolve().parents[2]
-        
-        result = subprocess.run(
-            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "--yolo", "-z", "Create", "a", "test", "file"],
-            capture_output=True, text=True, timeout=60,
-            cwd=str(root),
-            env={**os.environ, "HERMES_WORKSPACE": str(temp_workspace)}
+        result = self._run_cli(
+            ["--yolo", "-z", "Create", "a", "test", "file"],
+            extra_env={"HERMES_WORKSPACE": str(temp_workspace)},
+            timeout=60
         )
-        
         assert result.returncode in (0, 1, 130)
 
     def test_hermes_os_cli_subcommand_doctor(self):
-        """bin/hermes_os_cli.py doctor subcommand."""
-        root = Path(__file__).resolve().parents[2]
-        result = subprocess.run(
-            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "doctor"],
-            capture_output=True, text=True, timeout=30,
-            cwd=str(root)
-        )
+        """Hermes OS CLI doctor subcommand."""
+        result = self._run_cli(["doctor"], timeout=30)
         assert result.returncode == 0
 
     def test_hermes_os_cli_subcommand_status(self):
-        """bin/hermes_os_cli.py status subcommand."""
-        root = Path(__file__).resolve().parents[2]
-        result = subprocess.run(
-            [sys.executable, str(root / ".hermes/bin/hermes_os_cli.py"), "status"],
-            capture_output=True, text=True, timeout=10,
-            cwd=str(root)
-        )
+        """Hermes OS CLI status subcommand."""
+        result = self._run_cli(["status"], timeout=10)
         assert result.returncode == 0
         assert "Hermes OS CLI" in result.stdout
 

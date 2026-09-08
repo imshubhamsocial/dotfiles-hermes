@@ -81,10 +81,29 @@ MEDIUM_RISK_COMMAND_PATTERNS = [
 ]
 
 
-def assess_risk(action_type: str, target: str, payload: str) -> RiskLevel:
+def assess_risk(
+    action_type: str,
+    target: str,
+    payload: str,
+    role: Optional[str] = None,
+) -> RiskLevel:
     """
-    Assesses operational risk of an action based on action type, target path, and payload.
+    Assesses operational risk of an action based on action type, target path, and payload,
+    incorporating NeMo Guardrails input and dialog rail policies.
     """
+    try:
+        from .nemo_guardrails_bridge import audit_input_with_guardrails
+    except ImportError:
+        try:
+            from hermes_core.nemo_guardrails_bridge import audit_input_with_guardrails
+        except ImportError:
+            audit_input_with_guardrails = None
+
+    if audit_input_with_guardrails is not None:
+        verdict = audit_input_with_guardrails(payload, role=role)
+        if not verdict.allowed:
+            return RiskLevel.CRITICAL
+
     if action_type == "shell_command":
         for pat in CRITICAL_COMMAND_PATTERNS:
             if pat.search(payload):
@@ -181,7 +200,9 @@ class HITLSupervisoryGateway:
         """
         Processes an action checkpoint and yields an approval/rejection decision.
         """
-        risk = assess_risk(action_type, target, diff_or_payload)
+        meta = metadata or {}
+        role = meta.get("role")
+        risk = assess_risk(action_type, target, diff_or_payload, role=role)
         req = CheckpointRequest(
             action_id=action_id,
             action_type=action_type,
@@ -189,7 +210,7 @@ class HITLSupervisoryGateway:
             summary=summary,
             diff_or_payload=diff_or_payload,
             risk_level=risk,
-            metadata=metadata or {},
+            metadata=meta,
         )
 
         # Policy 1: Critical risk always requires explicit human approval even in YOLO mode

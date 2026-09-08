@@ -1,0 +1,28 @@
+# Hermes NeMo Guardrails — Dialog Rails
+# Enforces role capability boundaries and prevents privilege escalation
+
+define user role reviewer attempt code edit
+  "patch file src/main.py"
+  "write file src/main.py"
+  "execute shell command rm -rf"
+
+define flow check role capability boundaries
+  user role reviewer attempt code edit
+  bot refuse reviewer edit
+  stop
+
+define bot refuse reviewer edit
+  "Capability Denied: Role 'reviewer' is read-only and denied mutating tool execution."
+
+define user role coder attempt admin action
+  "drop database production"
+  "truncate table user_accounts"
+  "wipe all disks"
+
+define flow check coder admin boundaries
+  user role coder attempt admin action
+  bot refuse coder admin action
+  stop
+
+define bot refuse coder admin action
+  "Capability Denied: Role 'coder' is not permitted to perform destructive database administration."

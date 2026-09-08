@@ -1,6 +1,10 @@
 """
 Google Antigravity & Env-Harness Agentic Substrate (Milestone U80)
 ===================================================================
+NOTE (Domain 7): Superseded by official 'google-adk' runtime (HermesADKCustomAgent
+and DomainFleetManager in domain_fleet.py). Retained strictly as a lightweight
+compatibility shim for Milestone U80 contract test certification.
+
 Provides:
 1. Google-Standard Tool Calling Schemas with exact parameter typing,
    toolAction, toolSummary, enums, and JSON-LD schema bounds.

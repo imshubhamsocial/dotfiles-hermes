@@ -103,14 +103,17 @@ searxng: ## Ensure local SearXNG container daemon is running on port 8080
 		podman start searxng-hermes 2>/dev/null || podman run -d --name searxng-hermes --restart=always -p 8080:8080 docker.io/searxng/searxng:latest || true; \
 	fi
 
-test: test-contracts test-domain ## Run full 620-test contract and domain test suites
-	@echo "✓ All 620 contract and domain tests passed."
+test: test-internal test-contracts ## Run full internal unit tests and contract benchmark suites
+	@echo "✓ All internal unit tests and contract benchmarks passed."
 
 test-contracts: ## Run 602 contract test spikes
 	@python3.13 -m pytest tests/harness_contracts/ -q
 
-test-domain: ## Run domain persistence, FastMCP, and Quorum/GEPA tests
-	@python3.13 -m pytest tests/test_fastmcp_transport.py tests/test_domain4_persistence.py tests/test_domain5_security_delegation.py tests/test_quorum_and_gepa.py -q
+test-internal: ## Run internal component and adapter unit tests in .hermes/tests/
+	@python3.13 -m pytest .hermes/tests/ -q
+
+test-domain: test-internal ## Backward-compatible alias for test-internal
+
 
 exam: ## Run final live integration exam and capability verification
 	@python3.13 tests/runners/run_final_integration_exam.py

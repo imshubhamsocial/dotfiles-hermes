@@ -9,12 +9,15 @@ chezmoi_src = Path.home() / ".local/share/chezmoi/private_dot_hermes/src"
 chezmoi_bin = Path.home() / ".local/share/chezmoi/private_dot_hermes/bin"
 
 for p in [
+    str(dot_hermes),
     str(dot_hermes / "bin"),
     str(dot_hermes / "src"),
     str(chezmoi_src),
     str(chezmoi_bin),
+    str(Path.home() / ".hermes"),
     str(Path.home() / ".hermes/bin"),
     str(Path.home() / ".hermes/src"),
 ]:
     if p not in sys.path:
         sys.path.insert(0, p)
+

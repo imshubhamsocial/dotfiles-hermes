@@ -40,7 +40,8 @@ py-deps: ## Install Python dependencies & upstream hermes engine
 		fastembed fastmcp mcp mcp-agent-gate \
 		sqlmodel diskcache duckdb instructor flatbuffers \
 		tree-sitter==0.26.0 tree-sitter-language-pack==1.15.8 \
-		numpy sympy ruff polars pypdf trafilatura tiktoken gguf ddgs \
+		numpy sympy ruff polars pypdf trafilatura tiktoken gguf ddgs crawl4ai \
+		openlit opentelemetry-sdk nemoguardrails google-adk \
 		nvidia-cuda-runtime nvidia-cublas nvidia-cuda-nvrtc nvidia-nccl-cu13 nvidia-ml-py
 	@if [ ! -d "$(HERMES_DIR)/hermes-agent" ]; then \
 		echo "==> Cloning upstream NousResearch/hermes-agent..."; \

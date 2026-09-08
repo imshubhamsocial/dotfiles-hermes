@@ -307,29 +307,29 @@ Replaces `fast_research.py` (470 LOC) with async LLM-friendly Markdown extractio
 
 | ID | Action | Effort |
 |----|--------|--------|
-| D7-01 | Delete `compute_latency.py` from workspace root | 5 min |
-| D7-02 | Delete `src/` (stray `__init__.py` + `math_engine.py`) from workspace root | 5 min |
-| D7-03 | `git rm -r --cached build/` + add to `.chezmoiignore` | 10 min |
-| D7-04 | Add `tests/conftest.py` sys.path fix for broken bin imports | 10 min |
-| D7-05 | Migrate `duckduckgo_search` → `ddgs` in `web_grounding.py` + `setup.sh` | 15 min |
-| D7-06 | Migrate `TOOL_SCHEMAS` dict in `capability_masks.py` to `InstructorSchemaEngine` | 2 hrs |
-| D7-07 | Consolidate `executable_speculative_tool_executor.py` into `test_time_sampler.py` | 1 hr |
-| D7-08 | Retire `executable_hermes_os_cli.py` via `.chezmoiremove` | 30 min |
+| D7-01 | Delete `compute_latency.py` from workspace root | ✅ Completed |
+| D7-02 | Delete `src/` (stray `__init__.py` + `math_engine.py`) from workspace root | ✅ Completed |
+| D7-03 | `git rm -r --cached build/` + add to `.chezmoiignore` | ✅ Completed |
+| D7-04 | Add `tests/conftest.py` sys.path fix for broken bin imports | ✅ Completed |
+| D7-05 | Migrate `duckduckgo_search` → `ddgs` in `web_grounding.py` + `setup.sh` | ✅ Completed |
+| D7-06 | Migrate `TOOL_SCHEMAS` dict in `capability_masks.py` to `InstructorSchemaEngine` | ✅ Completed |
+| D7-07 | Consolidate `executable_speculative_tool_executor.py` into `test_time_sampler.py` | ✅ Completed |
+| D7-08 | Retire `executable_hermes_os_cli.py` via `.chezmoiremove` | ✅ Completed |
 
 ### Priority 2 — Short-Term (Low-Medium Risk, 1-3 days)
 
 | ID | Action | Effort |
 |----|--------|--------|
-| D7-09 | Replace `fast_research.py` HTML scraper with `crawl4ai` backend | 0.5 day |
-| D7-10 | Integrate OpenLIT for trajectory tracing; wrap `trajectory.py` hash-chain as OTel custom spans | 1 day |
-| D7-11 | Add NeMo Guardrails Colang config for input/output rails | 1 day |
-| D7-12 | Add `.chezmoiremove` for deprecated files | 1 hr |
+| D7-09 | Replace `fast_research.py` HTML scraper with `crawl4ai` backend | ✅ Completed |
+| D7-10 | Integrate OpenLIT for trajectory tracing; wrap `trajectory.py` hash-chain as OTel custom spans | ✅ Completed |
+| D7-11 | Add NeMo Guardrails Colang config for input/output rails | ✅ Completed |
+| D7-12 | Add `.chezmoiremove` for deprecated files | ✅ Completed |
 
 ### Priority 3 — Medium-Term (Architecture-Level, 1-2 weeks)
 
 | ID | Action | Effort |
 |----|--------|--------|
-| D7-13 | Evaluate Google ADK: wrap `HermesOrchestrator` as ADK `CustomAgent` first | 3-5 days |
+| D7-13 | Evaluate Google ADK: wrap `HermesOrchestrator` as ADK `CustomAgent` first | ✅ Completed |
 | D7-14 | Migrate `domain_fleet.py` multi-bot roles to Google ADK `Agent` composition | 1 day |
 | D7-15 | Evaluate LangGraph for `task_graph.py` + `branch_swapper.py` state machine | 3-5 days |
 | D7-16 | Choose ADK vs LangGraph as primary orchestration layer (mutually exclusive) | 1 day eval |

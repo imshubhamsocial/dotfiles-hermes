@@ -7,12 +7,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HERMES_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LLAMA_SERVER=""
-if command -v llama-server &>/dev/null; then
-    LLAMA_SERVER="$(command -v llama-server)"
+if [[ -x "${HERMES_ROOT}/.local/bin/llama-server" ]]; then
+    LLAMA_SERVER="${HERMES_ROOT}/.local/bin/llama-server"
 elif [[ -x "${HOME}/.local/bin/llama-server" ]]; then
     LLAMA_SERVER="${HOME}/.local/bin/llama-server"
-elif [[ -x "${HERMES_ROOT}/.local/bin/llama-server" ]]; then
-    LLAMA_SERVER="${HERMES_ROOT}/.local/bin/llama-server"
+elif command -v llama-server &>/dev/null; then
+    LLAMA_SERVER="$(command -v llama-server)"
 else
     echo "Error: llama-server executable not found in PATH or ~/.local/bin." >&2
     exit 1

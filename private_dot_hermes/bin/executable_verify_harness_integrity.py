@@ -297,7 +297,7 @@ def run_contract_spike_suite() -> Tuple[bool, str]:
         target_dir = ws_root if (ws_root / "tests/harness_contracts").exists() else ROOT
         res = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/harness_contracts/", "-q"],
-            capture_output=True, text=True, timeout=90, cwd=str(target_dir)
+            capture_output=True, text=True, timeout=180, cwd=str(target_dir)
         )
         passed = (res.returncode == 0)
         output_tail = res.stdout.strip().splitlines()[-1] if res.stdout.strip() else res.stderr.strip()

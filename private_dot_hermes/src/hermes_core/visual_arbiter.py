@@ -25,6 +25,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
+    from PIL import Image
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
+
+try:
     from playwright.async_api import async_playwright, Browser, Page, ConsoleMessage, Error
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
@@ -43,6 +49,157 @@ MAX_ERROR_TOKENS = 80
 FRAME_INTERVAL_MS = 100
 MOTION_THRESHOLD_PIXEL = 5  # minimum pixel difference to consider "motion"
 FPS_TARGET = 60
+
+# Google Gemma 4 Vision Token Budget Constants
+DEFAULT_PATCH_SIZE = 14
+DEFAULT_VISION_TOKEN_BUDGET = 256
+MAX_VISION_TOKEN_BUDGET = 512
+
+
+@dataclass
+class GemmaVisionTokenBudget:
+    """Gemma 4 calibrated vision token budget report."""
+    raw_width: int
+    raw_height: int
+    raw_tokens: int
+    allocated_budget: int
+    downsampled_width: int
+    downsampled_height: int
+    patch_grid_w: int
+    patch_grid_h: int
+    optimized_tokens: int
+    compression_ratio: float
+    within_budget: bool
+    optimized_path: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "raw_dimensions": [self.raw_width, self.raw_height],
+            "raw_tokens": self.raw_tokens,
+            "allocated_budget": self.allocated_budget,
+            "downsampled_dimensions": [self.downsampled_width, self.downsampled_height],
+            "patch_grid": [self.patch_grid_w, self.patch_grid_h],
+            "optimized_tokens": self.optimized_tokens,
+            "compression_ratio": round(self.compression_ratio, 2),
+            "within_budget": self.within_budget,
+            "optimized_path": self.optimized_path,
+        }
+
+
+class GemmaVisionTokenBudgeter:
+    """
+    Calibrated token budgeter and dynamic downsampler for multimodal agent turns.
+    Conforms to Google DeepMind's Gemma 4 Vision token calculation:
+        tokens = (ceil(W / P) * ceil(H / P)) + ceil(H / P) + 2
+    where P is patch resolution (default 14x14).
+    """
+
+    @classmethod
+    def calculate_tokens(cls, width: int, height: int, patch_size: int = DEFAULT_PATCH_SIZE) -> Tuple[int, Tuple[int, int]]:
+        """Calculates exact token count and patch grid for given resolution."""
+        import math
+        grid_w = math.ceil(max(1, width) / patch_size)
+        grid_h = math.ceil(max(1, height) / patch_size)
+        tokens = (grid_w * grid_h) + grid_h + 2
+        return tokens, (grid_w, grid_h)
+
+    @classmethod
+    def calculate_optimal_patch_grid(
+        cls,
+        width: int,
+        height: int,
+        budget: int = DEFAULT_VISION_TOKEN_BUDGET,
+        patch_size: int = DEFAULT_PATCH_SIZE,
+    ) -> Tuple[int, int]:
+        """
+        Determines the largest aspect-preserving patch grid (N_w, N_h)
+        satisfying (N_w * N_h) + N_h + 2 <= budget.
+        """
+        import math
+        budget = max(16, budget)
+        ar = max(0.01, width / max(1, height))
+
+        c = budget - 2
+        disc = 1.0 + 4.0 * ar * c
+        if disc < 0:
+            return 1, 1
+        n_h = int((-1.0 + math.sqrt(disc)) / (2.0 * ar))
+        n_h = max(1, n_h)
+
+        max_nw = (c - n_h) // n_h
+        n_w = max(1, int(round(n_h * ar)))
+        n_w = min(n_w, max_nw)
+        if n_w < 1:
+            n_w = 1
+            n_h = max(1, min(n_h, (c - 1) // 2))
+
+        while (n_w * n_h + n_h + 2) > budget:
+            if n_w > 1 and (n_w / n_h) > ar:
+                n_w -= 1
+            elif n_h > 1:
+                n_h -= 1
+            else:
+                break
+
+        return n_w, n_h
+
+    @classmethod
+    def optimize_image_bytes(
+        cls,
+        png_bytes: bytes,
+        width: int,
+        height: int,
+        budget: int = DEFAULT_VISION_TOKEN_BUDGET,
+        patch_size: int = DEFAULT_PATCH_SIZE,
+        output_path: Optional[Path] = None,
+    ) -> Tuple[bytes, GemmaVisionTokenBudget]:
+        """
+        Downsamples image to optimal resolution fitting strictly within token budget.
+        """
+        raw_tokens, _ = cls.calculate_tokens(width, height, patch_size)
+        grid_w, grid_h = cls.calculate_optimal_patch_grid(width, height, budget, patch_size)
+        target_w = grid_w * patch_size
+        target_h = grid_h * patch_size
+        opt_tokens, _ = cls.calculate_tokens(target_w, target_h, patch_size)
+
+        ratio = (raw_tokens / opt_tokens) if opt_tokens > 0 else 1.0
+        within_budget = opt_tokens <= budget
+
+        out_bytes = png_bytes
+        if PILLOW_AVAILABLE:
+            import io
+            try:
+                img = Image.open(io.BytesIO(png_bytes))
+                resized = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                resized.save(buf, format="PNG", optimize=True)
+                out_bytes = buf.getvalue()
+                if output_path:
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_bytes(out_bytes)
+            except Exception:
+                if output_path:
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_bytes(png_bytes)
+        elif output_path:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(png_bytes)
+
+        budget_report = GemmaVisionTokenBudget(
+            raw_width=width,
+            raw_height=height,
+            raw_tokens=raw_tokens,
+            allocated_budget=budget,
+            downsampled_width=target_w,
+            downsampled_height=target_h,
+            patch_grid_w=grid_w,
+            patch_grid_h=grid_h,
+            optimized_tokens=opt_tokens,
+            compression_ratio=ratio,
+            within_budget=within_budget,
+            optimized_path=str(output_path) if output_path else None,
+        )
+        return out_bytes, budget_report
 
 
 @dataclass
@@ -63,6 +220,7 @@ class FrameCapture:
     height: int
     base64_png: str  # base64 encoded PNG
     file_path: Optional[str] = None
+    vision_budget: Optional[GemmaVisionTokenBudget] = None
 
 
 @dataclass
@@ -91,6 +249,8 @@ class VisualReport:
     kinematic: Optional[KinematicResult] = None
     error_summary: str = ""
     error_summary_tokens: int = 0
+    vision_budget: Optional[GemmaVisionTokenBudget] = None
+    total_vision_tokens: int = 0
 
 
 # ─── Kinematic Sieve ───────────────────────────────────────────────────────
@@ -186,11 +346,13 @@ class VisualArbiter:
         viewport: Tuple[int, int] = (1280, 720),
         timeout_ms: int = 30000,
         capture_motion: bool = True,
+        vision_token_budget: int = DEFAULT_VISION_TOKEN_BUDGET,
     ):
         self.headless = headless
         self.viewport = viewport
         self.timeout_ms = timeout_ms
         self.capture_motion = capture_motion
+        self.vision_token_budget = vision_token_budget
         
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
@@ -309,7 +471,17 @@ class VisualArbiter:
         file_name = f"frame_{frame_index}_{uuid.uuid4().hex[:8]}.png"
         file_path = RAMDISK_BASE / file_name
         file_path.write_bytes(png_bytes)
-        
+
+        # Optimize frame to Gemma 4 vision token budget
+        budget_path = RAMDISK_BASE / f"frame_{frame_index}_budgeted.png"
+        _, budget_report = GemmaVisionTokenBudgeter.optimize_image_bytes(
+            png_bytes=png_bytes,
+            width=self.viewport[0],
+            height=self.viewport[1],
+            budget=self.vision_token_budget,
+            output_path=budget_path,
+        )
+
         frame = FrameCapture(
             timestamp=timestamp,
             frame_index=frame_index,
@@ -317,8 +489,9 @@ class VisualArbiter:
             height=self.viewport[1],
             base64_png=b64,
             file_path=str(file_path),
+            vision_budget=budget_report,
         )
-        
+
         self.frames.append(frame)
         return frame
 
@@ -387,6 +560,9 @@ class VisualArbiter:
             if self.capture_motion and kinematic_result:
                 success = success and kinematic_result.has_motion
             
+            vision_budget = frame_0.vision_budget if frame_0 else None
+            total_vision_tokens = vision_budget.optimized_tokens if vision_budget else 0
+
             return VisualReport(
                 url=url,
                 success=success,
@@ -400,6 +576,8 @@ class VisualArbiter:
                 kinematic=kinematic_result,
                 error_summary=error_summary,
                 error_summary_tokens=summary_tokens,
+                vision_budget=vision_budget,
+                total_vision_tokens=total_vision_tokens,
             )
             
         except Exception as e:
@@ -416,6 +594,8 @@ class VisualArbiter:
                 webgl_errors=[],
                 error_summary=f"EXCEPTION: {str(e)[:200]}",
                 error_summary_tokens=estimate_tokens(str(e)),
+                vision_budget=None,
+                total_vision_tokens=0,
             )
 
     def to_json(self, report: VisualReport) -> str:
@@ -451,6 +631,8 @@ class VisualArbiter:
             } if report.kinematic else None,
             "error_summary": report.error_summary,
             "error_summary_tokens": report.error_summary_tokens,
+            "vision_budget": report.vision_budget.to_dict() if report.vision_budget else None,
+            "total_vision_tokens": report.total_vision_tokens,
         }, indent=2)
 
 
@@ -479,6 +661,11 @@ __all__ = [
     "KinematicResult",
     "FrameCapture",
     "ConsoleError",
+    "GemmaVisionTokenBudget",
+    "GemmaVisionTokenBudgeter",
+    "DEFAULT_VISION_TOKEN_BUDGET",
+    "MAX_VISION_TOKEN_BUDGET",
+    "DEFAULT_PATCH_SIZE",
     "run_visual_check",
     "create_visual_arbiter",
     "PLAYWRIGHT_AVAILABLE",

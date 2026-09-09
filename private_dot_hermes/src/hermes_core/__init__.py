@@ -88,8 +88,20 @@ from .cli import HermesCLI, main
 # U38: Branch Swapper
 from .branch_swapper import BranchSwapper, create_branch_swapper, RepairTurn, TabuPattern, NegativeConstraint, SwapTrigger
 
-# U39: Visual Arbiter
-from .visual_arbiter import VisualArbiter, create_visual_arbiter, run_visual_check, VisualReport, KinematicResult, PLAYWRIGHT_AVAILABLE, RAMDISK_BASE
+# U39: Visual Arbiter & Multimodal Vision Token Budgeting (Track 4.3)
+from .visual_arbiter import (
+    VisualArbiter,
+    create_visual_arbiter,
+    run_visual_check,
+    VisualReport,
+    KinematicResult,
+    PLAYWRIGHT_AVAILABLE,
+    RAMDISK_BASE,
+    GemmaVisionTokenBudget,
+    GemmaVisionTokenBudgeter,
+    DEFAULT_VISION_TOKEN_BUDGET,
+    MAX_VISION_TOKEN_BUDGET,
+)
 
 # Domain 1-5 Unified First-Party Modules
 from .runner import HermesRunner, ExecutionResult

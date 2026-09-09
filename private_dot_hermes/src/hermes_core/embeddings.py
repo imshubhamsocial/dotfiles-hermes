@@ -33,14 +33,64 @@ class SearchHit:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class EmbeddingModelProfile:
+    """Specification and benchmark profile for on-device embedding backends."""
+    name: str
+    family: str                   # "bge" or "gemma"
+    params_millions: int          # e.g., 33 or 308
+    context_tokens: int           # e.g., 512 or 2048
+    dimensions: int               # e.g., 384 or 768
+    vocab_size: int               # e.g., 30522 or 256000
+    supports_mrl: bool = False    # Matryoshka Representation Learning
+    onnx_supported: bool = True
+    vram_usage_mib: int = 0       # 0 MB GPU VRAM guaranteed
+
+
+BGE_SMALL_PROFILE = EmbeddingModelProfile(
+    name="BAAI/bge-small-en-v1.5",
+    family="bge",
+    params_millions=33,
+    context_tokens=512,
+    dimensions=384,
+    vocab_size=30522,
+    supports_mrl=False,
+    onnx_supported=True,
+    vram_usage_mib=0,
+)
+
+EMBEDDING_GEMMA_PROFILE = EmbeddingModelProfile(
+    name="google/embeddinggemma-300m",
+    family="gemma",
+    params_millions=308,
+    context_tokens=2048,
+    dimensions=768,
+    vocab_size=256000,
+    supports_mrl=True,
+    onnx_supported=True,
+    vram_usage_mib=0,
+)
+
+SUPPORTED_PROFILES: Dict[str, EmbeddingModelProfile] = {
+    BGE_SMALL_PROFILE.name: BGE_SMALL_PROFILE,
+    EMBEDDING_GEMMA_PROFILE.name: EMBEDDING_GEMMA_PROFILE,
+}
+
+
 class CPUNeuralEmbeddingEngine:
     """
     High-speed CPU-only neural embedding & hybrid retrieval engine.
     """
 
-    def __init__(self, use_neural: bool = True, model_name: str = "BAAI/bge-small-en-v1.5"):
+    def __init__(
+        self,
+        use_neural: bool = True,
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        profile: Optional[EmbeddingModelProfile] = None,
+    ):
         self.use_neural = use_neural
         self.model_name = model_name
+        self.profile = profile or SUPPORTED_PROFILES.get(model_name, BGE_SMALL_PROFILE)
         self.model = None
         self.documents: List[str] = []
         self.doc_ids: List[str] = []

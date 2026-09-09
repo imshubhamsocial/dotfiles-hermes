@@ -284,6 +284,44 @@
   2. **Zero-Latency Shorthand**: In compact workflows or system prompt constraints, Anthropic verified that the directive *"Please remove all mannered prose"* reliably triggers this exact behavior without requiring the full descriptive paragraph.
   3. **Cross-Architecture Generalization**: Evaluated across multiple frontier model families—delivering identical density, clarity, and precision improvements in GPT-5.6 Sol as in Claude Fable 5.1.
 
+### 12. Harness Engineering: Definitive Paper Collection & Evolutionary Taxonomy (YC Paper Club & DAIR.AI)
+- **Sources**:
+  - X Post: https://x.com/omarsar0/status/2097449131648197024
+  - Paper Collection: https://academy.dair.ai/papers/collections/harness-engineering
+- **Curated By**: Elvis Saravia (@omarsar0) / YC Paper Club / DAIR.AI Academy
+- **Core Thesis**:
+  > *"Harness engineering is the single highest-leverage agent skill today. On identical model weights, performance scales from a 30% baseline to 95.5% on ARC-AGI-3 purely by optimizing the execution harness, verifiers, and recursive scaffolding."*
+
+- **The Five Evolutionary Eras of Harness Engineering**:
+  1. **Phase 1: The V0 Harness (The Bare In-Context Sampling Loop)**:
+     - **Bare Loop** (*Radford et al., 2019*): `while-not-EOS` sampling loop with temperature/top-p. Zero external memory, zero tools, zero skills.
+     - **In-Context Exemplars** (*Brown et al., 2020*): Appending solved input/output pairs into prompt context without altering the underlying loop.
+     - **Chain-of-Thought (CoT)** (*Wei et al., 2022*): First output-space intervention—spreading latent computation over sequential explicit tokens instead of forcing single-step answers.
+  2. **Phase 2: Static Harnesses (Expanding the External Action Space)**:
+     - **WebGPT** (*Nakano et al., 2021*): Breaching context boundaries to browse the web with interactive human feedback.
+     - **Toolformer** (*Schick et al., 2023*): Substituting in-weight calculations with emitted API tool-call tokens executed by the harness.
+     - **ReAct** (*Yao et al., 2022*): Interleaving Thought $\rightarrow$ Action $\rightarrow$ Observation cycles—the core operational loop of modern autonomous agents.
+     - **Self-Refine** (*Madaan et al., 2023*): In-context critic loop where the model evaluates and rewrites its own draft without external environment feedback.
+     - **Reflexion** (*Shinn et al., 2023*): Verbal reinforcement learning—translating environmental failure signals into natural language episodic reflection stored in working memory.
+     - **InterCode** (*Yang et al., 2023*): Interactive coding environment turning terminal execution feedback into a standard tool interface.
+     - **Multi-Agent Collaboration** (*Talebirad & Nadiri, 2023*): Spawning persistent, role-specialized peer agents via tool invocations.
+     - **Voyager** (*Wang et al., 2023*): The origin of agent skills—chaining tool sequences, verifying execution against environments (Minecraft), and saving proven routines into a persistent skill library.
+     - **MemGPT** (*Packer et al., 2023*): LLMs as Operating Systems—giving agents explicit CRUD operations over distinct memory tiers (RAM/working context vs. disk/long-term archival memory).
+     - **Recursive Language Models (RLM)** (*Zhang, Kraska, Khattab, 2025*): Embedding LLM calls inside an execution REPL that can spawn recursive LLM calls over large document partitions, eliminating static context limits.
+  3. **Phase 3: Learning Harnesses (Self-Optimizing Scaffolding)**:
+     - **DSPy** (*Khattab et al., 2023*): Compiling declarative LM pipelines by algorithmically searching over prompts and few-shot selectors against objective metrics.
+     - **GEPA** (*Agrawal et al., 2025*): Reflective prompt evolution that inspects natural language traces of failed episodes and mutates prompts to outperform traditional RL.
+     - **Darwin Gödel Machine** (*Zhang et al., 2025*): Open-ended evolutionary agents that sample from ancestor archives, rewrite their own scaffolding code, and benchmark themselves on code tasks.
+     - **Meta-Harness** (*Lee et al., 2026*): A meta-system that writes, tests, and optimizes harnesses, retries, and verification gates end-to-end.
+     - **Continual Harness** (*Karten et al., 2026*): Online adaptation that maintains and mutates history, memory cards, skills, prompts, and sub-agent topologies live during execution.
+  4. **Phase 4: Frontier Deployed Harnesses (2026)**:
+     - **Prime Agent** (*Karten et al., 2026*): Persistent IPython REPL with recursive, addressable sub-agents and verification suites—scaling ARC-AGI-3 scores to **95.5%**.
+     - **OpenJarvis** (*Saad-Falcon et al., 2026*): On-device personal agent decomposing system capabilities into five atomic primitives orchestrated by cloud models while preserving local privacy.
+     - **QM (YC Multiplayer Harness)**: YC's open-source multi-agent collaboration harness for autonomous co-development.
+  5. **Phase 5: Evaluation Horizon Measurement**:
+     - **Measuring AI Ability to Complete Long Software Tasks** (*Kwa et al., 2025*): Redefining agent capability measurement from single-turn snapshot evals to temporal and complexity horizons over extended multi-hour task trajectories.
+
+
 
 
 

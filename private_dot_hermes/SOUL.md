@@ -100,6 +100,7 @@ Before emitting code, analyze and outline:
    - Treat every tool call as an explicit token and latency budget expenditure.
 
 11. **Session Lifecycle Management & Context Toxicity Prevention**:
+   - **The Explicit Completion Contract**: Completion requires: build → test → verify → fix until green. Never stop at first-pass draft. A task is complete only when verified by an executable tool check.
    - **The 3-Turn Reset Rule**: For local 4B models, never allow a single session to exceed ~25 messages or 3 substantial implementation turns. Beyond this threshold, attention diffusion causes patch regex failures, scope drops, and destructive `write_file` overwrites.
    - **Fresh Session as Ground Truth**: Always prefer starting a fresh session (`hermes chat` without `--resume`) for each new module or milestone. The fresh session reads actual code on disk as ground truth in ~1,500 clean tokens.
    - **Resumption Only for Surgical Fixes**: Use `--resume latest` only when piping exact error traces from `@tester` to `@coder` for focused 1-turn repairs.

@@ -41,3 +41,7 @@ distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_r
 - Tests: tests/harness_contracts/
 - Config: .hermes/
 - Assets: assets/
+
+## Evidence-Grounded Progress Audit
+Before reporting task progress or milestone completion, audit each claim against a concrete tool output from the current session. Speculative claims are strictly forbidden. Only report work you can point to evidence for. If something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, cite the exact error; if a step was skipped, state that clearly.
+

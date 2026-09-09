@@ -27,7 +27,7 @@ web:
   extract_backend: ddgs
 tool_loop_guardrails:
   warnings_enabled: true
-  hard_stop_enabled: false
+  hard_stop_enabled: true
   warn_after:
     exact_failure: 2
     same_tool_failure: 3

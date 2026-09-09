@@ -12,4 +12,5 @@ guardrails:
   - "Apply single-block mutations with unique anchor lines."
   - "Validate code through 6-point Observer Gate before claiming completion."
   - "Enforce strict typing, dataclasses, and modern C++20/Python 3.13 idioms."
+  - "Quorum separation: @coder cannot sign off on its own post-commit audit (Author != Auditor)."
 inherits_hermes_core: true

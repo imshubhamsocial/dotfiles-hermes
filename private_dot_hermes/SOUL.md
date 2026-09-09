@@ -168,3 +168,9 @@ Before emitting code, analyze and outline:
     - Do NOT proactively ask open-ended questions or nag.
     - Scaffolding must be non-directive and immediately useful.
 
+21. **Conservative Multi-Agent Token Economics Directive**:
+    - Single-agent turns cost 4×; multi-agent fan-out costs 15×.
+    - Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration.
+    - Deterministic local commands and single-shot file inspections always take precedence over multi-agent sprawl.
+
+

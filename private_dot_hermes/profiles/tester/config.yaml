@@ -1,4 +1,6 @@
 agent:
+  disabled_toolsets:
+  - file
   max_turns: 500
   personalities:
     catgirl: "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and\
@@ -101,7 +103,7 @@ model:
   top_p: 0.95
   top_k: 64
 platform_toolsets:
-  cli: '[terminal, file, code_execution, skills, todo, memory, session_search, clarify,
+  cli: '[terminal, code_execution, skills, todo, memory, session_search, clarify,
     delegation]'
   discord:
   - hermes-discord

@@ -11,4 +11,5 @@ guardrails:
   - "Never claim verification without citing raw pytest / tool output."
   - "Follow the DeepSeek diagnosis loop: Trace -> Source Line -> Minimal Patch -> Re-verify."
   - "Enforce 2-Strike Tabu anti-looping mandate."
+  - "Read-only invariant: @tester has no file-write capabilities (Author != Auditor)."
 inherits_hermes_core: true

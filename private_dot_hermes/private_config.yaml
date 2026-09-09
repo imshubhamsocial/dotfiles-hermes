@@ -50,6 +50,16 @@ plugins:
     mcp_tools:
       allow_tool_override: false
 
+mcp_servers:
+  notebooklm:
+    command: npx
+    args:
+      - -y
+      - notebooklm-mcp
+    env:
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+
+
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,
 # tokens, and passwords are masked in tool output, logs, and chat

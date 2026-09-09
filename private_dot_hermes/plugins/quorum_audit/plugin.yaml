@@ -1,13 +1,10 @@
 name: quorum_audit
 version: "1.0.0"
-description: "Quorum Cross-Model Consensus & Independent AST Audit Gate (berrzebb/quorum). Enforces edit->audit->agree->retro->commit."
+description: "Cross-model consensus and audit gate (Author != Auditor)."
 author: "berrzebb / Hermes Agent OS"
 kind: standalone
 tags: [audit, consensus, ast, verification]
 enabled: true
-hooks:
-  pre_commit: hooks/pre_commit.py
-  post_tool_call: hooks/post_tool.py
-tools:
-  - quorum_audit_check
-  - calculate_blast_radius
+provides_hooks:
+  - pre_tool_call
+

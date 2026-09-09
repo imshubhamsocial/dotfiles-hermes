@@ -11,10 +11,18 @@ Validates:
 from __future__ import annotations
 
 import hashlib
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 import pytest
+
+HERMES_DIR = Path(__file__).resolve().parents[2]
+if str(HERMES_DIR) not in sys.path:
+    sys.path.insert(0, str(HERMES_DIR))
+
+from plugins.quorum_audit.hooks.pre_tool_call import pre_tool_call
+
 
 
 @dataclass
@@ -119,5 +127,35 @@ def test_vram_envelope_constants():
     assert hard_ceiling_mib <= 4812
 
 
+def test_quorum_pre_tool_call_hook_blocks_self_audit():
+    res = pre_tool_call(
+        tool_name="quorum_audit_check",
+        args={"author": "coder", "auditor": "coder"},
+    )
+    assert res is not None
+    assert res["action"] == "block"
+    assert "cannot audit its own code" in res["message"]
+
+
+def test_quorum_pre_tool_call_hook_blocks_tester_file_mutation():
+    res = pre_tool_call(
+        tool_name="write_file",
+        args={"path": "main.py", "content": "..."},
+        role="tester",
+    )
+    assert res is not None
+    assert res["action"] == "block"
+    assert "forbidden for verifiers" in res["message"]
+
+
+def test_quorum_pre_tool_call_hook_allows_independent_audit():
+    res = pre_tool_call(
+        tool_name="quorum_audit_check",
+        args={"author": "coder", "auditor": "tester"},
+    )
+    assert res is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+

@@ -413,10 +413,122 @@
 
 ---
 
-## Hermes Current State Audit
+---
 
-> **Constraint**: Reduce custom Python files as low as possible. Prefer native Hermes config/skills/rules/plugins over bespoke scripts. Every change must be minimal delta.
+# PART II: Comprehensive System & Codebase Audits
 
+## 1. Structural Layout Audit: The `.hermes/hermes-agent` Anomaly & Workspace Collisions
+### 1. Upstream Layout vs Current Layout
+
+#### The Upstream NousResearch Architecture (How Hermes is designed to work):
+```
+[Engine / Runtime Layer] (Installed package or dev repo)
+├── Installed via: `pip install hermes-agent` OR cloned in `~/Development/hermes-agent`
+├── Entry point: `hermes` CLI (from `hermes_cli.main`)
+├── Bundled Plugins: `plugins/` (browser, kanban, image_gen, platforms, model-providers)
+└── Bundled Skills: `skills/` (builtin community skills)
+
+[User State & Dotfile Layer] (Lives at ~/.hermes/ or $HERMES_HOME)
+├── config.yaml          # Model, provider, tool guardrails, web backend
+├── SOUL.md              # System prompt & behavioral constitution
+├── plugins/             # User-installed plugins (e.g. quorum_audit, gepa_optimizer)
+├── skills/              # User-installed custom skills
+├── memory/              # Durable memory, session cards, state.db
+└── plan.json            # Active session milestone tracking
+```
+
+#### What We Actually Have (The Distorted Nested Layout):
+```
+/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/  ($HOME inside ws-hermes)
+├── .hermes/                                                 (State AND Engine mixed together!)
+│   ├── hermes-agent/                                        <-- FULL UPSTREAM REPO CLONED INSIDE STATE DIR!
+│   │   ├── .git/                                            (Unmanaged git repository inside chezmoi!)
+│   │   ├── hermes_cli/                                      (The actual running CLI)
+│   │   ├── plugins/                                         (Upstream bundled plugins)
+│   │   ├── skills/                                          (Upstream bundled skills)
+│   │   ├── tools/                                           (Upstream tools)
+│   │   └── tests/                                           (13,000+ upstream tests)
+│   ├── plugins/                                             <-- DUPLICATE: User plugins folder
+│   ├── skills/ & private_skills/                            <-- DUPLICATE: User skills folder
+│   ├── tests/                                               <-- DUPLICATE: 25 bespoke unit tests
+│   ├── bin/                                                 <-- DUPLICATE: 15 bespoke python scripts
+│   ├── src/hermes_core/                                     <-- DUPLICATE: 68 bespoke python files mimicking the engine
+│   ├── config.yaml
+│   └── SOUL.md
+├── tests/                                                   <-- TRIPLICATE: Root test contracts
+├── pyproject.toml                                           <-- GHOST PACKAGE: Declares "hermes-harness", not "hermes-agent"
+└── .local/share/chezmoi/                                    (Tracks .hermes/ but CANNOT track .hermes/hermes-agent/)
+```
+
+---
+
+### 2. Six Catastrophic Collisions Caused by This Layout
+
+1. **Collision 1: The Git-Inside-Git Chezmoi Blindspot**
+   - `.hermes/` is tracked by chezmoi via `private_dot_hermes/`.
+   - But `.hermes/hermes-agent` contains its own `.git/` folder.
+   - Chezmoi automatically ignores nested git repositories.
+   - **Consequence**: The entire 500MB `hermes-agent` engine is an untracked, unversioned orphan inside the dotfiles repository. Upstream updates cannot be managed cleanly by chezmoi, and dotfile syncs are prone to drift.
+
+2. **Collision 2: The Six Overlapping Folder Names**
+   - Both `.hermes/` and `.hermes/hermes-agent/` contain: `assets/`, `cron/`, `plugins/`, `scripts/`, `skills/`, `tests/`.
+   - When Python or the agent searches for a skill or plugin, path resolution depends on arbitrary `sys.path` order.
+   - To work around this collision, someone invented `private_skills/` and a custom `FourTierSkillRouter` just to avoid collisions with `hermes-agent/skills/`!
+
+3. **Collision 3: The Ghost Package Conflict (`hermes-agent` vs `hermes-harness`)**
+   - In `.local/lib/python3.13/site-packages`:
+     - `hermes_agent-0.20.6` is installed in editable mode from `.hermes/hermes-agent`
+     - `hermes_harness-1.0.0` is installed in editable mode from `.hermes/src`
+   - `hermes_harness` declares entry points `hermes = "hermes_harness.cli:main"`.
+   - But `hermes_harness.cli` DOES NOT EXIST! (The package in `src` is `hermes_core`, not `hermes_harness`).
+   - The wrapper script `.local/bin/hermes` has to explicitly run `python3.13 -m hermes_cli.main` to avoid hitting the broken entry point.
+
+4. **Collision 4: The Triple Test Suite Fragmentation**
+   - Test suite 1: `.hermes/hermes-agent/tests/` (13,000+ upstream test files)
+   - Test suite 2: `.hermes/tests/` (25 white-box unit tests)
+   - Test suite 3: `tests/` at workspace root (43 contract tests + 8 runners)
+   - Running `pytest` from the root discovers inconsistent test fixtures and conflicting `conftest.py` path injections.
+
+5. **Collision 5: The Distrobox `$HOME` Aliasing Confusion**
+   - In the `ws-hermes` container, `$HOME` is configured as `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes`.
+   - This causes user home dotfiles (`.bashrc`, `.ssh/`, `.gitconfig`, `.npm/`, `.cache/`, `.local/`) to live in the root of the project workspace.
+   - Meanwhile, on the host, `$HOME` is `/var/home/imshubhamsocial/`, which contains ANOTHER `.hermes/` directory (`/var/home/imshubhamsocial/.hermes`), causing confusion between host state and container state.
+
+6. **Collision 6: Upstream Update Impasse**
+   - Because custom code was injected directly into `.hermes/` (adjacent to `hermes-agent`) rather than through the standard plugin/skill API, updating `hermes-agent` risks breaking path assumptions, shadowing modules, or creating import loops.
+   - By decoupling `hermes-agent` as an external package and converting all custom code into clean plugins in `~/.hermes/plugins/`, **Hermes can be updated with a simple `pip install --upgrade hermes-agent` or `hermes update`**, receiving all upstream features and bug fixes naturally with zero breakage.
+
+---
+
+### 3. The Target Clean Layout (True Plugin Architecture)
+
+```
+[Installed Engine] (Installed via pip/uv into python site-packages)
+  hermes-agent (version >= 0.20.6)
+  ├── Provides: `hermes` CLI, core loop, gateway, bundled tools, TUI
+  └── Updatable via: `pip install --upgrade hermes-agent` or `hermes update`
+
+[Dotfiles & Agent State] (~/.hermes/ — Tracked cleanly by Chezmoi)
+  ~/.hermes/
+  ├── config.yaml          # Clean config (model, loop guardrails, providers)
+  ├── SOUL.md              # System prompt & operational laws
+  ├── hermes-pack.yaml     # Declarative plugin pack definition
+  ├── plugins/             # ONLY custom plugins (each with plugin.yaml + __init__.py)
+  │   ├── quorum_audit/    # Quorum consensus & AST pre-commit gate (uses ast-grep-py)
+  │   ├── gepa_optimizer/  # Reflective prompt evolution (uses dspy MIPROv2)
+  │   ├── mcp_tools/       # FastMCP tools (uses crawl4ai + fastembed + ast-grep-py)
+  │   ├── graphiti_memory/ # Temporal episodic memory (uses graphiti-core)
+  │   └── nemo_guard/      # NeMo guardrails bridge (Colang policies)
+  ├── skills/              # Custom skills (all 91 skills consolidated here!)
+  │   └── */SKILL.md       # Progressive disclosure L0/L1/L2
+  └── memory/              # state.db, plan.json, knowledge cards
+```
+
+---
+
+---
+
+## 2. High-Level Subsystem Inventory & Current State Audit
 ### Architecture Overview
 
 Hermes is a fully self-contained, chezmoi-managed personal AI agent harness running inside the `ws-hermes` Distrobox container. Core components:
@@ -504,174 +616,9 @@ Hermes is a fully self-contained, chezmoi-managed personal AI agent harness runn
 
 ---
 
-## Implementation Roadmap
-
-> **Order**: Dependencies first. Config/rule/skill changes before Python. Removals after replacements are confirmed working.
-
-### Phase 0 — Foundation: Context Hygiene & Prompt Discipline
-*Zero new code. Pure config + text edits. Immediate impact on every session.*
-
-**0.1 — Enable Hard Stop on Tool Loop** *(Item 14)*
-- Edit `config.yaml`: `tool_loop_guardrails.hard_stop_enabled: true`
-- This enforces the falsifiable loop invariant from Mahaximus: bounded iterations, no infinite loops.
-- **Delta**: 1-line config change.
-
-**0.2 — Mannered Prose Elimination in SOUL.md** *(Item 11)*
-- Prepend Anthropic's diagnostic contract to SOUL.md as Rule 0 (highest precedence).
-- Shorthand fallback: `"Please remove all mannered prose"` as a terminal directive.
-- **Delta**: ~8 lines in SOUL.md.
-
-**0.3 — Skill Description Hygiene Audit** *(Item 10)*
-- Audit all 91 `SKILL.md` frontmatter `description` fields.
-- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
-- **Delta**: Config/text edits only, no Python.
-
-**0.4 — AGENTS.md Pruning** *(Item 10)*
-- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
-- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
-- Merge `dot_hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate.
-- **Delta**: Text deletion only.
-
 ---
 
-### Phase 1 — Loop Architecture: Finish-First & Falsifiable Verification
-*Formalizes the 4-phase lifecycle already partially present.*
-
-**1.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
-- Add to SOUL.md §11 (Session Lifecycle): explicit completion definition pattern.
-- *"Completion requires: build → test → verify → fix until green. Never stop at first-pass draft."*
-- **Delta**: ~5 lines in SOUL.md.
-
-**1.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
-- Add to `rules/project.md`: the Anthropic evidence-audit contract.
-- *"Before reporting progress, audit each claim against a tool result from this session."*
-- **Delta**: ~6 lines in `rules/project.md`.
-
-**1.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
-- Create `private_skills/software-development/diamond-orchestration/SKILL.md`.
-- Contains: fan-out → deterministic-reduce → skeptic-verify → converge template.
-- **Delta**: New SKILL.md, no Python.
-
----
-
-### Phase 2 — Memory: Dreaming Logs & Durable Handoffs
-*Converts session logs to persistent memory cards. Zero new Python.*
-
-**2.1 — Dreaming Hook in reflective_learner_adapter** *(Item 2)*
-- Edit `plugins/reflective_learner_adapter/plugin.yaml` to add `on_session_end` hook.
-- Hook body: shell command that summarizes `.hermes/logs/` into `memory/experiential.jsonl` cards with one-line scannable summaries.
-- Can be a shell script or tiny YAML template — no new standalone Python file.
-- **Delta**: Edit existing plugin.yaml + tiny shell hook.
-
-**2.2 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
-- Extend `private_skills/software-development/plan/SKILL.md` to include the <150-word checkpoint protocol.
-- Covers: completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
-- **Delta**: Edit existing SKILL.md.
-
-**2.3 — Obsidian Vault Memory Integration** *(Item 15)*
-- Edit `private_skills/note-taking/obsidian/SKILL.md` to add content-OS workflow: log every research artifact, source citation, content angle into vault before generating new content.
-- **Delta**: Edit existing SKILL.md.
-
----
-
-### Phase 3 — Skills & Routing: Progressive Disclosure + Proactive Partnership
-*JIT skill loading cleanup and new thin skills for new patterns.*
-
-**3.1 — Proactive Thought Partner Rule** *(Item 8)*
-- Create `rules/proactive.md` defining prospective scaffolding behavior.
-- Lightweight ambient suggestion protocol: non-directive, opt-in, sidebar framing.
-- **Delta**: New rules file (~20 lines), no Python.
-
-**3.2 — Spec-Driven Regeneration Skill** *(Item 13)*
-- Create `private_skills/software-development/spec-driven-regen/SKILL.md`.
-- Encodes the x0k-folio + DeepMind "Design Docs Are All You Need" pattern.
-- Tangle workflow: natural-language design doc → sub-agent code generation → CI verification.
-- **Delta**: New SKILL.md only.
-
-**3.3 — Remove Redundant Bin Scripts** *(Items 10, 12)*
-- Remove: `bin/container_cmd.py`, `bin/web_grounding.py`, `bin/harness_architectural_evolution.py`, `bin/extract_web_content.py`, `bin/skill_router.py`
-- Verify each is either superseded by native tooling or covered by existing `hermes_core/` modules.
-- **Delta**: Deletions. No new Python.
-
----
-
-### Phase 4 — Multi-Agent: Maker/Verifier & External Integrations
-*Solidifies separation of production vs. evaluation agents and adds new MCP bridges.*
-
-**4.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
-- Review `quorum_audit` plugin hooks — ensure `Author != Auditor` is enforced on all write operations.
-- Ensure `@tester` profile has no write tools; `@coder` profile cannot run its own post-commit audit.
-- **Delta**: Plugin YAML and profile capability mask edits only.
-
-**4.2 — NotebookLM / Gemini Notebook MCP Bridge** *(Item 15)*
-- Add MCP server config entry to `config.yaml` or `.hermes/mcp/` for Gemini Notebook.
-- Enables `hermes` to query notebook sources via MCP tool calls directly.
-- **Delta**: Config entry only, no Python.
-
-**4.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
-- Add to SOUL.md: the token economics note (single-agent = 4×, multi-agent = 15×; only fan-out for genuinely parallelizable tasks).
-- **Delta**: ~4 lines in SOUL.md.
-
----
-
-### Phase 5 — Harness Learning: GEPA & Self-Optimization
-*Activates the existing GEPA infrastructure for live prompt evolution.*
-
-**5.1 — Activate GEPA on Session End** *(Items 12, 3)*
-- Verify `gepa_optimizer` plugin `on_session_end` hook fires correctly.
-- Configure GEPA to target: SOUL.md rules + skill descriptions + top-failure prompts.
-- **Delta**: Plugin config verification + GEPA seed corpus in `knowledge/`.
-
-**5.2 — Harness Engineering Signal Digest** *(Item 12)*
-- Populate `knowledge/signal_digest.md` with the Phase 1–5 evolutionary taxonomy from Item 12.
-- Used by GEPA as a reference corpus for prompt mutation direction.
-- **Delta**: Edit existing markdown file.
-
-**5.3 — Looped Transformer Config Note** *(Item 3)*
-- Add to `knowledge/signal_digest.md`: note on Nanbeige 4.2 / Mixture-of-Recursions.
-- Relevant for future model selection: when swapping local models, prefer weight-tied looped architectures (better VRAM/performance trade-off at small scale).
-- **Delta**: Documentation only.
-
----
-
-### Phase 6 — Advanced: Declarative Attention & NoRA Fine-Tuning
-*Forward-looking — applies when upgrading local model infrastructure.*
-
-**6.1 — Declarative Attention (vLLM upgrade path)** *(Items 6, 7)*
-- When `llama-server` is next upgraded: evaluate vLLM with FlashAttention as alternative backend.
-- Add a skill note in `private_skills/mlops/inference/serving-llms-vllm/SKILL.md` documenting the DA block-masking configuration.
-- **Delta**: Skill documentation addition.
-
-**6.2 — NoRA Fine-Tuning Guide** *(Item 9)*
-- Add to `private_skills/mlops/models/gemma-trainer/SKILL.md`: NoRA normalization note.
-- One-line change to LoRA init: normalize down-projection matrix A at initialization.
-- **Delta**: Skill documentation addition.
-
-**6.3 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
-- Document the Fairwind/CodeMender pattern (find → validate → patch → regression-test) as a workflow in `private_skills/devops/sdlc-review/SKILL.md`.
-- **Delta**: Skill documentation addition.
-
----
-
-### Roadmap Summary Table
-
-| Phase | Items | Approach | Python Files Added/Removed |
-|:------|:------|:---------|:--------------------------|
-| **0** — Foundation | 11, 10, 14 | config.yaml + SOUL.md + AGENTS.md edits | 0 added, 0 removed |
-| **1** — Loop Architecture | 1, 10, 14 | SOUL.md + rules + 1 new SKILL.md | 0 added, 0 removed |
-| **2** — Memory / Dreaming | 2, 14, 15 | plugin.yaml hook + SKILL.md edits | 0 added, 0 removed |
-| **3** — Skills / Routing | 8, 13, 10 | new rules file + 1 new SKILL.md + deletions | 0 added, **5 removed** |
-| **4** — Multi-Agent | 1, 2, 12, 15 | plugin YAML + config MCP entry + SOUL.md | 0 added, 0 removed |
-| **5** — Harness Learning | 12, 3 | knowledge/ markdown + GEPA config | 0 added, 0 removed |
-| **6** — Adv. Infra | 6, 7, 9, 4 | SKILL.md documentation additions | 0 added, 0 removed |
-| **Total** | | | **0 new Python files**, **5 removed** |
-
----
-
-## Deep Python File Audit: Every .hermes Module vs Upstream Packages
-
-> **Goal**: For every custom `.py` file in `.hermes/src/hermes_core/` and `.hermes/bin/`, identify whether it wraps an upstream package that already exists, duplicates native Hermes capability, or is genuinely irreplaceable. Replace wrappers with direct upstream imports. Delete duplicates. Keep only what has no upstream equivalent.
-
+## 3. Deep Python File Audit: Every .hermes Module vs Upstream Packages
 ### Audit Legend
 - 🔴 **DELETE** — Pure redundant wrapper; upstream package does this natively. Zero custom logic worth keeping.
 - 🟡 **THIN SHIM** — Keep but reduce to ≤30 lines that call upstream directly (no reimplementation).
@@ -931,83 +878,9 @@ Every upstream package becomes a thin **FastMCP tool** or **Hermes plugin** — 
 
 ---
 
-### Phase 7: Upstream Migration Steps
-
-> Run after Phases 0–6. Each step is a git commit. No new Python files created.
-
-**7.1 — Install Upstream Packages**
-```bash
-pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openlit \
-            nemoguardrails sqlmodel networkx tiktoken peft gitpython \
-            python-frontmatter google-adk playwright
-```
-
-**7.2 — Delete Pure Wrapper Files (~55 files)**
-- All 🔴 DELETE files from the audit above.
-- Before each delete: `grep -r "from hermes_core.<name>" .hermes/` to confirm no imports remain.
-
-**7.3 — Thin-Shim Replacements (~13 files, each ≤30 lines)**
-- Strip all custom logic from 🟡 THIN SHIM files.
-- Replace with direct upstream `import` + single function call.
-
-**7.4 — Single FastMCP Tool Server**
-Create `.hermes/plugins/mcp_tools/__init__.py` (~60 lines total):
-```python
-from fastmcp import FastMCP
-from crawl4ai import AsyncWebCrawler
-from ast_grep_py import SgRoot
-
-mcp = FastMCP("hermes-tools")
-
-@mcp.tool
-async def web_extract(url: str, word_limit: int = 500) -> str:
-    async with AsyncWebCrawler() as c:
-        r = await c.arun(url=url, word_count_threshold=word_limit)
-        return r.markdown
-
-@mcp.tool
-def ast_search(pattern: str, code: str, lang: str = "python") -> list[dict]:
-    root = SgRoot(code, lang)
-    return [{"text": n.text(), "range": str(n.range())} for n in root.root().find_all(pattern)]
-```
-This single file replaces `web_grounding.py`, `fast_research.py`, `extract_web_content.py`, `tools.py`, `fastmcp.py`.
-
-**7.5 — Wire DSPy to GEPA Plugin**
-Edit `plugins/gepa_optimizer/hooks/on_session_end.py` (~25 lines):
-```python
-import dspy
-from dspy.teleprompt import MIPROv2
-# Load failed episodes as training set, SOUL.md as program
-# MIPROv2 auto-optimizes → writes improved rules back to SOUL.md
-```
-
-**7.6 — Wire Graphiti for Working Memory**
-Edit `plugins/reflective_learner_adapter/hooks/on_session_end.py` (~20 lines):
-```python
-from graphiti_core import Graphiti
-# g.add_episode(name=session_id, episode_body=summary, ...)
-```
-
-**7.7 — Wire OpenLIT**
-Reduce `hermes_core/trajectory.py` to ~20 lines:
-```python
-import openlit
-openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
-```
-
-**7.8 — Commit + Chezmoi Sync**
-```bash
-chezmoi add .hermes/src/hermes_core/ .hermes/bin/ .hermes/plugins/
-chezmoi git -- add -A
-chezmoi git -- commit -m "refactor(hermes-core): upstream migration — 69 files deleted, 13 thinned, 0 new"
-```
-
 ---
 
-## Deep Audit: `.hermes/src` Structure, Types, Templates & Packaging
-
-> **Goal**: Audit the non-core assets inside `.hermes/src/` (types, templates, egg-info, packaging metadata) and eliminate custom file sprawl by leveraging standard package conventions and plugin asset loading.
-
+## 4. Deep Audit: `.hermes/src` Structure, Types, Templates & Packaging
 ### 1. Structure of `.hermes/src`
 ```
 .hermes/src/
@@ -1042,133 +915,9 @@ chezmoi git -- commit -m "refactor(hermes-core): upstream migration — 69 files
 
 ---
 
-## Deep Audit: `.hermes/tests/` (All 25 Files, 4,722 Lines)
-
-> **Core Problem**: `.hermes/tests/` contains 25 white-box unit test files with 4,722 lines of code. Virtually all of them test **our custom reimplementations of things that upstream packages already do**. For example, 637 lines test a bespoke Tree-Sitter SQLite indexer; 526 lines test a bespoke DAG topological sort; 325 lines test bubblewrap CLI construction.
->
-> When we replace custom modules with battle-tested upstream libraries (`ast-grep-py`, `networkx`, `crawl4ai`, `dspy`, `fastmcp`, `openlit`), we should **not** write unit tests for the upstream library itself. Instead, tests should verify **behavioral invariants and plugin contracts**.
-
-### Audit Legend
-- 🔴 **DELETE TEST** — Tests a deleted/redundant custom implementation. The upstream package has its own extensive test suite. Zero value in keeping bespoke tests.
-- 🟡 **REFOUND AS CONTRACT TEST** — Rewrite into a thin (≤25 lines) test verifying the integration contract between Hermes and the upstream package/plugin.
-- 🟢 **KEEP AS INVARIANT TEST** — Tests a critical local hardware/safety invariant (e.g. VRAM ceiling, zero-sorry output, token budget bounds).
-
 ---
 
-### Category 1: Agent & Orchestration Tests (`tests/agent/` — 5 files, 1,242 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/agent/test_task_graph.py` | 526 | Custom DAG resolution, cycle detection, self-loops, diamond dependencies, task retry counts, SQLite WAL state | `hermes_core/task_graph.py` | **networkx** (`DiGraph`, `simple_cycles`, `topological_sort`) | 🟡 **REFOUND** (~30 lines): Test that task lists convert to `networkx.DiGraph` and reject cycles. Delete 496 lines of custom DAG traversal tests. |
-| `tests/agent/test_branch_swapper.py` | 292 | Custom SQLite branch swap logic, 2-strike consecutive failure counters, tabu pattern injection | `hermes_core/branch_swapper.py` | `quorum_audit` plugin `pre_commit` hook | 🟡 **REFOUND** (~25 lines): Test that plugin pre-commit hook aborts turn on 2 consecutive test failures. Delete custom DB tests. |
-| `tests/agent/test_adk_orchestrator.py` | 273 | ADK CustomAgent bridge, Event streaming, transfer_to_agent transitions, InMemorySessionService | `hermes_core/adk_custom_agent.py` | **google-adk** upstream | 🟢 **KEEP AS INVARIANT** (~60 lines): Verify `HermesADKCustomAgent` satisfies ADK `BaseAgent` protocol and preserves tool state across transfers. |
-| `tests/agent/test_domain_fleet_adk.py` | 83 | DomainFleetManager team dictionary, sub-agent spawning, pipeline composition | `hermes_core/domain_fleet.py` | **google-adk** `Runner` | 🟡 **REFOUND** (~20 lines): Verify fleet registry produces valid ADK agent configurations. |
-| `tests/agent/test_agent_os.py` | 68 | AgentOSDaemon lifecycle, SQLite queue table, daemon background loops | `hermes_core/agent_os.py` | **google-adk** + plan.json | 🔴 **DELETE**: AgentOS daemon loop is replaced by ADK runner; no custom daemon process. |
-
----
-
-### Category 2: Core Subsystem Tests (`tests/core/` — 11 files, 1,607 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/core/test_cli.py` | 357 | Custom CLI flags, capability selectors (plan/execute/verify phases), progress reporting, token savings | `hermes_core/cli.py` | Upstream Hermes CLI + Click/Typer | 🟡 **REFOUND** (~40 lines): Test Hermes CLI invokes correct profile and respects `--yolo` / `--in`. |
-| `tests/core/test_cactus_uncertainty.py` | 180 | Verbal hedging regex, action risk scoring, streak weighting, autonomous halt | `hermes_core/cactus.py` + `loop_contracts.py` | `config.yaml` guardrails + NeMo dialog rails | 🔴 **DELETE**: Replaced by config-level guardrails (`tool_loop_guardrails.hard_stop_enabled`) and NeMo rails. |
-| `tests/core/test_lora_adapter_manager.py` | 164 | Custom LoRA manager, VRAM rejection limits, single active adapter hot-swapping | `hermes_core/lora_adapter_manager.py` | **peft** (`add_adapter`, `set_adapter`) | 🟡 **REFOUND** (~25 lines): Verify `peft` adapter switching doesn't exceed VRAM limits. |
-| `tests/core/test_graphify_bridge.py` | 137 | Knowledge card Markdown frontmatter persistence, SecondBrain vault CRUD, graphify skill discovery | `hermes_core/second_brain.py` + `skill_router.py` | **python-frontmatter** + graphify skill | 🟡 **REFOUND** (~20 lines): Verify graphify Markdown cards have valid YAML frontmatter. |
-| `tests/core/test_vision_token_budget.py` | 137 | Image downsampling math, Gemma vision token formula, optimal patch grid calculation | `hermes_core/visual_arbiter.py` | Pillow `Image.resize` directly | 🟢 **KEEP AS INVARIANT** (~40 lines): Enforce local vision token budget formula (max 1024 tokens/image on 6GB GPU). |
-| `tests/core/test_draft_detective_aps.py` | 128 | Gemma-APS proposition segmentation, AST verification of claims, hallucination detection in summaries | `hermes_core/draft_detective.py` | **ast-grep-py** AST matching | 🟡 **REFOUND** (~30 lines): Verify AST verification catches non-existent function calls in generated patches. |
-| `tests/core/test_quorum_and_gepa.py` | 120 | Quorum audit gate separation, blast radius calculation, GEPALiteOptimizer Pareto candidates | `hermes_core/quorum_gate.py` + `gepa_optimizer.py` | **dspy** `MIPROv2` + `quorum_audit` plugin | 🟡 **REFOUND** (~25 lines): Verify quorum audit gate returns REJECT when blast radius exceeds threshold. |
-| `tests/core/test_gemma_skills.py` | 109 | SKILL.md L0 discovery tokens (<50 tok), L1 dynamic loading, L2 eviction, asset syntax | `hermes_core/openskills_manager.py` | `openskills_manager.py` (kept) | 🟢 **KEEP AS INVARIANT** (109 lines): Enforces critical token budget invariant (<50 tokens/skill discovery line). |
-| `tests/core/test_experience_store.py` | 99 | Episodic memory JSONL + SQLModel saving, compute waste detection, negative constraint generation | `hermes_core/experience_store.py` | **sqlmodel** directly | 🟡 **REFOUND** (~20 lines): Verify SQLModel episode insertion and query. |
-| `tests/core/test_persistence.py` | 86 | SQLite connection factory WAL mode pragmas, FlatBuffers binary serialization speed (<100μs) | `hermes_core/database.py` + `flatbuffers_state.py` | **sqlmodel** + stdlib | 🔴 **DELETE**: SQLModel handles connections; FlatBuffers custom serialization is eliminated. |
-| `tests/core/test_security_delegation.py` | 62 | Trinity isolation, read-only capability masks, HITL risk assessment, test-time compute scoring | `hermes_core/capability_masks.py` | ADK agent capability config | 🟡 **REFOUND** (~20 lines): Verify read-only agent roles cannot call file-write tools. |
-
----
-
-### Category 3: Monitoring & Safety Tests (`tests/monitoring/` & `tests/safety/` — 5 files, 965 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/safety/test_sandbox.py` | 325 | Bubblewrap CLI flag assembly, read-only `/usr` binds, writable `/dev/shm`, setsid process groups | `hermes_core/sandbox.py` + `process_guard.py` | Direct `bwrap` execution | 🟢 **KEEP AS INVARIANT** (~40 lines): Verify untrusted command execution cannot write outside designated workspace. |
-| `tests/monitoring/test_trajectory_openlit.py` | 216 | OpenTelemetry custom span creation, hash-chain immutability, gate rejection span error status | `hermes_core/trajectory.py` | **openlit** (`openlit.init()`) | 🟡 **REFOUND** (~30 lines): Verify `openlit` emits spans to local collector on LLM turn. Delete bespoke hash-chain tests. |
-| `tests/safety/test_nemo_guardrails.py` | 200 | NeMo Colang 1.0 config discovery, input rails blocking `rm -rf`, output rails redacting API keys | `hermes_core/nemo_guardrails_bridge.py` | **nemoguardrails** directly | 🟢 **KEEP AS INVARIANT** (~50 lines): Verify destructive command patterns and secret leak patterns are blocked. |
-| `tests/safety/test_security_ctf.py` | 126 | ELF binary header parsing, mitigation checks (NX, PIE, Canary), ASCII/Unicode string extraction | `hermes_core/security_ctf.py` | **pwntools** / **capstone** | 🔴 **DELETE**: Custom ELF parser is deleted in favor of CLI tools; no custom Python to test. |
-| `tests/safety/test_hitl_gateway.py` | 98 | Risk classification (LOW..CRITICAL), visual DAG ASCII dashboard, auto-approval vs interactive block | `hermes_core/hitl_gateway.py` | NeMo dialog rails + `--yolo` flag | 🔴 **DELETE**: Custom ASCII dashboard and gateway are replaced by NeMo rails + native CLI. |
-
----
-
-### Category 4: Tools & Transports Tests (`tests/tools/` — 3 files, 908 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/tools/test_symbol_graph.py` | 637 | Custom polyglot Tree-Sitter symbol extraction, call hierarchy, reverse callers, incremental mtime cache, SQLite WAL tables | `hermes_core/symbol_graph.py` | **ast-grep-py** (`SgRoot`) + **graphify** | 🔴 **DELETE** (637 lines!): Testing our bespoke Tree-Sitter AST extractor is completely obsolete when using `ast-grep-py` / `graphify`. Replace with a 15-line test in contracts. |
-| `tests/tools/test_fast_research.py` | 195 | Custom regex HTML cleaner, malformed HTML handling, token bounding (<400 tok), query deduplication | `hermes_core/fast_research.py` | **crawl4ai** `AsyncWebCrawler` | 🔴 **DELETE**: Crawl4AI handles HTML→Markdown, deduplication, and word thresholds natively with its own test suite. |
-| `tests/tools/test_fastmcp_transport.py` | 96 | In-memory FastMCP tool dispatch latency (<5ms), multi-hop proxying, schema generation | `hermes_core/fastmcp.py` | **fastmcp** upstream | 🟡 **REFOUND** (~20 lines): Verify FastMCP server exposes registered tools and dispatches calls correctly. |
-
----
-
-### Test Suite Comparison: Before vs After
-
-| Test Directory | Current Files | Current Lines | Post-Refactor Files | Target Lines | Net Reduction |
-|:---------------|:--------------|:--------------|:-------------------|:-------------|:--------------|
-| `tests/agent/` | 5 | 1,242 | 3 | ~135 | **–1,107 lines (–89%)** |
-| `tests/core/` | 11 | 1,607 | 7 | ~220 | **–1,387 lines (–86%)** |
-| `tests/monitoring/` | 1 | 216 | 1 | ~30 | **–186 lines (–86%)** |
-| `tests/safety/` | 4 | 749 | 2 | ~90 | **–659 lines (–88%)** |
-| `tests/tools/` | 3 | 908 | 1 | ~20 | **–888 lines (–98%)** |
-| `conftest.py` | 1 | 8 | 1 | 8 | 0 |
-| **Total `.hermes/tests/`** | **25 files** | **4,722 lines** | **15 files** | **~503 lines** | **–4,219 lines (–89%)** |
-
-### What Replaces the 4,219 Lines of Deleted Tests?
-1. **Upstream Package CI**: `ast-grep`, `networkx`, `crawl4ai`, `dspy`, `fastmcp`, `nemoguardrails`, `sqlmodel`, and `openlit` maintain thousands of unit tests upstream. We stop maintaining duplicate unit tests for their functionality.
-2. **Lean Contract Tests**: The ~503 lines that remain focus exclusively on **Hermes integration invariants**:
-   - Hardware constraints: VRAM budget ≤ 4,812 MiB, image vision tokens ≤ 1,024
-   - Safety constraints: Bubblewrap isolation, NeMo prompt injection / destructive command blocks
-   - Agent standards: SKILL.md discovery budget ≤ 50 tokens/skill, ADK agent transfer integrity
-   - Plugin verification: Quorum gate pre-commit rejection on high blast radius
-
----
-
-## Phase 8: Test Suite Modernization & Harmonization
-
-> **Run concurrently with Phase 7 upstream package adoption.**
-
-**8.1 — Relocate Skill Resources from `src/hermes_core/types/`**
-- Move `.types` and boilerplate files to their respective `private_skills/*/resources/` directories.
-- Delete `types/` sub-tree from `src/hermes_core/`.
-
-**8.2 — Purge Obsolete White-Box Tests (6 files, 1,777 lines)**
-```bash
-rm .hermes/tests/tools/test_symbol_graph.py       # 637L: custom Tree-Sitter SQLite indexer
-rm .hermes/tests/tools/test_fast_research.py      # 195L: custom HTML cleaner
-rm .hermes/tests/core/test_persistence.py         # 86L: custom FlatBuffers & DB factory
-rm .hermes/tests/core/test_cactus_uncertainty.py  # 180L: custom hedging regex
-rm .hermes/tests/safety/test_security_ctf.py      # 126L: custom ELF parser
-rm .hermes/tests/safety/test_hitl_gateway.py      # 98L: custom ASCII DAG dashboard
-rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
-```
-
-**8.3 — Refactor Remaining 15 Test Files to Upstream Contracts**
-- Update imports to use direct upstream packages (`networkx`, `fastmcp`, `openlit`, `sqlmodel`, `dspy`, `nemoguardrails`).
-- Replace mock assertion boilerplate with simple input/output contract checks.
-
-**8.4 — Harmonize with Root `tests/harness_contracts/`**
-- Ensure `pytest .hermes/tests` and `pytest tests/harness_contracts` both execute cleanly under `make test-contracts`.
-- Configure `pyproject.toml` `[tool.pytest.ini_options]` to discover both suites uniformly.
-
-**8.5 — Commit + Chezmoi Sync**
-```bash
-chezmoi add .hermes/tests/ .hermes/src/
-chezmoi git -- add -A
-chezmoi git -- commit -m "test(hermes): harmonize test suite — purge 4.2k lines obsolete mock tests, refactor to upstream contracts"
-```
-
----
-
-## Deep Audit: All 'bin' and 'scripts' Directories in the Workspace
-
-> **Goal**: Audit every script across `.hermes/bin/`, `.hermes/scripts/`, `tests/runners/`, and `.local/bin/` to eliminate redundant wrappers and convert all executable logic into native Hermes plugin hooks or FastMCP tools.
-
+## 5. Deep Audit: All 'bin' and 'scripts' Directories in the Workspace
 ### 1. Complete Inventory of All Executable / Script Folders
 
 ```
@@ -1253,152 +1002,373 @@ Workspace Root (/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/)
 
 ---
 
-## Structural Layout Audit: The `.hermes/hermes-agent` Anomaly & Workspace Collisions
+---
 
-> **The Major Anomaly**: An entire standalone clone of the upstream `https://github.com/NousResearch/hermes-agent.git` repository (500MB, full git history) is located **inside** the user's `.hermes/` configuration directory: `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent`.
-
-### 1. Upstream Layout vs Current Layout
-
-#### The Upstream NousResearch Architecture (How Hermes is designed to work):
-```
-[Engine / Runtime Layer] (Installed package or dev repo)
-├── Installed via: `pip install hermes-agent` OR cloned in `~/Development/hermes-agent`
-├── Entry point: `hermes` CLI (from `hermes_cli.main`)
-├── Bundled Plugins: `plugins/` (browser, kanban, image_gen, platforms, model-providers)
-└── Bundled Skills: `skills/` (builtin community skills)
-
-[User State & Dotfile Layer] (Lives at ~/.hermes/ or $HERMES_HOME)
-├── config.yaml          # Model, provider, tool guardrails, web backend
-├── SOUL.md              # System prompt & behavioral constitution
-├── plugins/             # User-installed plugins (e.g. quorum_audit, gepa_optimizer)
-├── skills/              # User-installed custom skills
-├── memory/              # Durable memory, session cards, state.db
-└── plan.json            # Active session milestone tracking
-```
-
-#### What We Actually Have (The Distorted Nested Layout):
-```
-/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/  ($HOME inside ws-hermes)
-├── .hermes/                                                 (State AND Engine mixed together!)
-│   ├── hermes-agent/                                        <-- FULL UPSTREAM REPO CLONED INSIDE STATE DIR!
-│   │   ├── .git/                                            (Unmanaged git repository inside chezmoi!)
-│   │   ├── hermes_cli/                                      (The actual running CLI)
-│   │   ├── plugins/                                         (Upstream bundled plugins)
-│   │   ├── skills/                                          (Upstream bundled skills)
-│   │   ├── tools/                                           (Upstream tools)
-│   │   └── tests/                                           (13,000+ upstream tests)
-│   ├── plugins/                                             <-- DUPLICATE: User plugins folder
-│   ├── skills/ & private_skills/                            <-- DUPLICATE: User skills folder
-│   ├── tests/                                               <-- DUPLICATE: 25 bespoke unit tests
-│   ├── bin/                                                 <-- DUPLICATE: 15 bespoke python scripts
-│   ├── src/hermes_core/                                     <-- DUPLICATE: 68 bespoke python files mimicking the engine
-│   ├── config.yaml
-│   └── SOUL.md
-├── tests/                                                   <-- TRIPLICATE: Root test contracts
-├── pyproject.toml                                           <-- GHOST PACKAGE: Declares "hermes-harness", not "hermes-agent"
-└── .local/share/chezmoi/                                    (Tracks .hermes/ but CANNOT track .hermes/hermes-agent/)
-```
+## 6. Deep Audit: `.hermes/tests/` (All 25 Files, 4,722 Lines)
+### Audit Legend
+- 🔴 **DELETE TEST** — Tests a deleted/redundant custom implementation. The upstream package has its own extensive test suite. Zero value in keeping bespoke tests.
+- 🟡 **REFOUND AS CONTRACT TEST** — Rewrite into a thin (≤25 lines) test verifying the integration contract between Hermes and the upstream package/plugin.
+- 🟢 **KEEP AS INVARIANT TEST** — Tests a critical local hardware/safety invariant (e.g. VRAM ceiling, zero-sorry output, token budget bounds).
 
 ---
 
-### 2. Six Catastrophic Collisions Caused by This Layout
+### Category 1: Agent & Orchestration Tests (`tests/agent/` — 5 files, 1,242 lines)
 
-1. **Collision 1: The Git-Inside-Git Chezmoi Blindspot**
-   - `.hermes/` is tracked by chezmoi via `private_dot_hermes/`.
-   - But `.hermes/hermes-agent` contains its own `.git/` folder.
-   - Chezmoi automatically ignores nested git repositories.
-   - **Consequence**: The entire 500MB `hermes-agent` engine is an untracked, unversioned orphan inside the dotfiles repository. Upstream updates cannot be managed cleanly by chezmoi, and dotfile syncs are prone to drift.
-
-2. **Collision 2: The Six Overlapping Folder Names**
-   - Both `.hermes/` and `.hermes/hermes-agent/` contain: `assets/`, `cron/`, `plugins/`, `scripts/`, `skills/`, `tests/`.
-   - When Python or the agent searches for a skill or plugin, path resolution depends on arbitrary `sys.path` order.
-   - To work around this collision, someone invented `private_skills/` and a custom `FourTierSkillRouter` just to avoid collisions with `hermes-agent/skills/`!
-
-3. **Collision 3: The Ghost Package Conflict (`hermes-agent` vs `hermes-harness`)**
-   - In `.local/lib/python3.13/site-packages`:
-     - `hermes_agent-0.20.6` is installed in editable mode from `.hermes/hermes-agent`
-     - `hermes_harness-1.0.0` is installed in editable mode from `.hermes/src`
-   - `hermes_harness` declares entry points `hermes = "hermes_harness.cli:main"`.
-   - But `hermes_harness.cli` DOES NOT EXIST! (The package in `src` is `hermes_core`, not `hermes_harness`).
-   - The wrapper script `.local/bin/hermes` has to explicitly run `python3.13 -m hermes_cli.main` to avoid hitting the broken entry point.
-
-4. **Collision 4: The Triple Test Suite Fragmentation**
-   - Test suite 1: `.hermes/hermes-agent/tests/` (13,000+ upstream test files)
-   - Test suite 2: `.hermes/tests/` (25 white-box unit tests)
-   - Test suite 3: `tests/` at workspace root (43 contract tests + 8 runners)
-   - Running `pytest` from the root discovers inconsistent test fixtures and conflicting `conftest.py` path injections.
-
-5. **Collision 5: The Distrobox `$HOME` Aliasing Confusion**
-   - In the `ws-hermes` container, `$HOME` is configured as `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes`.
-   - This causes user home dotfiles (`.bashrc`, `.ssh/`, `.gitconfig`, `.npm/`, `.cache/`, `.local/`) to live in the root of the project workspace.
-   - Meanwhile, on the host, `$HOME` is `/var/home/imshubhamsocial/`, which contains ANOTHER `.hermes/` directory (`/var/home/imshubhamsocial/.hermes`), causing confusion between host state and container state.
-
-6. **Collision 6: Upstream Update Impasse**
-   - Because custom code was injected directly into `.hermes/` (adjacent to `hermes-agent`) rather than through the standard plugin/skill API, updating `hermes-agent` risks breaking path assumptions, shadowing modules, or creating import loops.
-   - By decoupling `hermes-agent` as an external package and converting all custom code into clean plugins in `~/.hermes/plugins/`, **Hermes can be updated with a simple `pip install --upgrade hermes-agent` or `hermes update`**, receiving all upstream features and bug fixes naturally with zero breakage.
+| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
+|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
+| `tests/agent/test_task_graph.py` | 526 | Custom DAG resolution, cycle detection, self-loops, diamond dependencies, task retry counts, SQLite WAL state | `hermes_core/task_graph.py` | **networkx** (`DiGraph`, `simple_cycles`, `topological_sort`) | 🟡 **REFOUND** (~30 lines): Test that task lists convert to `networkx.DiGraph` and reject cycles. Delete 496 lines of custom DAG traversal tests. |
+| `tests/agent/test_branch_swapper.py` | 292 | Custom SQLite branch swap logic, 2-strike consecutive failure counters, tabu pattern injection | `hermes_core/branch_swapper.py` | `quorum_audit` plugin `pre_commit` hook | 🟡 **REFOUND** (~25 lines): Test that plugin pre-commit hook aborts turn on 2 consecutive test failures. Delete custom DB tests. |
+| `tests/agent/test_adk_orchestrator.py` | 273 | ADK CustomAgent bridge, Event streaming, transfer_to_agent transitions, InMemorySessionService | `hermes_core/adk_custom_agent.py` | **google-adk** upstream | 🟢 **KEEP AS INVARIANT** (~60 lines): Verify `HermesADKCustomAgent` satisfies ADK `BaseAgent` protocol and preserves tool state across transfers. |
+| `tests/agent/test_domain_fleet_adk.py` | 83 | DomainFleetManager team dictionary, sub-agent spawning, pipeline composition | `hermes_core/domain_fleet.py` | **google-adk** `Runner` | 🟡 **REFOUND** (~20 lines): Verify fleet registry produces valid ADK agent configurations. |
+| `tests/agent/test_agent_os.py` | 68 | AgentOSDaemon lifecycle, SQLite queue table, daemon background loops | `hermes_core/agent_os.py` | **google-adk** + plan.json | 🔴 **DELETE**: AgentOS daemon loop is replaced by ADK runner; no custom daemon process. |
 
 ---
 
-### 3. The Target Clean Layout (True Plugin Architecture)
+### Category 2: Core Subsystem Tests (`tests/core/` — 11 files, 1,607 lines)
 
-```
-[Installed Engine] (Installed via pip/uv into python site-packages)
-  hermes-agent (version >= 0.20.6)
-  ├── Provides: `hermes` CLI, core loop, gateway, bundled tools, TUI
-  └── Updatable via: `pip install --upgrade hermes-agent` or `hermes update`
-
-[Dotfiles & Agent State] (~/.hermes/ — Tracked cleanly by Chezmoi)
-  ~/.hermes/
-  ├── config.yaml          # Clean config (model, loop guardrails, providers)
-  ├── SOUL.md              # System prompt & operational laws
-  ├── hermes-pack.yaml     # Declarative plugin pack definition
-  ├── plugins/             # ONLY custom plugins (each with plugin.yaml + __init__.py)
-  │   ├── quorum_audit/    # Quorum consensus & AST pre-commit gate (uses ast-grep-py)
-  │   ├── gepa_optimizer/  # Reflective prompt evolution (uses dspy MIPROv2)
-  │   ├── mcp_tools/       # FastMCP tools (uses crawl4ai + fastembed + ast-grep-py)
-  │   ├── graphiti_memory/ # Temporal episodic memory (uses graphiti-core)
-  │   └── nemo_guard/      # NeMo guardrails bridge (Colang policies)
-  ├── skills/              # Custom skills (all 91 skills consolidated here!)
-  │   └── */SKILL.md       # Progressive disclosure L0/L1/L2
-  └── memory/              # state.db, plan.json, knowledge cards
-```
+| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
+|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
+| `tests/core/test_cli.py` | 357 | Custom CLI flags, capability selectors (plan/execute/verify phases), progress reporting, token savings | `hermes_core/cli.py` | Upstream Hermes CLI + Click/Typer | 🟡 **REFOUND** (~40 lines): Test Hermes CLI invokes correct profile and respects `--yolo` / `--in`. |
+| `tests/core/test_cactus_uncertainty.py` | 180 | Verbal hedging regex, action risk scoring, streak weighting, autonomous halt | `hermes_core/cactus.py` + `loop_contracts.py` | `config.yaml` guardrails + NeMo dialog rails | 🔴 **DELETE**: Replaced by config-level guardrails (`tool_loop_guardrails.hard_stop_enabled`) and NeMo rails. |
+| `tests/core/test_lora_adapter_manager.py` | 164 | Custom LoRA manager, VRAM rejection limits, single active adapter hot-swapping | `hermes_core/lora_adapter_manager.py` | **peft** (`add_adapter`, `set_adapter`) | 🟡 **REFOUND** (~25 lines): Verify `peft` adapter switching doesn't exceed VRAM limits. |
+| `tests/core/test_graphify_bridge.py` | 137 | Knowledge card Markdown frontmatter persistence, SecondBrain vault CRUD, graphify skill discovery | `hermes_core/second_brain.py` + `skill_router.py` | **python-frontmatter** + graphify skill | 🟡 **REFOUND** (~20 lines): Verify graphify Markdown cards have valid YAML frontmatter. |
+| `tests/core/test_vision_token_budget.py` | 137 | Image downsampling math, Gemma vision token formula, optimal patch grid calculation | `hermes_core/visual_arbiter.py` | Pillow `Image.resize` directly | 🟢 **KEEP AS INVARIANT** (~40 lines): Enforce local vision token budget formula (max 1024 tokens/image on 6GB GPU). |
+| `tests/core/test_draft_detective_aps.py` | 128 | Gemma-APS proposition segmentation, AST verification of claims, hallucination detection in summaries | `hermes_core/draft_detective.py` | **ast-grep-py** AST matching | 🟡 **REFOUND** (~30 lines): Verify AST verification catches non-existent function calls in generated patches. |
+| `tests/core/test_quorum_and_gepa.py` | 120 | Quorum audit gate separation, blast radius calculation, GEPALiteOptimizer Pareto candidates | `hermes_core/quorum_gate.py` + `gepa_optimizer.py` | **dspy** `MIPROv2` + `quorum_audit` plugin | 🟡 **REFOUND** (~25 lines): Verify quorum audit gate returns REJECT when blast radius exceeds threshold. |
+| `tests/core/test_gemma_skills.py` | 109 | SKILL.md L0 discovery tokens (<50 tok), L1 dynamic loading, L2 eviction, asset syntax | `hermes_core/openskills_manager.py` | `openskills_manager.py` (kept) | 🟢 **KEEP AS INVARIANT** (109 lines): Enforces critical token budget invariant (<50 tokens/skill discovery line). |
+| `tests/core/test_experience_store.py` | 99 | Episodic memory JSONL + SQLModel saving, compute waste detection, negative constraint generation | `hermes_core/experience_store.py` | **sqlmodel** directly | 🟡 **REFOUND** (~20 lines): Verify SQLModel episode insertion and query. |
+| `tests/core/test_persistence.py` | 86 | SQLite connection factory WAL mode pragmas, FlatBuffers binary serialization speed (<100μs) | `hermes_core/database.py` + `flatbuffers_state.py` | **sqlmodel** + stdlib | 🔴 **DELETE**: SQLModel handles connections; FlatBuffers custom serialization is eliminated. |
+| `tests/core/test_security_delegation.py` | 62 | Trinity isolation, read-only capability masks, HITL risk assessment, test-time compute scoring | `hermes_core/capability_masks.py` | ADK agent capability config | 🟡 **REFOUND** (~20 lines): Verify read-only agent roles cannot call file-write tools. |
 
 ---
 
-## Phase 9: Layout Normalization & Engine Decoupling Roadmap
+### Category 3: Monitoring & Safety Tests (`tests/monitoring/` & `tests/safety/` — 5 files, 965 lines)
 
-> **Goal**: Un-nest `hermes-agent`, eliminate the ghost `hermes-harness` package, consolidate skills into `~/.hermes/skills/`, and convert all custom Python into native Hermes plugins.
+| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
+|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
+| `tests/safety/test_sandbox.py` | 325 | Bubblewrap CLI flag assembly, read-only `/usr` binds, writable `/dev/shm`, setsid process groups | `hermes_core/sandbox.py` + `process_guard.py` | Direct `bwrap` execution | 🟢 **KEEP AS INVARIANT** (~40 lines): Verify untrusted command execution cannot write outside designated workspace. |
+| `tests/monitoring/test_trajectory_openlit.py` | 216 | OpenTelemetry custom span creation, hash-chain immutability, gate rejection span error status | `hermes_core/trajectory.py` | **openlit** (`openlit.init()`) | 🟡 **REFOUND** (~30 lines): Verify `openlit` emits spans to local collector on LLM turn. Delete bespoke hash-chain tests. |
+| `tests/safety/test_nemo_guardrails.py` | 200 | NeMo Colang 1.0 config discovery, input rails blocking `rm -rf`, output rails redacting API keys | `hermes_core/nemo_guardrails_bridge.py` | **nemoguardrails** directly | 🟢 **KEEP AS INVARIANT** (~50 lines): Verify destructive command patterns and secret leak patterns are blocked. |
+| `tests/safety/test_security_ctf.py` | 126 | ELF binary header parsing, mitigation checks (NX, PIE, Canary), ASCII/Unicode string extraction | `hermes_core/security_ctf.py` | **pwntools** / **capstone** | 🔴 **DELETE**: Custom ELF parser is deleted in favor of CLI tools; no custom Python to test. |
+| `tests/safety/test_hitl_gateway.py` | 98 | Risk classification (LOW..CRITICAL), visual DAG ASCII dashboard, auto-approval vs interactive block | `hermes_core/hitl_gateway.py` | NeMo dialog rails + `--yolo` flag | 🔴 **DELETE**: Custom ASCII dashboard and gateway are replaced by NeMo rails + native CLI. |
 
-**9.1 — Fix Corrupted Shebang in `observer_gate.py`**
-- Fix line 1 of `.hermes/bin/observer_gate.py` (move `import shutil` below `#!/usr/bin/env python3`).
+---
 
-**9.2 — Clean Up Ghost Packaging in `pyproject.toml`**
-- Remove `[project.entry-points.console_scripts]` pointing to non-existent `hermes_harness.cli`.
-- Keep `pyproject.toml` strictly as a dependency lock manifest for the harness environment.
-- Uninstall editable `hermes-harness`: `pip uninstall -y hermes-harness`.
+### Category 4: Tools & Transports Tests (`tests/tools/` — 3 files, 908 lines)
 
-**9.3 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
-- Move all skills from `.hermes/private_skills/` into `.hermes/skills/`.
-- Remove `private_skills/` directory.
-- This aligns with Hermes's native skill discovery (`hermes skills list`).
+| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
+|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
+| `tests/tools/test_symbol_graph.py` | 637 | Custom polyglot Tree-Sitter symbol extraction, call hierarchy, reverse callers, incremental mtime cache, SQLite WAL tables | `hermes_core/symbol_graph.py` | **ast-grep-py** (`SgRoot`) + **graphify** | 🔴 **DELETE** (637 lines!): Testing our bespoke Tree-Sitter AST extractor is completely obsolete when using `ast-grep-py` / `graphify`. Replace with a 15-line test in contracts. |
+| `tests/tools/test_fast_research.py` | 195 | Custom regex HTML cleaner, malformed HTML handling, token bounding (<400 tok), query deduplication | `hermes_core/fast_research.py` | **crawl4ai** `AsyncWebCrawler` | 🔴 **DELETE**: Crawl4AI handles HTML→Markdown, deduplication, and word thresholds natively with its own test suite. |
+| `tests/tools/test_fastmcp_transport.py` | 96 | In-memory FastMCP tool dispatch latency (<5ms), multi-hop proxying, schema generation | `hermes_core/fastmcp.py` | **fastmcp** upstream | 🟡 **REFOUND** (~20 lines): Verify FastMCP server exposes registered tools and dispatches calls correctly. |
 
-**9.4 — Convert All Surviving Custom Logic into Native Plugins**
-- Ensure all 5 active plugins in `.hermes/plugins/` have valid `plugin.yaml` manifests and adhere to the upstream Hermes plugin specification.
-- Register them declaratively in `hermes-pack.yaml`.
-- Verify with `hermes plugins doctor`.
+---
 
-**9.5 — Decouple `.hermes/hermes-agent` from Dotfiles**
-- Move `hermes-agent` outside `.hermes/` (or install it cleanly via `pip install -e /path/to/hermes-agent` in a dedicated `~/src/hermes-agent` or let uv/pip manage it).
-- Remove the untracked `.git` repository from inside `.hermes/`.
-- Chezmoi now tracks ONLY clean configuration, plugins, skills, and memory — zero nested git repositories.
+### Test Suite Comparison: Before vs After
 
-**9.6 — Purge `.hermes/bin/` and `.hermes/src/`**
-- Execute Phase 7 (deleting redundant wrappers) and Phase 8 (modernizing tests).
-- Once all logic is in plugins and upstream packages, remove `.hermes/bin/` and `.hermes/src/`.
+| Test Directory | Current Files | Current Lines | Post-Refactor Files | Target Lines | Net Reduction |
+|:---------------|:--------------|:--------------|:-------------------|:-------------|:--------------|
+| `tests/agent/` | 5 | 1,242 | 3 | ~135 | **–1,107 lines (–89%)** |
+| `tests/core/` | 11 | 1,607 | 7 | ~220 | **–1,387 lines (–86%)** |
+| `tests/monitoring/` | 1 | 216 | 1 | ~30 | **–186 lines (–86%)** |
+| `tests/safety/` | 4 | 749 | 2 | ~90 | **–659 lines (–88%)** |
+| `tests/tools/` | 3 | 908 | 1 | ~20 | **–888 lines (–98%)** |
+| `conftest.py` | 1 | 8 | 1 | 8 | 0 |
+| **Total `.hermes/tests/`** | **25 files** | **4,722 lines** | **15 files** | **~503 lines** | **–4,219 lines (–89%)** |
 
-**9.7 — Commit & Chezmoi Sync**
+### What Replaces the 4,219 Lines of Deleted Tests?
+1. **Upstream Package CI**: `ast-grep`, `networkx`, `crawl4ai`, `dspy`, `fastmcp`, `nemoguardrails`, `sqlmodel`, and `openlit` maintain thousands of unit tests upstream. We stop maintaining duplicate unit tests for their functionality.
+2. **Lean Contract Tests**: The ~503 lines that remain focus exclusively on **Hermes integration invariants**:
+   - Hardware constraints: VRAM budget ≤ 4,812 MiB, image vision tokens ≤ 1,024
+   - Safety constraints: Bubblewrap isolation, NeMo prompt injection / destructive command blocks
+   - Agent standards: SKILL.md discovery budget ≤ 50 tokens/skill, ADK agent transfer integrity
+   - Plugin verification: Quorum gate pre-commit rejection on high blast radius
+
+---
+
+---
+
+# PART III: Unified Master Implementation Roadmap (Phases 0 through 9)
+
+> **Execution Order Principle**: Lowest risk and immediate value first. Pure config and context discipline (Phase 0) precedes structural decoupling (Phase 1), package installation (Phase 2), and wrapper purging (Phase 4). Zero new bespoke Python files.
+
+---
+
+### Phase 0 — Foundation: Context Hygiene & Prompt Discipline
+*Zero new code. Zero file deletions. Immediate impact on every single session from turn 1.*
+
+**0.1 — Enable Hard Stop on Tool Loop** *(Item 14)*
+- Edit `.hermes/config.yaml`: `tool_loop_guardrails.hard_stop_enabled: true`
+- This enforces the falsifiable loop invariant from Mahaximus: bounded iterations, no infinite loops or runaway token burn.
+- **Delta**: 1-line config change.
+
+**0.2 — Mannered Prose Elimination in SOUL.md** *(Item 11)*
+- Prepend Anthropic's diagnostic contract to `.hermes/SOUL.md` as Rule 0 (highest precedence).
+- Eliminates robotic throat-clearing, apologetic filler, and sycophantic preamble: cuts response token bloat by 30-40%.
+- Shorthand fallback: `"Please remove all mannered prose"` as a terminal directive.
+- **Delta**: ~8 lines in SOUL.md.
+
+**0.3 — Skill Description Hygiene Audit** *(Item 10)*
+- Audit all 91 `SKILL.md` frontmatter `description` fields.
+- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
+- Prevents L0 progressive disclosure from exceeding discovery token budgets.
+- **Delta**: Config/text edits only, no Python.
+
+**0.4 — AGENTS.md Pruning & Duplicate Removal** *(Item 10)*
+- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
+- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
+- Merge `.hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate maintenance hazard.
+- **Delta**: Text deletion only.
+
+---
+
+### Phase 1 — Layout Normalization & Engine Decoupling
+*Resolves the 6 workspace collisions and decouples the upstream engine from dotfiles.*
+
+**1.1 — Fix Corrupted Shebang in `observer_gate.py`**
+- Fix line 1 of `.hermes/bin/observer_gate.py`: move `import shutil` below `#!/usr/bin/env python3` so POSIX shebang execution succeeds without syntax errors.
+- **Delta**: 1-line fix.
+
+**1.2 — Clean Up Ghost Packaging in `pyproject.toml`**
+- In root `pyproject.toml`, remove stale entry points:
+  `hermes = "hermes_harness.cli:main"` (which does not exist).
+- Uninstall the broken editable package: `pip uninstall -y hermes-harness`.
+- Keep `pyproject.toml` strictly as the harness dependency lock manifest.
+- **Delta**: Config edit + pip uninstall.
+
+**1.3 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
+- Move all 91 skills from `.hermes/private_skills/` into `.hermes/skills/` (the standard upstream location).
+- Remove the redundant `private_skills/` directory and update any references.
+- **Delta**: Directory move.
+
+**1.4 — Relocate Static Assets & Templates to Skill Resources**
+- Move `.types` and code templates from `src/hermes_core/types/` to their respective `skills/*/resources/` directories:
+  - `nodejs_types.types` → `skills/software-development/node-inspect-debugger/resources/`
+  - `posix_types.types` → `skills/devops/resources/`
+  - `threejs_types.types` & `webgl_canvas_boilerplate.html` → `skills/software-development/generative-ui-artifact/resources/`
+  - `playwright_tdd_spec.py` → `skills/software-development/test-driven-development/resources/`
+- Delete the `types/` sub-tree from `src/hermes_core/`.
+- **Delta**: File relocations.
+
+**1.5 — Decouple `.hermes/hermes-agent` Git Repository**
+- Decouple the nested `hermes-agent` git repository from the chezmoi-managed `.hermes/` state directory.
+- Install `hermes-agent` as a clean Python package (or place the dev clone in a dedicated `~/Development/hermes-agent` path).
+- Chezmoi now cleanly tracks ONLY dotfiles, configuration, skills, and plugins — zero nested `.git` blobs.
+- **Delta**: Git repository un-nesting.
+
+---
+
+### Phase 2 — Upstream Package Installation
+*Installs the 16 maintained upstream packages that replace 69 custom Python files.*
+
+**2.1 — Install Upstream Packages**
 ```bash
-chezmoi add .hermes/config.yaml .hermes/SOUL.md .hermes/hermes-pack.yaml .hermes/plugins/ .hermes/skills/
-chezmoi git -- add -A
-chezmoi git -- commit -m "refactor(layout): normalize hermes layout — decouple upstream engine, consolidate skills, eliminate bin sprawl"
+pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openlit \
+            nemoguardrails sqlmodel networkx tiktoken peft gitpython \
+            python-frontmatter google-adk playwright
 ```
+- **Dependencies resolved**: Every capability (AST parsing, temporal graph memory, prompt optimization, guardrails, web extraction, tracing) is now backed by a dedicated upstream package.
+
+---
+
+### Phase 3 — Plugin Architecture Conversion & FastMCP Tool Server
+*Transitions custom Python tools into standard Hermes plugins and a unified FastMCP server.*
+
+**3.1 — Build Single Unified FastMCP Tool Server**
+Create `.hermes/plugins/mcp_tools/__init__.py` (~60 lines total):
+```python
+from fastmcp import FastMCP
+from crawl4ai import AsyncWebCrawler
+from ast_grep_py import SgRoot
+
+mcp = FastMCP("hermes-tools")
+
+@mcp.tool
+async def web_extract(url: str, word_limit: int = 500) -> str:
+    """Extract LLM-ready markdown from any URL via Crawl4AI."""
+    async with AsyncWebCrawler() as c:
+        r = await c.arun(url=url, word_count_threshold=word_limit)
+        return r.markdown
+
+@mcp.tool
+def ast_search(pattern: str, code: str, lang: str = "python") -> list[dict]:
+    """Search structural code patterns across files via ast-grep Tree-sitter."""
+    root = SgRoot(code, lang)
+    return [{"text": n.text(), "range": str(n.range())} for n in root.root().find_all(pattern)]
+```
+- **Replaces**: `web_grounding.py`, `fast_research.py`, `extract_web_content.py`, `tools.py`, `codebase_memory_mcp.py`, and `fastmcp.py`.
+
+**3.2 — Declarative Plugin Pack Registration**
+- Ensure all 5 active plugins in `.hermes/plugins/` have valid `plugin.yaml` manifests adhering to upstream specs.
+- Register them in `hermes-pack.yaml`:
+  `quorum_audit`, `gepa_optimizer`, `observer_gate`, `mcp_tools`, `reflective_learner_adapter`.
+- Validate with: `hermes plugins doctor`.
+- **Delta**: YAML plugin configurations.
+
+---
+
+### Phase 4 — Codebase & Wrapper Purge
+*Deletes 69 redundant wrapper files and slashes custom Python maintenance overhead.*
+
+**4.1 — Delete Pure Wrapper Files in `hermes_core/` (~55 files)**
+- Delete all 🔴 **DELETE** files audited in Part II, Category 1 through 12:
+  `database.py`, `embeddings.py`, `fast_research.py`, `flatbuffers_state.py`, `formatter_pipeline.py`, `google_agentic_substrate.py`, `hook_router.py`, `hooks.py`, `humanizer.py`, `intent_router.py`, `loop_contracts.py`, `lora_adapter.py`, `lora_adapter_manager.py`, `lsp_bridge.py`, `middleware.py`, `multi_bot_delegation.py`, `opencode_mem.py`, `openviking_vfs.py`, `prefix_cache.py`, `presets.py`, `process_guard.py`, `prompt_slotting.py`, `qwen_mm_core.py`, `ring_buffer.py`, `runner.py`, `sandbox.py`, `schema_anchors.py`, `sdk.py`, `security_ctf.py`, `skill_router.py`, `skills_catalog.py`, `skills_registry.py`, `speculative_executor.py`, `symbol_graph.py`, `symbol_indexer.py`, `test_time_sampler.py`, `thread_safe_ringbuffer.py`, `tools.py`, `verification_matrix.py`, `vfs.py`, `visual_arbiter.py`, `web_grounding.py`.
+- Pre-deletion verification: `grep -rn "from hermes_core.<name>" .hermes/` to confirm zero remaining internal imports.
+
+**4.2 — Delete 14 Redundant Scripts in `.hermes/bin/`**
+- Delete: `bin/cache_ui_assets.py`, `bin/container_cmd.py`, `bin/extract_code_mode.py`, `bin/extract_web_content.py`, `bin/harness_architectural_evolution.py`, `bin/hub_cli.py`, `bin/index_docs.py`, `bin/ingest_document.py`, `bin/skill_retriever.py`, `bin/skill_router.py`, `bin/verify_harness_integrity.py`, `bin/verify_skills_config.py`, `bin/verify_transcript.py`, `bin/web_grounding.py`.
+- Convert surviving `observer_gate.py` to a ~50-line pre-commit hook in `plugins/observer_gate/`.
+- Remove `.hermes/bin/` entirely.
+
+**4.3 — Thin-Shim Surviving Modules (12 files, each ≤30 lines)**
+- Keep only thin pass-through adapters: `adk_custom_agent.py`, `domain_fleet.py`, `swarm_engine.py`, `swarm_system.py`, `agent_os.py`, `spec_first_planner.py`, `nemo_guardrails_bridge.py`, `hypothesis_tree.py`, `trajectory.py`, `experience_store.py`, `plugin_manifest.py`, `openskills_manager.py`.
+
+---
+
+### Phase 5 — Test Suite Modernization & Harmonization
+*Eliminates 4.2k lines of obsolete mock tests and focuses exclusively on invariant contract verification.*
+
+**5.1 — Purge Obsolete White-Box Tests (7 files, 1,777 lines)**
+```bash
+rm .hermes/tests/tools/test_symbol_graph.py       # 637L: custom Tree-Sitter SQLite indexer
+rm .hermes/tests/tools/test_fast_research.py      # 195L: custom HTML cleaner
+rm .hermes/tests/core/test_persistence.py         # 86L: custom FlatBuffers & DB factory
+rm .hermes/tests/core/test_cactus_uncertainty.py  # 180L: custom hedging regex
+rm .hermes/tests/safety/test_security_ctf.py      # 126L: custom ELF parser
+rm .hermes/tests/safety/test_hitl_gateway.py      # 98L: custom ASCII DAG dashboard
+rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
+```
+
+**5.2 — Refactor Remaining 15 Test Files to Lean Invariant Contracts**
+- Refactor remaining 15 test files to test behavioral contracts against upstream packages (`networkx`, `fastmcp`, `openlit`, `sqlmodel`, `dspy`, `nemoguardrails`).
+- Retain vital hardware/safety invariant tests:
+  - VRAM budget ceiling (≤4,812 MiB)
+  - Image vision token budget (≤1,024 tokens)
+  - OpenSkills L0 discovery budget (≤50 tokens/skill)
+  - Bubblewrap filesystem isolation & setsid process teardown
+  - NeMo guardrails injection & command blocking
+- **Total test code drops from 4,722 lines to ~503 lines (–89% reduction)**.
+
+**5.3 — Harmonize with Root `tests/harness_contracts/`**
+- Ensure `pytest .hermes/tests` and `pytest tests/harness_contracts` discover tests uniformly under `make test-contracts`.
+
+---
+
+### Phase 6 — Loop Architecture: Finish-First & Falsifiable Verification
+*Formalizes the 4-phase lifecycle and ensures the agent never stops at a first-pass draft.*
+
+**6.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
+- Add to `SOUL.md` §11 (Session Lifecycle): unambiguous completion definition pattern.
+- *"Completion requires: build → test → verify → fix until green. Never stop at first-pass draft. A task is complete only when verified by an executable tool check."*
+- **Delta**: ~5 lines in SOUL.md.
+
+**6.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
+- Add to `rules/project.md`: Anthropic's evidence-audit contract.
+- *"Before reporting task progress or milestone completion, audit each claim against a concrete tool output from the current session. Speculative claims are strictly forbidden."*
+- **Delta**: ~6 lines in `rules/project.md`.
+
+**6.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
+- Create `skills/software-development/diamond-orchestration/SKILL.md`.
+- Encodes the fan-out → deterministic-reduce → skeptic-verify → converge multi-agent template for complex multi-file refactors.
+- **Delta**: New SKILL.md (no Python).
+
+---
+
+### Phase 7 — Memory, Dreaming & Self-Optimization
+*Turns passive session logs into durable persistent memory cards and activates automated prompt evolution.*
+
+**7.1 — Dreaming Hook in `reflective_learner_adapter`** *(Item 2)*
+- Edit `plugins/reflective_learner_adapter/plugin.yaml` to add `on_session_end` hook.
+- Summarizes `.hermes/logs/` into `memory/experiential.jsonl` memory cards with scannable one-line titles.
+- **Delta**: Plugin YAML hook.
+
+**7.2 — Wire Graphiti for Temporal Working Memory** *(Item 15)*
+- In `plugins/reflective_learner_adapter/hooks/on_session_end.py` (~20 lines):
+  ```python
+  from graphiti_core import Graphiti
+  # Ingest session transcript into local temporal graph memory
+  ```
+- Replaces custom working memory with bi-temporal entity resolution.
+
+**7.3 — Wire DSPy MIPROv2 to GEPA Plugin** *(Items 12, 3)*
+- In `plugins/gepa_optimizer/hooks/on_session_end.py` (~25 lines):
+  ```python
+  import dspy
+  from dspy.teleprompt import MIPROv2
+  # Use failed turns as training set; auto-optimize SOUL.md prompt rules
+  ```
+- Self-optimizing prompts backed by Stanford's DSPy compiler.
+
+**7.4 — Wire OpenLIT for Observability** *(Item 12)*
+- In `hermes_core/trajectory.py` (shrunk to ~20 lines):
+  ```python
+  import openlit
+  openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
+  ```
+- Full GPU health, latency, token spend, and hallucination metrics out of the box.
+
+**7.5 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
+- Extend `skills/software-development/plan/SKILL.md` to mandate <150-word checkpoint cards:
+  Completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
+- **Delta**: Edit existing SKILL.md.
+
+**7.6 — Obsidian Vault Memory Integration** *(Item 15)*
+- Edit `skills/note-taking/obsidian/SKILL.md` to add the autonomous content-OS workflow:
+  Log every generated asset, source citation, and angle into a structured Obsidian vault.
+- **Delta**: Edit existing SKILL.md.
+
+---
+
+### Phase 8 — Multi-Agent: Maker/Verifier & External Integrations
+*Hardens asymmetric agent roles and connects external research substrates.*
+
+**8.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
+- Review `quorum_audit` plugin hooks: strictly enforce `Author != Auditor` on all mutating operations.
+- Ensure `@tester` profile has no file-write tools; `@coder` profile cannot sign off on its own post-commit audit.
+- **Delta**: Plugin YAML and profile capability mask edits.
+
+**8.2 — Gemini NotebookLM MCP Bridge** *(Item 15)*
+- Add MCP server configuration entry to `config.yaml` for Gemini Notebook.
+- Enables Hermes to query multi-modal research notebooks (PDFs, YouTube transcripts, audio) via standard MCP tool calls.
+- **Delta**: Config entry only.
+
+**8.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
+- Add token economics directive to `SOUL.md`:
+  *"Single-agent turns cost 4×; multi-agent fan-out costs 15×. Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration."*
+- **Delta**: ~4 lines in SOUL.md.
+
+---
+
+### Phase 9 — Forward-Looking Model Infrastructure
+*Forward-looking documentation and guides for when local model infrastructure is upgraded.*
+
+**9.1 — Declarative Attention (vLLM upgrade path)** *(Items 6, 7)*
+- When upgrading inference servers: document vLLM block-masking configuration in `skills/mlops/inference/serving-llms-vllm/SKILL.md`.
+- **Delta**: Skill documentation.
+
+**9.2 — NoRA Fine-Tuning Guide** *(Item 9)*
+- Document normalized down-projection matrix A initialization in `skills/mlops/models/gemma-trainer/SKILL.md`.
+- **Delta**: Skill documentation.
+
+**9.3 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
+- Document the find $	o$ validate $	o$ patch $	o$ regression-test workflow in `skills/devops/sdlc-review/SKILL.md`.
+- **Delta**: Skill documentation.
+
+---
+
+### Master Roadmap Execution Summary Table
+
+| Phase | Focus | Core Deliverables | Approach | Custom Python Delta |
+|:---|:---|:---|:---|:---|
+| **0** | Foundation | Hard-stop enabled, mannered prose eliminated, 91 skill descriptions audited, AGENTS.md pruned | `config.yaml` + `SOUL.md` edits | 0 added, 0 removed |
+| **1** | Layout Normalization | Fix `observer_gate` shebang, clean `pyproject.toml`, un-nest `hermes-agent`, consolidate skills | File moves & config edits | 0 added, 0 removed |
+| **2** | Upstream Packages | Install 16 maintained packages (`crawl4ai`, `dspy`, `fastmcp`, `openlit`, etc.) | `pip install` | 0 added, 0 removed |
+| **3** | Plugin Conversion | Single 60-line FastMCP server (`mcp_tools`), register 5 plugins in `hermes-pack.yaml` | FastMCP + Plugin YAML | **1 thin file added** |
+| **4** | Codebase Purge | Delete 55 wrappers in `hermes_core`, delete 14 scripts in `bin/`, thin surviving shims | File deletions | **–69 files removed** |
+| **5** | Test Modernization | Purge 7 obsolete mock test files (1,777 lines), refactor 15 files to invariant contracts | Test refactoring | **–7 test files removed** (–4,219 lines) |
+| **6** | Loop Architecture | Completion contract in `SOUL.md`, evidence audit rule, diamond orchestration skill | `SOUL.md` + 1 new `SKILL.md` | 0 added, 0 removed |
+| **7** | Memory & Self-Optimization | Wire Graphiti temporal memory, activate DSPy `MIPROv2` teleprompter, wire OpenLIT spans | 2 small plugin hooks (~45L) | 0 added, 0 removed |
+| **8** | Multi-Agent | Harden Maker/Verifier separation, configure Gemini Notebook MCP bridge, token budget rule | `config.yaml` + `SOUL.md` | 0 added, 0 removed |
+| **9** | Model Infrastructure | Declarative Attention / vLLM docs, NoRA fine-tuning guide, CodeMender vulnerability docs | `SKILL.md` doc additions | 0 added, 0 removed |
+| **TOTAL** | | **Comprehensive Harness Evolution End-to-End** | **True Plugin Architecture** | **Net: –68 custom Python files, –4,219 test lines** |
+

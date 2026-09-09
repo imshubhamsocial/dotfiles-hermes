@@ -1,12 +1,10 @@
 name: gepa_optimizer
 version: "1.0.0"
-description: "GEPA-Lite Reflective Pareto Prompt & Skill Evolution Engine (egmaminta/GEPA-Lite). Runs offline reflective optimization over trajectory logs."
+description: "Reflective Pareto prompt and skill evolution engine."
 author: "egmaminta / Hermes Agent OS"
 kind: standalone
 tags: [evolution, pareto, optimization, prompts, skills]
 enabled: true
-hooks:
-  on_session_end: hooks/on_session_end.py
-tools:
-  - run_gepa_evolution
-  - pareto_frontier_select
+provides_hooks:
+  - on_session_end
+

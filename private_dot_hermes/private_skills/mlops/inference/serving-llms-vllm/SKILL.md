@@ -354,7 +354,36 @@ vllm serve MODEL \
 
 **Troubleshooting**: See [references/troubleshooting.md](references/troubleshooting.md) for detailed error messages, debugging steps, and performance diagnostics.
 
+## Declarative Attention & Block-Masking Upgrade Path
+
+Declarative Attention allows language models to dynamically specify structured attention masks over context documents, preventing cross-document attention leakage and eliminating needle-in-a-haystack noise:
+
+1. **vLLM Custom Block Masks**:
+   - When serving with PyTorch FlexAttention / vLLM block-sparse backends, use document boundary masking:
+     ```python
+     from torch.nn.attention.flex_attention import create_block_mask
+
+     def document_mask_mod(b, h, q_idx, kv_idx):
+         # Restrict attention strictly within document boundaries
+         return doc_ids[q_idx] == doc_ids[kv_idx]
+
+     block_mask = create_block_mask(document_mask_mod, B=1, H=1, Q_LEN=4096, KV_LEN=4096)
+     ```
+
+2. **Serving Flags for Prefix Caching & Isolation**:
+   ```bash
+   vllm serve MODEL \
+     --enable-prefix-caching \
+     --gpu-memory-utilization 0.90 \
+     --max-num-seqs 256
+   ```
+
+3. **Benefits**:
+   - Zero attention pollution between disparate repository files or past session cards.
+   - Preserves cached prompt prefixes across multi-turn turns with exact hash reuse.
+
 ## Hardware requirements
+
 
 - **Small models (7B-13B)**: 1x A10 (24GB) or A100 (40GB)
 - **Medium models (30B-40B)**: 2x A100 (40GB) with tensor parallelism

@@ -22,6 +22,13 @@ if str(HERMES_DIR) not in sys.path:
     sys.path.insert(0, str(HERMES_DIR))
 
 from plugins.quorum_audit.hooks.pre_tool_call import pre_tool_call
+from plugins.gepa_optimizer.hooks.on_session_end import (
+    extract_failed_turns,
+    optimize_prompt_with_dspy,
+    on_session_end,
+    DSPY_AVAILABLE,
+)
+
 
 
 
@@ -156,6 +163,31 @@ def test_quorum_pre_tool_call_hook_allows_independent_audit():
     assert res is None
 
 
+def test_dspy_mipro_optimizer_availability():
+    assert DSPY_AVAILABLE is True
+
+
+def test_dspy_mipro_extract_failed_turns():
+    messages = [
+        {"role": "user", "content": "Run database migration"},
+        {"role": "assistant", "content": "Execution failed with syntax error", "status": "error"},
+        {"role": "user", "content": "Fix migration syntax"},
+        {"role": "assistant", "content": "Migration succeeded", "status": "ok"},
+    ]
+    failed = extract_failed_turns(messages)
+    assert len(failed) == 1
+    assert "failed with syntax error" in failed[0]["content"]
+
+
+def test_dspy_mipro_prompt_optimization():
+    failed = [{"role": "assistant", "content": "AssertionError: test failed"}]
+    base = "You are Hermes Coder."
+    refined = optimize_prompt_with_dspy(failed, base)
+    assert "You are Hermes Coder." in refined
+    assert "AST validation" in refined
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
 

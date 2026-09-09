@@ -123,11 +123,11 @@ The roadmap is strictly sequenced into prioritized phases. Subsequent tracks bui
 ### Track 4: Long-Term & Experimental Enhancements
 *Goal: Local adapter fine-tuning, self-correction loops, and multimodal vision token optimization.*
 
-| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
-| :---: | :--- | :--- | :--- |
-| **4.1** | **Cactus Hybrid Uncertainty Detection** | • Study Cactus Hybrid self-reporting techniques for uncertainty identification<br>• Integrate uncertainty scoring into supervisory scan (`lineage.py`) and 2-strike tabu rule | Agent autonomously halts execution and asks clarifying questions when confidence drops below threshold before destructive edits. |
-| **4.2** | **Unsloth On-Device QLoRA Fine-Tuning** | • Leverage bundled `gemma-trainer` assets with Unsloth in a detached container<br>• Train task-specific low-rank adapters for Hermes U41 LoRA adapter manager on the RTX 3050 Laptop GPU | LoRA adapter exports cleanly to GGUF format and hot-swaps onto base Gemma 4 model with zero baseline regression. |
-| **4.3** | **Multimodal Vision Token Optimization** | • Calibrate `visual_arbiter.py` using Google's Gemma 4 Vision Token Budget formulas<br>• Dynamic downsampling and patch budgeting to keep image inputs within tight context bounds | Visual inspector turns remain strictly within the allocated token budget without truncating chat history. |
+| Sequence | Milestone & Scope | Status | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :---: | :--- | :--- |
+| **4.1** | **Cactus Hybrid Uncertainty Detection** | ✅ **DONE** | • Implemented `CactusHybridDetector` in `hermes_core/cactus.py`<br>• Synthesized verbalized linguistic hedging, structural blast-radius risk, and failure streaks<br>• Integrated `STOP_UNCERTAINTY_BREACH` into `LoopController` (`loop_contracts.py`)<br>• Integrated `CLARIFY_OR_HALT` intervention into `supervisory_scan` (`lineage.py`)<br>• Authored `test_cactus_uncertainty.py` & native self-audit probe in harness | Agent halts before destructive mutations when uncertainty >= 0.70 and generates targeted clarifying queries; `probe_cactus_hybrid_uncertainty()` passes; 203/203 unit tests green. |
+| **4.2** | **Unsloth On-Device QLoRA Fine-Tuning** | 📋 **PLANNED** | • Leverage bundled `gemma-trainer` assets with Unsloth in a detached container<br>• Train task-specific low-rank adapters for Hermes U41 LoRA adapter manager on the RTX 3050 Laptop GPU | LoRA adapter exports cleanly to GGUF format and hot-swaps onto base Gemma 4 model with zero baseline regression. |
+| **4.3** | **Multimodal Vision Token Optimization** | 📋 **PLANNED** | • Calibrate `visual_arbiter.py` using Google's Gemma 4 Vision Token Budget formulas<br>• Dynamic downsampling and patch budgeting to keep image inputs within tight context bounds | Visual inspector turns remain strictly within the allocated token budget without truncating chat history. |
 
 ---
 

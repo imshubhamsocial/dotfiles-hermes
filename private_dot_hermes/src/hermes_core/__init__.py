@@ -104,4 +104,7 @@ from .test_time_sampler import TestTimeComputeSampler, create_test_time_sampler
 from .quorum_gate import QuorumAuditGate, QuorumAuditReceipt, BlastRadius
 from .gepa_optimizer import GEPALiteOptimizer, GEPACandidate, GEPAResult, create_gepa_optimizer
 
+# Cactus Hybrid Uncertainty Detection (Track 4 - Phase 4.1)
+from .cactus import CactusHybridDetector, CactusUncertaintyScore
+
 

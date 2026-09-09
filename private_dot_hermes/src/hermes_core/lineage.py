@@ -154,22 +154,38 @@ def load_tree(path: Path) -> List[LineageNode]:
 
 @dataclass
 class Intervention:
-    kind: str                 # ROLLBACK_TO_ANCESTOR | SWITCH_OPERATOR | PRUNE_BRANCH
+    kind: str                 # ROLLBACK_TO_ANCESTOR | SWITCH_OPERATOR | PRUNE_BRANCH | CLARIFY_OR_HALT
     at_seq: Optional[int]
     reason: str
     branch_to_node: Optional[int] = None
     detail: str = ""
+    clarification_questions: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return vars(self)
 
 
-def supervisory_scan(trajectory_path: Union[str, Path]) -> List[Intervention]:
-    """Deterministic out-of-band scan of a full U6 trajectory stream."""
+def supervisory_scan(
+    trajectory_path: Union[str, Path],
+    detector: Optional[Any] = None,
+) -> List[Intervention]:
+    """Deterministic out-of-band scan of a full U6 trajectory stream with Cactus Hybrid Uncertainty."""
     src = Path(trajectory_path)
     ok_chain, chain_detail = verify_chain(src)
     if not ok_chain:
         raise ValueError(f"refusing supervisory scan: {chain_detail}")
+
+    # Graceful loader for CactusHybridDetector
+    if detector is None:
+        try:
+            from .cactus import CactusHybridDetector
+            detector = CactusHybridDetector()
+        except ImportError:
+            try:
+                from hermes_core.cactus import CactusHybridDetector
+                detector = CactusHybridDetector()
+            except ImportError:
+                detector = None
 
     events = load_events(src)
     attempts: List[Dict[str, Any]] = [
@@ -226,6 +242,59 @@ def supervisory_scan(trajectory_path: Union[str, Path]) -> List[Intervention]:
         else:
             consec_fail += 1
             consec_fail_since_good += 1
+
+        # Cactus Hybrid Uncertainty Scan (Phase 4.1)
+        if detector is not None:
+            explicit_unc = ev.get("uncertainty_score")
+            call_ev_obj = next(
+                (c for c in events if c.get("event") == "tool_call"
+                 and c.get("turn") == ev.get("turn")
+                 and c.get("tool") == ev.get("tool")),
+                {}
+            )
+            if explicit_unc is None:
+                explicit_unc = call_ev_obj.get("uncertainty_score")
+
+            thought_text = (
+                call_ev_obj.get("thought")
+                or call_ev_obj.get("rationale")
+                or ev.get("thought")
+                or ""
+            )
+            args_raw = args_head_by_key.get((ev.get("turn"), ev.get("tool")), "")
+            try:
+                args_dict = json.loads(args_raw) if args_raw else {}
+            except Exception:
+                args_dict = {"filepath": fp}
+
+            conf_val = None
+            if explicit_unc is not None and isinstance(explicit_unc, (int, float)):
+                conf_val = 1.0 - float(explicit_unc)
+
+            unc_eval = detector.evaluate_action(
+                tool=ev.get("tool", ""),
+                args=args_dict,
+                thought=thought_text,
+                verbalized_confidence=conf_val,
+                consecutive_failures=consec_fail_since_good,
+            )
+
+            if unc_eval.is_uncertain and unc_eval.is_destructive:
+                bp = select_branch_point(
+                    tree,
+                    exclude_node_ids={n.node_id for n in tree if not n.result_ok},
+                )
+                interventions.append(Intervention(
+                    kind="CLARIFY_OR_HALT",
+                    at_seq=ev.get("seq"),
+                    reason=(
+                        f"Cactus hybrid uncertainty detected ({unc_eval.score:.2f} >= "
+                        f"{detector.uncertainty_threshold}) before mutating '{fp}'"
+                    ),
+                    branch_to_node=(bp.node_id if bp else None),
+                    detail=f"Autonomous halt: {unc_eval.recommendation}",
+                    clarification_questions=unc_eval.clarification_questions,
+                ))
 
         # Full-window zero-progress stall.
         if len(window) == STALL_WINDOW and all(

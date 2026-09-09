@@ -350,6 +350,38 @@ def probe_graphify_ast_engine() -> Tuple[bool, List[str]]:
         return False, [f"Graphify AST engine probe exception: {e}"]
 
 
+def probe_draft_detective_gemma_aps() -> Tuple[bool, List[str]]:
+    """Verifies DraftDetective Gemma-APS proposition deconstruction & AST verification."""
+    evidence = []
+    try:
+        from hermes_core.draft_detective import create_draft_detective
+        dd = create_draft_detective()
+
+        # 1. Test clean matching audit
+        summary = "Added `verify_tokens(budget, strict=True)` returning bool and raising ValueError."
+        code = """
+def verify_tokens(budget, strict=True) -> bool:
+    if budget <= 0:
+        raise ValueError("Budget empty")
+    return True
+"""
+        report_clean = dd.full_pre_commit_audit(summary, code)
+        if not report_clean.approved or report_clean.verified_propositions < 3:
+            return False, ["Gemma-APS failed to verify valid matching code and propositions"]
+        evidence.append(f"Gemma-APS Proposition Segmentation verified ({report_clean.verified_propositions} atomic propositions verified)")
+
+        # 2. Test hallucination catch (contradictory default value)
+        summary_bad = "Added `verify_tokens(budget, strict=False)`."
+        report_bad = dd.full_pre_commit_audit(summary_bad, code)
+        if report_bad.approved or report_bad.failed_propositions == 0:
+            return False, ["Gemma-APS failed to catch contradictory default value proposition"]
+        evidence.append("Gemma-APS Adversarial Gate verified: Successfully caught and rejected contradictory proposition")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"DraftDetective Gemma-APS exception: {e}"]
+
+
 def run_contract_spike_suite() -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ and returns pass status."""
     try:
@@ -381,6 +413,7 @@ def main() -> None:
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),
         ("graphify_ast_engine", probe_graphify_ast_engine),
+        ("draft_detective_gemma_aps", probe_draft_detective_gemma_aps),
         ("weighted_memory_tree", probe_weighted_memory_tree),
         ("google_env_harness_evolution", probe_google_env_harness_evolution),
         ("universal_recovery_strategy", probe_universal_recovery_and_loop_contracts),

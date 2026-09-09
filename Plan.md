@@ -47,6 +47,11 @@ The following baseline capabilities are implemented, tested, and active:
   * Authored `.hermes/scripts/build_codebase_graph.py` with headless AST extraction and SecondBrain bridge.
   * Installed Hermes skill package `graphify` into `.hermes/skills/engineering/code/graphify/`.
   * Complete contract test suite `test_graphify_bridge.py` passing (193 total internal tests passing via `make test-internal`).
+* [x] **Milestone 0.5: Gemma-APS Proposition Deconstruction in Draft Detective**
+  * Enhanced `draft_detective.py` with `PropositionSegmenter` and `ASTPropositionVerifier`.
+  * Deconstructs technical prose into atomic propositions (signatures, defaults, returns, exceptions, classes).
+  * Enforces static AST ground-truth matching and catches contradictory claims before pre-commit.
+  * Native harness probe `probe_draft_detective_gemma_aps()` integrated into master self-audit (197 total internal tests passing via `make test-internal`).
 
 ---
 
@@ -108,10 +113,10 @@ The roadmap is strictly sequenced into prioritized phases. Subsequent tracks bui
 ### Track 3: Reasoning & Fact-Checking Upgrades
 *Goal: Enhance pre-commit code verification and vector retrieval alignment using Google DeepMind's specialized models.*
 
-| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
-| :---: | :--- | :--- | :--- |
-| **3.1** | **Gemma-APS Claim Deconstruction in Draft Detective** | • Integrate Abstractive Proposition Segmentation (APS) principles into `draft_detective.py`<br>• Decompose model code explanations and docstrings into atomic semantic claims<br>• Cross-reference claims against AST static analysis before commits | Unit tests verify that generated claims are mapped to AST function signatures and flagged if docstrings contradict code behavior. |
-| **3.2** | **EmbeddingGemma On-Device Evaluation** | • Benchmark EmbeddingGemma (300M, CPU ONNX) against current `bge-small-en-v1.5` in `opencode_mem.py`<br>• Evaluate tokenizer alignment with Gemma 4 vocabulary and retrieval accuracy across repo search | EmbeddingGemma achieves comparable or superior retrieval Recall@5 on Hermes codebase with CPU latency <25ms per chunk. |
+| Sequence | Milestone & Scope | Status | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :---: | :--- | :--- |
+| **3.1** | **Gemma-APS Claim Deconstruction in Draft Detective** | ✅ **DONE** | • Integrated Abstractive Proposition Segmentation (APS) into `draft_detective.py`<br>• Decomposes prose into atomic propositions (signatures, defaults, returns, exceptions, classes)<br>• Static AST verification flags contradictory docstring claims before pre-commit | `probe_draft_detective_gemma_aps()` passes in `verify_harness_integrity.py`; `make test-internal` passes with 197/197 tests green. |
+| **3.2** | **EmbeddingGemma On-Device Evaluation** | 📋 **PLANNED** | • Benchmark EmbeddingGemma (300M, CPU ONNX) against current `bge-small-en-v1.5` in `opencode_mem.py`<br>• Evaluate tokenizer alignment with Gemma 4 vocabulary and retrieval accuracy across repo search | EmbeddingGemma achieves comparable or superior retrieval Recall@5 on Hermes codebase with CPU latency <25ms per chunk. |
 
 ---
 
@@ -138,7 +143,7 @@ This register benchmarks official Google Gemma and graph ecosystem assets agains
 | [Gemma 4 QAT](https://huggingface.co/collections/google/gemma-4-qat-q4-0) | Core Weights | Official Quantization-Aware Trained 4-bit weights (`Q4_0` / `Q4_K_M`) for base and draft | ✅ **Active in Runtime** |
 | [Cognee](https://github.com/topoteretes/cognee) | Memory Graph | Off-peak conversational trajectory dream consolidation sidecar | ⏸️ **On Hold for Future** (Track 2) |
 | [EmbeddingGemma](https://huggingface.co/collections/google/embeddinggemma) | Embeddings | Compact 300M embedding model for CPU ONNX retrieval in `opencode_mem.py` | 📋 Scheduled (Track 3.2) |
-| [Gemma-APS](https://huggingface.co/collections/google/gemma-aps-release) | Verification | Abstractive Proposition Segmentation for atomic claim verification in `draft_detective.py` | 📋 Scheduled (Track 3.1) |
+| [Gemma-APS](https://huggingface.co/collections/google/gemma-aps-release) | Verification | Abstractive Proposition Segmentation for atomic claim verification in `draft_detective.py` | ✅ **Active in DraftDetective** (Track 3.1) |
 
 ---
 

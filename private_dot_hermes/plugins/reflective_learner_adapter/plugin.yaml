@@ -6,6 +6,7 @@ kind: standalone
 platforms:
   - linux
   - macos
-hooks:
-  - on_session_start
+provides_hooks:
   - on_session_end
+
+

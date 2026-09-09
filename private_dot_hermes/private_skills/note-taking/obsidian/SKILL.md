@@ -66,3 +66,12 @@ Use `patch` for focused note changes when the current content gives you stable c
 ## Wikilinks
 
 Obsidian links notes with `[[Note Name]]` syntax. When creating notes, use these to link related content.
+
+## Autonomous Content-OS Workflow
+
+When acting as an autonomous thought partner or generating assets, maintain structured logging in the Obsidian vault:
+- **Generated Assets**: Record every synthesized artifact, script, prompt, or diagram in `Assets/<Asset-Name>.md`.
+- **Source Citations**: Capture raw URLs, package versions, and research findings with bidirectional wikilinks `[[Sources/<Topic>]]`.
+- **Angles & Hypotheses**: Log exploratory paths, rejected hypotheses, and counterfactual design angles in `Angles/<Date>-<Hypothesis>.md`.
+- **Zettelkasten Atomic Cards**: Maintain atomic 1-idea notes with scannable first-line summaries for zero-overhead retrieval.
+

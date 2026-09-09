@@ -323,6 +323,18 @@ When executing, use the `subagent-driven-development` skill:
 - Code quality review after spec passes
 - Proceed only when both reviews approve
 
+## Session Handoff Checkpoint Cards
+
+At every milestone or session boundary, emit a structured checkpoint card (<150 words) to guarantee state continuity across session restarts or subagent handoffs:
+
+```markdown
+### Checkpoint Card: [Milestone Name]
+- **Completed Sub-tasks**: [Concrete tasks completed and verified with tool evidence]
+- **Decisions & Rationale**: [Key architectural decisions and why alternative approaches were rejected]
+- **Pending Work**: [Immediate next tasks in topological execution order]
+- **Resumption Token**: [Exact command or entry point to resume without re-exploring state]
+```
+
 ## Remember
 
 ```
@@ -336,3 +348,4 @@ Frequent commits
 ```
 
 **A good plan makes implementation obvious.**
+

@@ -197,5 +197,48 @@
     - Cuts attended tokens by **52% on Gemma-4-31B** with only $\approx 1.27\,\text{pp}$ accuracy drop.
     - Cuts attended tokens by **31% on Qwen-3.6-27B** with only $\approx 2.75\,\text{pp}$ accuracy drop.
 
+### 8. Designing Proactive Thought Partners (Google DeepMind Study on Agent Proactivity)
+- **Sources**:
+  - X Post: https://x.com/omarsar0/status/2096780509540139364
+  - Paper: arXiv:2609.01588 ("Designing Proactive Thought Partners for Writing")
+- **Author / Originator**: Google DeepMind / Curated by Elvis Saravia (@omarsar0)
+- **Core Thesis & Research Problem**:
+  - Moves proactive AI assistance beyond low-level token autocompletion towards high-level cognitive thought partnership.
+  - Investigates how autonomous agents can determine when, why, and how to intervene unprompted without disrupting user flow or inducing cognitive overload.
+
+- **Key Insights & Interaction Architecture**:
+  1. **Prospective Scaffolding vs. Reactive Interruption**:
+     - Users configure support agents prospectively (setting roles, expectations, and proactivity thresholds before initiating complex workflows) rather than reacting to mid-flow popups.
+  2. **Dual Function: Idea Generation & Self-Monitoring**:
+     - Beyond content generation and brainstorming, users heavily utilized proactive agent outputs as self-monitoring and pacing anchors—a critical design consideration previously neglected in agent interfaces.
+  3. **Presentation & Rhetorical Framing Governs Perceived Intrusiveness**:
+     - Intrusiveness is dictated more by presentation ergonomics than intervention frequency.
+     - Lightweight visual cues (ambient markers, non-blocking sidebars) combined with non-directive rhetorical phrasing (e.g., posing open questions rather than imperative commands or unsolicited text overwrites) drastically improved user acceptance.
+  4. **Design Dimensions**:
+     - Successful proactive agents balance four core vectors: **Customization** (user-defined agency), **Timing** (event-driven vs. idle-driven pauses), **Engagement** (opt-in review), and **Representation** (ambient vs. focal UI).
+
+### 9. Normalized Low-Rank Adaptation (NoRA)
+- **Sources**:
+  - X Post: https://x.com/omarsar0/status/2096837122892485069
+  - Paper: arXiv:2608.31036 ("Normalized Low-Rank Adaptation (NoRA)")
+- **Author / Originator**: Curated by Elvis Saravia (@omarsar0)
+- **Core Thesis**:
+  > *"A one-line change to LoRA that costs nothing and improves convergence, stability, and forgetting."*
+
+- **Mechanics & Mathematical Motivation**:
+  1. **The LoRA Initialization Asymmetry**:
+     - In standard LoRA, the up-projection matrix $B$ is initialized to zero, while the down-projection matrix $A$ is initialized randomly (e.g. Gaussian).
+     - Consequently, early optimization dynamics and gradient updates are governed almost exclusively by the down-projection matrix $A$.
+  2. **The NoRA Regularization Fix**:
+     - NoRA normalizes the down-projection matrices during training.
+     - **One-Shot Initialization Alternative**: The authors prove that simply normalizing matrix $A$ once at initialization yields substantial gains without needing dynamic normalization during training steps (the cheapest variant).
+  3. **Zero-Cost Architectural Advantage**:
+     - **0 Additional Trainable Parameters**: Uses the identical rank $r$ parameterization as standard LoRA.
+     - **0 Inference Overhead**: Weights fold directly into base model weights via $W = W_0 + \Delta W$ at merge time.
+  4. **Empirical Performance Across Workflows**:
+     - Demonstrates universal improvements across Pretraining, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL).
+     - Accelerates training convergence, yields superior final benchmark accuracy, enforces optimization stability, and significantly mitigates catastrophic forgetting.
+
+
 
 

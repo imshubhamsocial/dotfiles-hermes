@@ -107,4 +107,14 @@ from .gepa_optimizer import GEPALiteOptimizer, GEPACandidate, GEPAResult, create
 # Cactus Hybrid Uncertainty Detection (Track 4 - Phase 4.1)
 from .cactus import CactusHybridDetector, CactusUncertaintyScore
 
+# LoRA Adapter Manager & Dynamic Routing (Track 4 - Phase 4.2)
+from .lora_adapter import (
+    LoRAAdapterManager,
+    LoRAAdapterSpec,
+    create_lora_adapter_manager,
+    BUILTIN_ADAPTER_SPECS,
+    MAX_ADAPTER_VRAM_MIB,
+    HARDWARE_VRAM_CEILING_MIB,
+)
+
 

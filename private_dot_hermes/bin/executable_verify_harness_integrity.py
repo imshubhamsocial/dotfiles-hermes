@@ -469,6 +469,62 @@ def probe_cactus_hybrid_uncertainty() -> Tuple[bool, List[str]]:
         return False, [f"Cactus uncertainty probe exception: {e}"]
 
 
+def probe_lora_adapter_ecosystem() -> Tuple[bool, List[str]]:
+    """Verifies LoRA Adapter Manager, dynamic routing, VRAM safety bounds, and hot-swap lifecycle."""
+    evidence = []
+    try:
+        from hermes_core.lora_adapter import (
+            LoRAAdapterManager,
+            create_lora_adapter_manager,
+            MAX_ADAPTER_VRAM_MIB,
+            HARDWARE_VRAM_CEILING_MIB,
+        )
+
+        manager = create_lora_adapter_manager()
+
+        # 1. Verify registered adapters and VRAM limit
+        adapters = manager.list_adapters()
+        if len(adapters) < 5:
+            return False, [f"Expected at least 5 built-in domain adapters, found {len(adapters)}"]
+        for spec in adapters:
+            if spec.estimated_vram_mib > MAX_ADAPTER_VRAM_MIB:
+                return False, [f"Adapter '{spec.name}' exceeds VRAM guard: {spec.estimated_vram_mib} MiB"]
+        evidence.append(f"LoRA Registry verified: {len(adapters)} domain adapters (all < {MAX_ADAPTER_VRAM_MIB} MiB)")
+
+        # 2. Autonomous intent routing
+        routed_py = manager.route_adapter("Refactor AST tree", ["model.py"])
+        routed_ts = manager.route_adapter("React typescript component")
+        if routed_py != "python_core" or routed_ts != "javascript_ts":
+            return False, [f"Intent routing mismatch: py={routed_py}, ts={routed_ts}"]
+        evidence.append("Autonomous Intent Routing verified: AST extensions & task keywords correctly mapped")
+
+        # 3. Hot-swapping & single-active invariant
+        ok1, _ = manager.activate_adapter("python_core", current_system_vram_mib=3500.0)
+        if not ok1 or manager.get_active_adapter().name != "python_core":
+            return False, ["Failed to activate python_core adapter"]
+        ok2, _ = manager.activate_adapter("javascript_ts", current_system_vram_mib=3500.0)
+        if not ok2 or manager.get_active_adapter().name != "javascript_ts" or manager.get_adapter("python_core").active:
+            return False, ["Hot-swap failed: Single Active Adapter invariant violated"]
+        evidence.append("Hot-Swap Lifecycle verified: Single Active Adapter invariant enforced")
+
+        # 4. Hardware VRAM ceiling guard
+        ok_breach, _ = manager.can_activate("modern_cpp", current_system_vram_mib=4780.0)
+        if ok_breach:
+            return False, ["Failed to reject activation breaching hardware VRAM ceiling"]
+        evidence.append(f"VRAM Guard Invariant verified: Rejects allocation exceeding {HARDWARE_VRAM_CEILING_MIB} MiB")
+
+        # 5. llama-server payload formatting
+        payload = manager.format_llama_server_payload()
+        if not payload or payload[0]["name"] != "javascript_ts":
+            return False, ["Failed to format llama-server /lora-adapters payload"]
+        evidence.append("llama-server Runtime Protocol verified: Valid /lora-adapters payload formatted")
+
+        manager.deactivate_all()
+        return True, evidence
+    except Exception as e:
+        return False, [f"LoRA adapter ecosystem exception: {e}"]
+
+
 def run_contract_spike_suite() -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ and returns pass status."""
     try:
@@ -482,7 +538,7 @@ def run_contract_spike_suite() -> Tuple[bool, str]:
         output_tail = res.stdout.strip().splitlines()[-1] if res.stdout.strip() else res.stderr.strip()
         return passed, output_tail
     except Exception as e:
-        return False, f"Pytest execution failed: {e}"
+        return False, f"Contract suite execution error: {e}"
 
 
 def main() -> None:
@@ -503,6 +559,7 @@ def main() -> None:
         ("draft_detective_gemma_aps", probe_draft_detective_gemma_aps),
         ("embedding_substrate_evaluation", probe_embedding_substrate_evaluation),
         ("cactus_hybrid_uncertainty", probe_cactus_hybrid_uncertainty),
+        ("lora_adapter_ecosystem", probe_lora_adapter_ecosystem),
         ("weighted_memory_tree", probe_weighted_memory_tree),
         ("google_env_harness_evolution", probe_google_env_harness_evolution),
         ("universal_recovery_strategy", probe_universal_recovery_and_loop_contracts),

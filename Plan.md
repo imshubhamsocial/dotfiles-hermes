@@ -321,6 +321,32 @@
   5. **Phase 5: Evaluation Horizon Measurement**:
      - **Measuring AI Ability to Complete Long Software Tasks** (*Kwa et al., 2025*): Redefining agent capability measurement from single-turn snapshot evals to temporal and complexity horizons over extended multi-hour task trajectories.
 
+### 13. Spec-Driven Regeneration & Literate Typed Graphs ("Design Docs Are All You Need" & x0k-folio)
+- **Sources**:
+  - X Post: https://x.com/omarsar0/status/2096983084956852537
+  - Paper: arXiv:2609.05364 (*"Design Docs Are All You Need: An AI-Native Machine Learning Performance Tool"*)
+  - GitHub Repository: https://github.com/0k-dot-computer/x0k-folio
+- **Authors / Institutions**: Google DeepMind, MIT, et al. / Curated by Elvis Saravia (@omarsar0) / 0k.computer
+- **Core Thesis & Paradigm Shift**:
+  > *"When abstractions rot rapidly across hardware and model generations, maintaining code manually is an anti-pattern. The main branch contains almost no hand-written code—only a directed graph of natural language design docs. Coding sub-agents regenerate the entire library from design docs on every update."*
+
+- **System Architecture & Key Innovations**:
+  1. **"Design Docs Are All You Need" (DeepMind / MIT)**:
+     - **Code-Free Repository**: The codebase is maintained purely as natural language architectural specs and step-by-step worked examples.
+     - **Autonomous Sub-Agent Regeneration**: Coding sub-agents compile the design docs into complete runnable software implementations upon every release/version bump.
+     - **Grounding Pillars for Reliability**:
+       - *Step-by-Step Worked Examples*: Serve as in-context demonstrations that bound agent ambiguity and guide generation.
+       - *Minimal Symbolic IR*: Anchored on a recursively defined operator Intermediate Representation (IR) with symbolic cost expressions in SymPy.
+     - **Verifiable Precision**: Regenerated implementations match hand-audited reference performance models down to round-off error (e.g. serving DeepSeek-V3 across TPU pod slices).
+  2. **x0k-folio: AI-Native Literate Programming & Typed Document Graphs**:
+     - **Tangle & Weave for AI Agents**:
+       - `tangle`: Extracts executable source code directly out of markdown design documents for compilers.
+       - `weave`: Renders interactive, hyperlinked documentation where every code reference connects to its ontological definition.
+     - **Typed Document Graph & Ontologies**: Uses RDF/Turtle (`x0k-ontology`) to declare concepts, classes, and affordances (e.g., specifying allowed actors `[human, ai_agent]` and software module dependencies).
+     - **CI Verification**: Continuous integration verifies that committed source files strictly correspond to the code blocks in the design documents, ensuring prose and implementation never drift out of sync.
+     - **Durable Reasoning Recovery**: Gives subsequent human engineers and autonomous agents complete context recovery regarding *why* an architectural decision was made before touching the implementation.
+
+
 
 
 

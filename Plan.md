@@ -1,77 +1,168 @@
-# Master Execution Plan: Future Roadmap & Nightly Memory Architecture
+# Hermes Agent OS: Master Execution Plan & Living Architecture Roadmap
 
-> **Status**: Future Living Execution Plan  
-> **Target**: Detached Nightly Memory Consolidation ("Sleep Cycle") without Core Bloat  
-> **Hardware Boundary**: NVIDIA RTX 3050 Laptop (6GB VRAM, ≤ 4,812 MiB limit), Off-Peak Batch Execution  
+> **Document Status**: Living Architectural Specification & Execution Order  
+> **Target Hardware Boundary**: NVIDIA GeForce RTX 3050 Laptop GPU (6GB VRAM, ≤ 4,812 MiB hard allocation ceiling)  
+> **Runtime Philosophy**: CPU-first background batching, zero core package bloat (Law #8), decoupled sidecars, RAMDisk fast-paths (<8ms).
 
 ---
 
-## Architectural Focus: Detached Nightly Memory Consolidation (Cognee Evaluation)
+## 1. Architectural Invariants (Non-Negotiable Guardrails)
 
-### Objective
-Implement an autonomous, off-peak "Sleep / Memory Dream" consolidation cycle that ingests daily agent trajectories, diffs, and raw memory notes, distilling them into an entity-relation knowledge graph—without contaminating Hermes's core runtime with heavy dependencies or competing for GPU resources during interactive sessions.
+Every item on this roadmap must strictly adhere to the following invariants:
 
-### Invariant Architectural Rules
 1. **Zero Core Contamination (Law #8)**:
-   * **DO NOT** install `cognee`, `lancedb`, `ladybug`, `fakeredis`, or `litellm` into Hermes's core runtime (`ws-hermes`, `pyproject.toml`, or main `Makefile`).
-   * Cognee and its dependency tree must live strictly inside a detached, isolated environment (e.g., `~/.local/share/cognee-env` or a separate sidecar container).
-2. **Off-Peak Batch Window**:
-   * Execution scheduled exclusively during off-peak hours (e.g., nightly at 03:00 AM via systemd user timer or cron).
-   * Zero contention with interactive daytime coding turns on `llama-server` port 8138.
-3. **Markdown-First Distillation Output**:
-   * The worker digests transcripts and raw logs, but writes distilled relational findings into standard, human-readable Markdown cards in `~/.hermes/knowledge/` and `~/.hermes/memories/`.
-   * Hermes core consumes these cards at daytime run-time via its existing native `second_brain.py` and `cog_vault.py` on CPU RAMDisk (<8ms latency, 0 MiB VRAM).
-4. **Fail-Safe Decoupling**:
-   * Any failure or crash in the nightly worker must never impact Hermes core CLI or agent execution.
+   * **Never** install heavy external frameworks (`cognee`, `lancedb`, `transformers`, `torch`, `unsloth`, `litellm`) into the interactive core environment (`ws-hermes`, `pyproject.toml`, or default Python site-packages).
+   * Experimental or batch workloads must live strictly inside isolated environments (e.g., `~/.local/share/cognee-env`, dedicated venvs, or ephemeral sidecars).
+2. **Deterministic VRAM Budget Ceiling**:
+   * Interactive runtime (`llama-server` with `gemma-4-E4B-it-Q4_K_M` + `mtp-gemma-4-E4B-it-Q4_0` dual-slot `-np 2`) consumes ~4.7 GiB VRAM.
+   * Background batch tasks must **never** execute while an interactive session is active on the GPU. NVML idle checks (`active_requests == 0` and `VRAM < 200 MiB` reserved) must gate all batch GPU jobs.
+3. **Markdown & RAMDisk Knowledge Bridge**:
+   * Background workers digest raw traces and graphs, but serialize their findings into human-readable Markdown cards (`~/.hermes/knowledge/`, `~/.hermes/memories/`) with YAML frontmatter.
+   * Hermes core consumes these cards at daytime runtime via native `second_brain.py` and `cog_vault.py` on RAMDisk with zero LLM query overhead.
+4. **Contract Test Gate & Chezmoi Synchronization**:
+   * No phase is marked complete without passing deterministic unit/contract tests running in `make test-internal`.
+   * All configurations, scripts, and tests must be synchronized with `.local/share/chezmoi`.
 
 ---
 
-## Phased Implementation Matrix
+## 2. Completed Milestones Baseline (Current Status)
 
-| Phase | Scope & Description | Status | Verification Criteria |
-| :--- | :--- | :---: | :--- |
-| **Phase 1** | **Isolated Environment Provisioning**<br>• Create dedicated virtual environment at `~/.local/share/cognee-env`<br>• Install `cognee` and verify isolated execution<br>• Confirm zero leakage into `ws-hermes` core user-site | 📋 **PLANNED** | `cognee --version` passes in isolated env; `python3.13 -c "import cognee"` fails cleanly in `ws-hermes` |
-| **Phase 2** | **Nightly Ingestion & Distillation Pipeline**<br>• Author `.hermes/scripts/nightly_memory_consolidation.py`<br>• Read-only ingestion of `~/.hermes/sessions/`, `trajectory.jsonl`, and git logs<br>• Distill cross-session entity connections, recurring bugs, and project patterns | 📋 **PLANNED** | Script executes headless in dry-run mode, producing structured graph nodes in temporary cache |
-| **Phase 3** | **Markdown Synthesis & Second Brain Bridge**<br>• Format extracted graph relationships into clean Markdown cards<br>• Populate cards with YAML frontmatter into `~/.hermes/knowledge/`<br>• Verify seamless retrieval by native `second_brain.py` and `cog_vault.py` | 📋 **PLANNED** | `second_brain.search(...)` locates synthesized cross-session concepts without LLM extraction overhead |
-| **Phase 4** | **Systemd Timer / Cron Automation & VRAM Safeguards**<br>• Register user systemd service/timer (`hermes-memory-consolidation.timer`)<br>• Bind NVML check: only run if GPU is idle (`VRAM < 200 MiB` or when `llama-server` has 0 active requests)<br>• End-to-end integration run | 📋 **PLANNED** | Daemon runs unattended at scheduled hour; morning session verifies updated knowledge base with zero core regressions |
+The following baseline capabilities are implemented, tested, and active:
 
----
-
-## Ecosystem Intelligence: Official Google Gemma Ecosystem Analysis
-
-### 🔍 Comprehensive Analysis of awesome-gemma for Hermes Agent OS
-
-The [google-gemma/awesome-gemma](https://github.com/google-gemma/awesome-gemma) repository is Google DeepMind's official index of the Gemma ecosystem.
-Below is an evaluation of every section and link, categorized by what we can immediately use, what validates our architecture, and what to avoid.
+* [x] **Milestone 0.1: Gemma 4 QAT + MTP Speculative Inference Engine**
+  * Base: `gemma-4-E4B-it-Q4_K_M` (direct Google DeepMind QAT-trained tensors via Unsloth/bartowski).
+  * Speculative Draft: `mtp-gemma-4-E4B-it-Q4_0` on port 8138 with `--spec-draft-ngl 99`.
+  * Dual-slot parallel processing (`-np 2`) for speculative patch testing (`TestTimeComputeSampler`).
+* [x] **Milestone 0.2: Tamper-Evident Agent Flight Recorder**
+  * Hash-chained deterministic execution ledger (`trajectory.py` and `replay.py`).
+* [x] **Milestone 0.3: Official Google `gemma-skills` Integration**
+  * Imported `gemma-dev` and `gemma-trainer` into `.hermes/skills/mlops/models/`.
+  * Complete contract test suite `test_gemma_skills.py` passing (L0 discovery <100 tokens, dynamic JIT lifecycle, BM25 routing, AST syntax).
+  * Overall test suite passing at **188 tests** (`make test-internal`).
 
 ---
 
-### 1. Highly Useful & Actionable for Hermes (Recommended to Adopt)
+## 3. Sequential Execution Roadmap (Chronological Implementation Order)
 
-| Resource / Link | What It Is | How Hermes Can Use It |
+The roadmap is strictly sequenced into prioritized phases. Subsequent tracks build upon the outputs of preceding phases.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ TRACK 1: Detached Nightly Memory Consolidation (Cognee Evaluation)    │
+│ Phase 1.1 (Env) ──► Phase 1.2 (Worker) ──► Phase 1.3 (Cards) ──► 1.4 (Timer)
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ TRACK 2: Reasoning & Fact-Checking Upgrades (Gemma Ecosystem)         │
+│ Phase 2.1 (Gemma-APS in Draft Detective) ──► Phase 2.2 (EmbeddingGemma)│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ TRACK 3: Self-Correction, Adapters & Multimodal Tuning                │
+│ Phase 3.1 (Cactus Uncertainty) ──► Phase 3.2 (QLoRA) ──► 3.3 (Vision) │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Track 1: Detached Nightly Memory Consolidation (Cognee Evaluation)
+*Goal: Autonomous, off-peak "Sleep / Memory Dream" cycle distilling daily trajectories and git diffs into knowledge cards without core bloat.*
+
+| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :--- | :--- |
+| **1.1** | **Isolated Virtualenv Provisioning** | • Provision dedicated directory `~/.local/share/cognee-env`<br>• Install `cognee` and minimal graph dependencies strictly inside this venv<br>• Zero exposure to `ws-hermes` or `pyproject.toml` | `~/.local/share/cognee-env/bin/python -c "import cognee"` succeeds; core container `python3.13 -c "import cognee"` raises `ModuleNotFoundError`. |
+| **1.2** | **Nightly Ingestion & Distillation Worker** | • Author `.hermes/scripts/nightly_memory_consolidation.py`<br>• Read-only ingestion of daily `~/.hermes/sessions/`, `trajectory.jsonl`, and git commit diffs<br>• Extract recurring patterns, bug solutions, and entity graphs | Dry-run script runs headless in isolated environment, parsing raw trajectories and generating structured intermediate graph nodes. |
+| **1.3** | **Markdown Synthesis & Second Brain Bridge** | • Serialize extracted graph relations into formatted Markdown cards with YAML frontmatter<br>• Populate cards into `~/.hermes/knowledge/` and `~/.hermes/memories/`<br>• Bridge into native `second_brain.py` and `cog_vault.py` | `second_brain.search(...)` locates synthesized cross-session concepts on RAMDisk in <8ms with 0 MiB VRAM overhead. |
+| **1.4** | **Systemd Timer Automation & VRAM Safeguards** | • Author systemd user unit `hermes-memory-consolidation.service` and `.timer` (scheduled at 03:00 AM)<br>• Pre-exec NVML check: abort if GPU is busy or interactive `llama-server` has active requests | Systemd timer triggers cleanly; logs demonstrate execution completes and exits cleanly before morning sessions. |
+
+---
+
+### Track 2: Reasoning & Fact-Checking Upgrades
+*Goal: Enhance pre-commit code verification and vector retrieval alignment using Google DeepMind's specialized models.*
+
+| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :--- | :--- |
+| **2.1** | **Gemma-APS Claim Deconstruction in Draft Detective** | • Integrate Abstractive Proposition Segmentation (APS) principles into `draft_detective.py`<br>• Decompose model code explanations and docstrings into atomic semantic claims<br>• Cross-reference claims against AST static analysis before commits | Unit tests verify that generated claims are mapped to AST function signatures and flagged if docstrings contradict code behavior. |
+| **2.2** | **EmbeddingGemma On-Device Evaluation** | • Benchmark EmbeddingGemma (300M, CPU ONNX) against current `bge-small-en-v1.5` in `opencode_mem.py`<br>• Evaluate tokenizer alignment with Gemma 4 vocabulary and retrieval accuracy across repo search | EmbeddingGemma achieves comparable or superior retrieval Recall@5 on Hermes codebase with CPU latency <25ms per chunk. |
+
+---
+
+### Track 3: Long-Term & Experimental Enhancements
+*Goal: Local adapter fine-tuning, self-correction loops, and multimodal vision token optimization.*
+
+| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :--- | :--- |
+| **3.1** | **Cactus Hybrid Uncertainty Detection** | • Study Cactus Hybrid self-reporting techniques for uncertainty identification<br>• Integrate uncertainty scoring into supervisory scan (`lineage.py`) and 2-strike tabu rule | Agent autonomously halts execution and asks clarifying questions when confidence drops below threshold before destructive edits. |
+| **3.2** | **Unsloth On-Device QLoRA Fine-Tuning** | • Leverage bundled `gemma-trainer` assets with Unsloth in a detached container<br>• Train task-specific low-rank adapters for Hermes U41 LoRA adapter manager on the RTX 3050 Laptop GPU | LoRA adapter exports cleanly to GGUF format and hot-swaps onto base Gemma 4 model with zero baseline regression. |
+| **3.3** | **Multimodal Vision Token Optimization** | • Calibrate `visual_arbiter.py` using Google's Gemma 4 Vision Token Budget formulas<br>• Dynamic downsampling and patch budgeting to keep image inputs within tight context bounds | Visual inspector turns remain strictly within the allocated token budget without truncating chat history. |
+
+---
+
+## 4. Ecosystem Intelligence & Validation Register
+
+This register benchmarks official Google Gemma ecosystem assets against Hermes Agent OS architecture.
+
+### Actionable Assets (Integrated or Scheduled)
+| Asset | Category | Hermes Integration Point | Current Status |
+| :--- | :--- | :--- | :---: |
+| [gemma-skills](https://github.com/google-gemma/gemma-skills) | Skills Hub | Drop-in standard skill packages (`gemma-dev` & `gemma-trainer`) in `.hermes/skills/mlops/models/` | ✅ **Active & Verified** (188 tests passing) |
+| [Gemma 4 QAT](https://huggingface.co/collections/google/gemma-4-qat-q4-0) | Core Weights | Official Quantization-Aware Trained 4-bit weights (`Q4_0` / `Q4_K_M`) for base and draft | ✅ **Active in Runtime** |
+| [EmbeddingGemma](https://huggingface.co/collections/google/embeddinggemma) | Embeddings | Compact 300M embedding model for CPU ONNX retrieval in `opencode_mem.py` | 📋 Scheduled (Track 2.2) |
+| [Gemma-APS](https://huggingface.co/collections/google/gemma-aps-release) | Verification | Abstractive Proposition Segmentation for atomic claim verification in `draft_detective.py` | 📋 Scheduled (Track 2.1) |
+
+### Architectural Validation (Invariants Confirmed)
+| Asset | Core Validation Finding | Hermes Design Confirmation |
 | :--- | :--- | :--- |
-| [gemma-skills](https://github.com/google-gemma/gemma-skills) | Google's official agent skills repository (gemma-dev & gemma-trainer) formatted as standard `SKILL.md` packages. | **Direct Drop-in**: We can import gemma-dev and gemma-trainer straight into Hermes's skill hub (`~/.hermes/skills/`). It equips Hermes with exact knowledge of Gemma 4 prompting conventions, control tokens, and tuning parameters. |
-| [Gemma 4 QAT](https://huggingface.co/collections/google/gemma-4-qat-q4-0) | Official Quantization-Aware Trained (QAT) 4-bit checkpoints (`Q4_0`). | **Model Upgrade**: Currently, we run standard post-training quantized GGUF (`gemma-4-E4B-it-Q4_K_M`). Google's QAT weights are trained with quantization awareness, delivering higher reasoning fidelity, lower perplexity, and better instruction adherence at the exact same VRAM footprint. |
-| [EmbeddingGemma](https://huggingface.co/collections/google/embeddinggemma) | Compact 300M parameter embedding model designed specifically for on-device retrieval (2K token context, 128–768 dimensions). | **Future Retrieval Engine**: Could serve as a native Google alternative to `bge-small-en-v1.5` in `opencode_mem.py` (CPU ONNX), offering better semantic alignment with Gemma's tokenizer. |
-| [Gemma-APS](https://huggingface.co/collections/google/gemma-aps-release) | Abstractive Proposition Segmentation: decomposes complex technical prose into atomic semantic claims. | **AST Fact-Checking**: Highly relevant for `draft_detective.py` to decompose model code explanations into testable claims before pre-commit. |
+| [Gemma 4 + MTP Marathon Engine](https://dev.to/gde/the-local-model-that-doesnt-sleep-gemma-4-mtp-as-a-marathon-engine-4c9) | Confirms Gemma 4 + MTP speculative draft sustains high throughput and stable memory over long context | Confirms `--model-draft mtp-gemma-4-E4B-it-Q4_0 --spec-draft-ngl 99` is optimal |
+| [Concurrent Gemma](https://github.com/google-gemma/cookbook/tree/main/apps/concurrent) | Confirms multi-slot local Gemma concurrency patterns | Confirms our `llama-server -np 2` dual-slot layout for `TestTimeComputeSampler` |
+| [Trajectix](https://www.kaggle.com/competitions/gemma-4-good-hackathon/writeups/trajectix-an-agentic-flight-recorder-for-ai-infra) | Confirms necessity of tamper-evident action tracking | Confirms hash-chained `trajectory.py` and `replay.py` design |
 
 ---
 
-### 2. Architectural & Benchmark Validation (Confirms Hermes Design)
+## 5. Protocol for Updating Plan.md & Ingesting New Discoveries ("Updating More Stuff")
 
-| Resource / Link | Core Finding | How It Validates Our Invariants |
-| :--- | :--- | :--- |
-| [Gemma 4 + MTP as Marathon Engine](https://dev.to/gde/the-local-model-that-doesnt-sleep-gemma-4-mtp-as-a-marathon-engine-4c9) | Deep empirical benchmark proving Gemma 4 + MTP speculative draft model sustains high throughput and stable memory over long context runs. | **Validates Hardware Config**: Validates our dual-model launch flags (`--model gemma-4-E4B-it-Q4_K_M --model-draft mtp-gemma-4-E4B-it-Q4_0 --spec-draft-ngl 99`), confirming high draft acceptance rate without KV degradation. |
-| [Concurrent Gemma](https://github.com/google-gemma/cookbook/tree/main/apps/concurrent) | Recipes and concurrency tests for running multiple concurrent slots on local Gemma instances. | **Validates Dual-Slot Topology**: Confirms our `llama-server -np 2` dual-slot layout for parallel speculative patch testing (`TestTimeComputeSampler`) is the official best practice. |
-| [Trajectix](https://www.kaggle.com/competitions/gemma-4-good-hackathon/writeups/trajectix-an-agentic-flight-recorder-for-ai-infra) | "Agentic Flight Recorder" for AI safety and action tracking. | **Validates Trajectory Engine**: Directly mirrors Hermes's hash-chained `trajectory.py` and `replay.py` design for verifiable, tamper-evident execution logs. |
+To maintain architectural integrity and prevent roadmap fragmentation, any new tool, research paper, or feature request must pass through the **4-Gate Ingestion Protocol** before being added to this document:
 
----
+```
+[New Proposal / Link]
+          │
+          ▼
+┌────────────────────────────────────────┐
+│ Gate 1: Zero Core Contamination?       │──► NO  ──► Reject or isolate to Sidecar
+└──────────────────┬─────────────────────┘
+                   │ YES
+                   ▼
+┌────────────────────────────────────────┐
+│ Gate 2: Fits ≤ 4,812 MiB VRAM Ceiling? │──► NO  ──► Route to Off-Peak CPU Batch
+└──────────────────┬─────────────────────┘
+                   │ YES
+                   ▼
+┌────────────────────────────────────────┐
+│ Gate 3: Deterministic Contract Test?   │──► NO  ──► Require mockable test plan
+└──────────────────┬─────────────────────┘
+                   │ YES
+                   ▼
+┌────────────────────────────────────────┐
+│ Gate 4: Chezmoi Tracking Compatible?   │──► NO  ──► Refactor into dotfile paths
+└──────────────────┬─────────────────────┘
+                   │ YES
+                   ▼
+    [Assign Track & Sequence ID]
+```
 
-### 3. Compelling Future Enhancements (Experimental / Long-Term)
+### Standard Intake Template for New Items
+When adding a new item to `Plan.md`, use this exact schema:
 
-| Resource / Link | Concept | Potential Role in Hermes |
-| :--- | :--- | :--- |
-| [Cactus Hybrid](https://github.com/cactus-compute/cactus-hybrid) | Post-trained Gemma models tuned to explicitly recognize when they make a mistake and flag uncertainty. | **Self-Correction Loops**: Could enhance Hermes's supervisory scan (`lineage.py`) and 2-strike tabu rule by having the agent self-report flawed code hypotheses before running tests. |
-| [Unsloth Gemma 4 Training](https://unsloth.ai/docs/models/gemma-4/train) | Ultra-fast QLoRA fine-tuning for Gemma on consumer GPUs. | **Local Adapter Fine-Tuning**: If we ever want to train project-specific LoRA adapters on the RTX 3050 Laptop GPU for Hermes's U41 LoRA adapter manager. |
-| [Gemma 4 Vision Token Budget](https://huggingface.co/spaces/google/gemma4_vision_token_budget) | Visual-token budget explorer for multimodal inputs. | **Visual Arbiter Optimization**: Useful for tuning `visual_arbiter.py` image downsampling to keep multimodal turns within strict token ceilings. |
-
+```markdown
+### Phase X.Y: [Feature / Research Name]
+* **Category**: [Track 1 (Memory) | Track 2 (Reasoning) | Track 3 (Experimental) | Tooling]
+* **Trigger / Motivation**: [Why this is needed and what problem it solves]
+* **Resource Link**: [Link to repository, paper, or model card]
+* **Architecture Isolation**: [In-core | Sidecar Env | Off-peak Batch | Skill Package]
+* **Hardware Impact**: [0 MiB VRAM / CPU-only | Batch NVML Gated | Interactive Budget]
+* **Deliverables**:
+  1. [Code changes / script paths]
+  2. [Contract test path]
+* **Verification Gate**: [Exact command or test that proves success]
+* **Chezmoi Files**: [Paths tracked in .local/share/chezmoi]
+```

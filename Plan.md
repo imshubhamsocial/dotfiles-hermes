@@ -179,4 +179,23 @@
        - **Qwen-3.6-27B**: Attended token count reduced by **31.1%** with a **2.75 percentage point** accuracy delta.
      - **Scaling Trend**: The accuracy gap between full attention and Declarative Attention strictly narrows as model scale increases, proving that larger models possess superior metacognitive ability to govern their own attention.
 
+### 7. Declarative Attention (alphaXiv Research Briefing)
+- **Sources**:
+  - X Post: https://x.com/askalphaxiv/status/2095678236722098292
+  - alphaXiv PDF: https://www.alphaxiv.org/pdf/2609.02737
+- **Author / Originator**: alphaXiv (@askalphaxiv)
+- **Core Summary & Key Insights**:
+  - Focuses on the breakthrough *"Language Models Can Control Their Own Attention"*.
+  - **Core Problem**: Long-context LLMs waste massive compute by scanning the entire Key-Value (KV) cache at every single decoding step, even when only a small region is semantically relevant to the next token.
+  - **Declarative Attention Architecture**:
+    - The model explicitly switches between three attention modes during reasoning:
+      1. **Global Attention**: Broad context synthesis across all tokens.
+      2. **Focused Attention**: Targeted retrieval on specific relevant chunks or memory slots.
+      3. **Local Attention**: High-speed narrow context processing.
+    - Allows modern inference engines (e.g., vLLM / FlashAttention) to physically skip reading irrelevant KV cache regions from memory bandwidth.
+  - **Empirical Validation**:
+    - Cuts attended tokens by **52% on Gemma-4-31B** with only $\approx 1.27\,\text{pp}$ accuracy drop.
+    - Cuts attended tokens by **31% on Qwen-3.6-27B** with only $\approx 2.75\,\text{pp}$ accuracy drop.
+
+
 

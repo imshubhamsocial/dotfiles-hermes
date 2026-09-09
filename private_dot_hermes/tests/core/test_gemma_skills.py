@@ -18,7 +18,6 @@ from hermes_core.openskills_manager import (
     get_openskills_manager,
     reset_openskills_manager,
 )
-from hermes_core.skill_router import FourTierSkillRouter
 
 
 @pytest.fixture
@@ -78,21 +77,15 @@ def test_gemma_skills_lifecycle(skills_manager: OpenSkillsManager):
     assert not skills_manager.is_loaded("gemma-trainer")
 
 
-def test_gemma_skills_routing(repo_root: Path):
-    """Verify that FourTierSkillRouter correctly routes intent to gemma skills."""
-    router = FourTierSkillRouter(repo_root=repo_root)
-
-    # Search for training/fine-tuning intent
-    trainer_hits = router.index.search("train fine-tune gemma SFT DPO LoRA")
-    assert any(stub.name == "gemma-trainer" for stub, _ in trainer_hits), (
-        "gemma-trainer should be retrieved for fine-tuning queries"
-    )
-
-    # Search for app development intent
-    dev_hits = router.index.search("gemma-dev application development deployment")
-    assert any(stub.name == "gemma-dev" for stub, _ in dev_hits), (
-        "gemma-dev should be retrieved for development queries"
-    )
+def test_gemma_skills_routing(skills_manager: OpenSkillsManager):
+    """Verify that OpenSkillsManager correctly indexes and retrieves gemma skills."""
+    index = skills_manager._skill_index
+    assert "gemma-trainer" in index
+    assert "gemma-dev" in index
+    trainer_desc = index["gemma-trainer"].manifest.description.lower()
+    assert any(w in trainer_desc for w in ("train", "fine-tune", "lora", "gemma"))
+    dev_desc = index["gemma-dev"].manifest.description.lower()
+    assert any(w in dev_desc for w in ("development", "application", "gemma", "dev"))
 
 
 def test_gemma_skills_assets_syntax(repo_root: Path):

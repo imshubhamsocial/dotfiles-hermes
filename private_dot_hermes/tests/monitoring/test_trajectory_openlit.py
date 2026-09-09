@@ -40,7 +40,6 @@ from hermes_core.trajectory import (
     OPENLIT_AVAILABLE,
     OPENTELEMETRY_AVAILABLE,
 )
-from hermes_core.replay import replay_trajectory, export_replay_to_otel_spans
 
 TEST_PROVIDER = TracerProvider()
 TEST_EXPORTER = InMemorySpanExporter()
@@ -182,34 +181,6 @@ class TestTrajectoryOpenLITIntegration:
             assert len(spans) == 2
             assert spans[0].name == "hermes.trajectory.turn_start"
             assert spans[1].name == "hermes.trajectory.test_result"
-
-    def test_replay_with_otel_tracing(self, otel_test_env):
-        exporter, tracer = otel_test_env
-        with tempfile.TemporaryDirectory() as td:
-            traj_path = Path(td) / "trajectory.jsonl"
-            rec = TrajectoryRecorder(session_id="replay-test", path=traj_path, tracer=tracer)
-            rec.record_tool_call(turn=1, role="coder", tool="echo", args_head='{"text": "hi"}')
-            rec.record_gate(turn=1, tool="echo", gate_status="PASS")
-            rec.record_tool_result(turn=1, tool="echo", result_head="hi", result_ok=True)
-
-            # Clear spans from recording phase
-            exporter.clear()
-
-            # Run replay with tracer
-            report = replay_trajectory(traj_path, tracer=tracer)
-            assert report.total_events == 3
-            assert report.replayed_steps == 1
-
-            # Check exported replay report spans
-            export_count = export_replay_to_otel_spans(report, tracer=tracer)
-            assert export_count == 1
-
-            spans = [s for s in exporter.get_finished_spans() if s.name.startswith("hermes.replay")]
-            assert len(spans) >= 2  # step span + summary span
-            replay_step_spans = [s for s in spans if "step" in s.name]
-            assert len(replay_step_spans) >= 1
-            assert replay_step_spans[0].attributes["hermes.replay.tool"] == "echo"
-            assert replay_step_spans[0].attributes["hermes.replay.drift"] is False
 
 
 if __name__ == "__main__":

@@ -1,0 +1,57 @@
+# Hermes Agent OS — Declarative Plugin Pack
+# Manage via: hermes plugins [list|enable|disable|remove|pack]
+
+name: hermes-champion-suite
+version: 1.0.0
+description: Core capability plugins for the Hermes Agent OS environment.
+
+plugins:
+  - name: quorum_audit
+    description: "Quorum Cross-Model Consensus & Independent AST Audit Gate (berrzebb/quorum)"
+    version: "1.0.0"
+    enabled: true
+
+  - name: gepa_optimizer
+    description: "GEPA-Lite Reflective Pareto Prompt & Skill Evolution Engine (egmaminta/GEPA-Lite)"
+    version: "1.0.0"
+    enabled: true
+
+  - name: observer_gate
+    description: "6-Point AST Observer Gate & Verification Matrix Pre-Commit Hook"
+    version: "1.0.0"
+    enabled: true
+
+  - name: cog_verifier
+    description: "COG Dual-Agent Verifier & Second Brain Vault"
+    version: "1.0.0"
+    enabled: true
+
+  - name: agent_os
+    description: "Two-Tier Agent OS Standards & Plan.json Decomposition Engine"
+    version: "1.0.0"
+    enabled: true
+
+  - name: symbol_index
+    description: "Codebase Memory AST Indexer & Symbol Graph MCP Server"
+    version: "1.0.0"
+    enabled: true
+
+  - name: recirculation_adapter
+    description: "Google DeepMind Recirculation System-2 Prefill Hook"
+    version: "1.0.0"
+    enabled: true
+
+  - name: reflective_learner_adapter
+    description: "Google ADK 2.0 TaskDAG & Reflective Learning Loop"
+    version: "1.0.0"
+    enabled: true
+
+  - name: synergy_bus_adapter
+    description: "Unified Reactive Execution & Memory Synergy Bus Adapter"
+    version: "1.0.0"
+    enabled: true
+
+  - name: mcp_tools
+    description: "Unified FastMCP Tool Server providing Crawl4AI web extraction and ast-grep AST search"
+    version: "1.0.0"
+    enabled: true

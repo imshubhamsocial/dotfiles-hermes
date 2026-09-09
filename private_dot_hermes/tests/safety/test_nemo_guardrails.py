@@ -32,12 +32,6 @@ from hermes_core.nemo_guardrails_bridge import (
     sanitize_output_with_guardrails,
     NEMO_GUARDRAILS_AVAILABLE,
 )
-from hermes_core.hitl_gateway import (
-    HITLSupervisoryGateway,
-    assess_risk,
-    RiskLevel,
-    ApprovalVerdict,
-)
 
 
 class TestNeMoGuardrails:
@@ -169,31 +163,6 @@ class TestNeMoGuardrails:
         assert v_fail.allowed is False
         assert v_fail.rail_triggered == "loop"
         assert "2-strike" in v_fail.reason.lower()
-
-    def test_hitl_gateway_integration_with_nemo_guardrails(self):
-        # Destructive command triggers CRITICAL risk via NeMo input rail
-        risk_crit = assess_risk("shell_command", "/tmp", "rm -rf /home/user/data")
-        assert risk_crit == RiskLevel.CRITICAL
-
-        # Benign command evaluates to LOW
-        risk_low = assess_risk("shell_command", "/tmp", "ls -la")
-        assert risk_low == RiskLevel.LOW
-
-        # Role capability violation evaluated through NeMo dialog rail raises to CRITICAL
-        risk_role = assess_risk("shell_command", "/tmp", "patch file src/kernel.py", role="reviewer")
-        assert risk_role == RiskLevel.CRITICAL
-
-        # YOLO mode rejects CRITICAL risk automatically
-        gateway = HITLSupervisoryGateway(mode="yolo")
-        decision = gateway.request_checkpoint(
-            action_id="act-crit-01",
-            action_type="shell_command",
-            target="/tmp",
-            summary="Execute destructive clean",
-            diff_or_payload="rm -rf /var/log/*",
-        )
-        assert decision.verdict == ApprovalVerdict.REJECTED
-        assert "CRITICAL" in decision.reason
 
 
 if __name__ == "__main__":

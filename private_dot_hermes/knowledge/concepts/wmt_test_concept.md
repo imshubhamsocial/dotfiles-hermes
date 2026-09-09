@@ -3,8 +3,8 @@ id: "wmt_test_concept"
 title: "WMT Demotion Invariant"
 category: "concepts"
 tags: [wmt, context_rot]
-created_at: "2026-08-28T21:17:22.021720+00:00"
-updated_at: "2026-08-28T21:17:22.021805+00:00"
+created_at: "2026-09-09T14:47:09.663666+00:00"
+updated_at: "2026-09-09T14:47:09.663813+00:00"
 verified: true
 ---
 

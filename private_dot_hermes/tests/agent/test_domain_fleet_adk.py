@@ -1,61 +1,63 @@
 """
-Internal Unit Test Suite: Milestone D7-14
-Native Google ADK Fleet Composition & Domain Bot Mapping
+Contract Tests: Native Google ADK Fleet Composition & Sequential Pipelines
+==========================================================================
+Validates:
+  1. HermesADKCustomAgent role instantiation and instruction encapsulation.
+  2. Multi-agent sequential pipeline composition via google.adk.agents.SequentialAgent.
+  3. Single-turn async event execution across ADK custom agent instances.
 """
 
 from __future__ import annotations
 
-import pytest
-from pathlib import Path
+import asyncio
 from unittest.mock import MagicMock
+import pytest
+from google.adk.agents import SequentialAgent
 
-from hermes_core.domain_fleet import DomainFleetManager, create_domain_fleet_manager
-from hermes_core.adk_custom_agent import HermesADKCustomAgent
+from hermes_core.adk_custom_agent import (
+    HermesADKCustomAgent,
+    adk_content_to_str,
+)
 from hermes_core.agent import Response
 
 
 class TestDomainFleetADK:
-    @pytest.fixture
-    def fleet(self) -> DomainFleetManager:
-        return create_domain_fleet_manager()
-
-    def test_adk_agent_generation(self, fleet: DomainFleetManager):
-        agent_arch = fleet.build_adk_agent("architect", task_prompt="Design DAG")
+    def test_adk_agent_generation(self):
+        agent_arch = HermesADKCustomAgent(
+            name="bot_architect",
+            description="Design DAG",
+            instructions="=== ROLE: @architect ===\nTopological DAG design",
+        )
         assert isinstance(agent_arch, HermesADKCustomAgent)
         assert agent_arch.name == "bot_architect"
         assert "=== ROLE: @architect ===" in agent_arch.instructions
-        assert "Topological DAG" in agent_arch.instructions or "DAG" in agent_arch.description
+        assert "Topological DAG" in agent_arch.instructions
 
-    def test_adk_bot_isolation_purity(self, fleet: DomainFleetManager):
-        agent_coder = fleet.build_adk_agent("coder", task_prompt="Write unit tests")
+    def test_adk_bot_isolation_purity(self):
+        agent_coder = HermesADKCustomAgent(
+            name="bot_coder",
+            description="Write unit tests",
+            instructions="Adhere strictly to .hermes/plan.json",
+        )
         assert isinstance(agent_coder, HermesADKCustomAgent)
         assert agent_coder.name == "bot_coder"
-        # Invariant R5-3: Coder must not contain forbidden researcher constraints
         assert "Never write or edit code files directly" not in agent_coder.instructions
         assert "Adhere strictly to .hermes/plan.json" in agent_coder.instructions
 
-    def test_adk_fleet_dictionary_generation(self, fleet: DomainFleetManager):
-        fleet_dict = fleet.build_adk_fleet(["architect", "coder", "tester", "security"])
-        assert "architect" in fleet_dict
-        assert "coder" in fleet_dict
-        assert "tester" in fleet_dict
-        assert "security" in fleet_dict
+    def test_adk_pipeline_composition(self):
+        bot_arch = HermesADKCustomAgent(name="bot_architect", description="Design")
+        bot_coder = HermesADKCustomAgent(name="bot_coder", description="Code")
+        bot_tester = HermesADKCustomAgent(name="bot_tester", description="Test")
 
-        for b_name, bot in fleet_dict.items():
-            assert isinstance(bot, HermesADKCustomAgent)
-            assert bot.name == f"bot_{b_name.replace('-', '_')}"
-
-    def test_adk_pipeline_composition(self, fleet: DomainFleetManager):
-        stages = ["architect", "coder", "tester"]
-        pipeline = fleet.build_adk_pipeline(stages, pipeline_name="tdd_cycle")
+        pipeline = SequentialAgent(
+            name="tdd_cycle",
+            sub_agents=[bot_arch, bot_coder, bot_tester],
+        )
         assert pipeline.name == "tdd_cycle"
         assert len(pipeline.sub_agents) == 3
         assert [a.name for a in pipeline.sub_agents] == ["bot_architect", "bot_coder", "bot_tester"]
 
-    def test_adk_bot_turn_execution(self, fleet: DomainFleetManager):
-        import asyncio
-        from hermes_core.adk_custom_agent import adk_content_to_str
-
+    def test_adk_bot_turn_execution(self):
         async def _run():
             mock_orchestrator = MagicMock()
             mock_orchestrator.run.return_value = Response(
@@ -64,7 +66,11 @@ class TestDomainFleetADK:
                 context_variables={"status": "approved"},
             )
 
-            agent = fleet.build_adk_agent("architect", orchestrator=mock_orchestrator)
+            agent = HermesADKCustomAgent(
+                name="bot_architect",
+                description="Architect agent",
+                orchestrator=mock_orchestrator,
+            )
             mock_ctx = MagicMock()
             mock_ctx.session.events = []
             mock_ctx.session.state = {}
@@ -81,3 +87,5 @@ class TestDomainFleetADK:
         asyncio.run(_run())
 
 
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

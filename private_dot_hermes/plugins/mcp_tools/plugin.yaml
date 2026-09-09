@@ -1,0 +1,10 @@
+name: mcp_tools
+version: "1.0.0"
+description: "Unified FastMCP Tool Server providing Crawl4AI web extraction and ast-grep AST search."
+author: "Hermes Harness Team"
+kind: standalone
+tags: [mcp, tools, web, ast]
+enabled: true
+tools:
+  - web_extract
+  - ast_search

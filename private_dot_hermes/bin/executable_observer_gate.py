@@ -1,4 +1,3 @@
-import shutil
 #!/usr/bin/env python3
 """
 Observer / Monitor Gating Layer (Astra-Derived Safe Compute Pattern)
@@ -32,6 +31,7 @@ Returns:
 """
 
 import sys
+import shutil
 import json
 import re
 import os

@@ -389,5 +389,24 @@
        - *Independent Skeptic Verification*: Fresh-context evaluator agents attempt to aggressively disprove each survivor (`keep` or `drop`).
        - *Convergence Synthesis*: Single synthesis agent compiles verified survivors into the final structured report.
 
+### 15. Hermes + Gemini Notebook: Autonomous Multi-Modal Content Operating System (Julian Goldie)
+- **Source**:
+  - X Post & Video Breakdown: https://x.com/JulianGoldieSEO/status/2091963756699930769
+- **Author / Originator**: Julian Goldie (@JulianGoldieSEO)
+- **Core Thesis**:
+  > *"Most people use NotebookLM for research, generate one thing, and abandon it. This architecture converts passive notebook research into an automated production loop and persistent memory engine: Research in $\rightarrow$ Content out $\rightarrow$ Memory saved $\rightarrow$ Next run gets smarter."*
 
-
+- **Four-Tier Architecture & Flywheel Pipeline**:
+  1. **Tier 1: Multi-Modal Research Brain (Gemini Notebook / NotebookLM)**:
+     - Grounds reasoning in diverse source documents: technical PDFs, web pages, YouTube video transcripts, Google Drive files, Google Docs, and raw audio files.
+     - Serves as the immutable factual substrate, preventing hallucinations.
+  2. **Tier 2: Agentic Orchestration Layer (Hermes + MCP)**:
+     - Hermes connects directly to Gemini Notebooks via the Model Context Protocol (MCP).
+     - Autonomously executes structured queries, extracts evidence cards and citations, and expands a single research query into multi-channel production artifacts.
+     - Concurrently outputs: Video scripts, long-form technical/LinkedIn posts, structured email sequence introductions, and short-form video clip scripts.
+  3. **Tier 3: Programmatic Video & Audio Rendering Engine (Hyperframes)**:
+     - Bridges written agent outputs into rendered multimedia deliverables.
+     - Automates complete MP4 video generation: HTML/CSS programmatic canvas visuals, styled title cards, word-level synchronized subtitles/captions, and naturalistic TTS voice narration.
+  4. **Tier 4: Durable Memory Vault (Obsidian Vault Integration)**:
+     - Automatically logs every generated asset, source citation, content angle, and campaign context into a structured local Obsidian Markdown vault.
+     - Eliminates the multi-session amnesia problem: before drafting new deliverables, Hermes audits previous vault entries to maintain stylistic continuity, brand voice, and avoid duplicate topic coverage.

@@ -665,3 +665,339 @@ Hermes is a fully self-contained, chezmoi-managed personal AI agent harness runn
 | **5** — Harness Learning | 12, 3 | knowledge/ markdown + GEPA config | 0 added, 0 removed |
 | **6** — Adv. Infra | 6, 7, 9, 4 | SKILL.md documentation additions | 0 added, 0 removed |
 | **Total** | | | **0 new Python files**, **5 removed** |
+
+---
+
+## Deep Python File Audit: Every .hermes Module vs Upstream Packages
+
+> **Goal**: For every custom `.py` file in `.hermes/src/hermes_core/` and `.hermes/bin/`, identify whether it wraps an upstream package that already exists, duplicates native Hermes capability, or is genuinely irreplaceable. Replace wrappers with direct upstream imports. Delete duplicates. Keep only what has no upstream equivalent.
+
+### Audit Legend
+- 🔴 **DELETE** — Pure redundant wrapper; upstream package does this natively. Zero custom logic worth keeping.
+- 🟡 **THIN SHIM** — Keep but reduce to ≤30 lines that call upstream directly (no reimplementation).
+- 🟢 **KEEP** — Genuinely custom logic with no upstream equivalent, or the glue that binds Hermes identity.
+- 🔵 **REPLACE** — Custom reimplementation of something an upstream package does better; swap import.
+
+---
+
+### Category 1: Web Grounding & Document Extraction
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `bin/web_grounding.py` | 42 | DuckDuckGo search wrapper | `ddgs` via native `web.backend: ddgs` in config.yaml | 🔴 DELETE |
+| `bin/extract_web_content.py` | 94 | URL → markdown extraction | **crawl4ai** `AsyncWebCrawler` — already installed | 🔴 DELETE |
+| `hermes_core/web_grounding.py` | ~60 | DDGS search + content fetch | **crawl4ai** + native web tool | 🔴 DELETE |
+| `hermes_core/fast_research.py` | ~80 | Token-budgeted web lookup | **crawl4ai** `word_count_threshold` param | 🔴 DELETE |
+| `bin/ingest_document.py` | 144 | File → markdown ingest | **crawl4ai** `AsyncWebCrawler` for local files | 🔴 DELETE |
+| `bin/index_docs.py` | 108 | Document → FastEmbed index | **crawl4ai** + **fastembed** + **graphiti** | 🔴 DELETE |
+
+**Why**: `crawl4ai` (`pip install crawl4ai`) handles async extraction, JS rendering, LLM-ready markdown, BFS crawling. Every update to crawl4ai (adaptive crawling, better markdown, etc.) flows in for free.
+
+---
+
+### Category 2: Embeddings & Semantic Search
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/embeddings.py` | ~70 | FastEmbed TextEmbedding wrapper + cosine sim | **fastembed** `TextEmbedding` directly — `from fastembed import TextEmbedding` | 🔴 DELETE |
+
+**Why**: `fastembed` is already installed. It returns numpy arrays. Cosine sim is `np.dot(a, b)`. No wrapper class needed.
+
+---
+
+### Category 3: Skill Management & Routing
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `bin/skill_router.py` | 41 | Keyword → SKILL.md dispatch | Native Hermes JIT skill loading | 🔴 DELETE |
+| `bin/skill_retriever.py` | 144 | FastEmbed cosine skill lookup | Native `openskills_manager` + `fastembed` | 🔴 DELETE |
+| `hermes_core/skill_router.py` | ~60 | Regex/keyword skill routing | Native Hermes profile + skill description system | 🔴 DELETE |
+| `hermes_core/skills_catalog.py` | ~90 | SKILL.md YAML catalog builder | Already done by `openskills_manager.py` | 🔴 DELETE |
+| `hermes_core/skills_registry.py` | ~80 | Skill registration + lookup | Already done by `openskills_manager.py` | 🔴 DELETE |
+| `hermes_core/openskills_manager.py` | ~120 | SKILL.md L0/L1/L2 discovery | This IS the native Hermes skill system | 🟢 KEEP |
+| `hermes_core/skill_evaluator.py` | ~150 | A/B trajectory lift evaluation | **dspy** `dspy.Evaluate` + `MIPROv2` | 🔵 REPLACE |
+| `hermes_core/skill_evolution.py` | ~100 | Auto-draft + promote new skills | **dspy** `BootstrapFewShotWithRandomSearch` | 🔵 REPLACE |
+
+---
+
+### Category 4: Memory, Knowledge & Persistence
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/knowledge_graph.py` | ~100 | Python AST → CodeNode graph | **ast-grep-py** `SgRoot` polyglot | 🔵 REPLACE |
+| `hermes_core/symbol_graph.py` | ~200 | Tree-Sitter polyglot symbol DB | **ast-grep-py** + graphify skill | 🔵 REPLACE |
+| `hermes_core/symbol_indexer.py` | ~80 | Python/JS AST symbol extractor | **ast-grep-py** multi-language | 🔵 REPLACE |
+| `hermes_core/graph_engine.py` | ~120 | DAG topology sort + JSON schema validate | **networkx** `DiGraph` + **jsonschema** | 🔵 REPLACE |
+| `hermes_core/experience_store.py` | ~150 | Episodic memory JSONL + SQLModel | **sqlmodel** directly — 10-line schema | 🟡 THIN SHIM |
+| `hermes_core/second_brain.py` | ~120 | Markdown knowledge vault CRUD | **python-frontmatter** + native filesystem | 🟡 THIN SHIM |
+| `hermes_core/working_memory.py` | ~80 | RAM-backed context anchors | **graphiti** (`getzep/graphiti`) temporal episodic graph | 🔵 REPLACE |
+| `hermes_core/session_persistence.py` | ~130 | Session state JSON/SQLite save | **sqlmodel** + native plan.json | 🟡 THIN SHIM |
+| `hermes_core/database.py` | ~80 | SQLite WAL connection factory | **sqlmodel** `create_engine(url, connect_args={"check_same_thread": False})` | 🔴 DELETE |
+| `hermes_core/cog_vault.py` | ~60 | Knowledge vault CRUD | **python-frontmatter** + native filesystem | 🔵 REPLACE |
+| `hermes_core/opencode_mem.py` | ~60 | OpenCode memory engine | Duplicate of `working_memory` / graphiti | 🔴 DELETE |
+
+**Why graphiti**: `getzep/graphiti` provides bi-temporal knowledge graphs, hybrid retrieval (BM25 + embeddings + graph traversal), incremental real-time updates, and an MCP server out of the box. Replaces 3 custom memory files with `from graphiti_core import Graphiti`.
+
+---
+
+### Category 5: Verification, Audit & Loop Control
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `bin/observer_gate.py` | 475 | HTML/JS syntax + brace balance + oracle | **ast-grep-py** for code; stdlib html.parser for HTML | 🟡 THIN SHIM (~50 lines) |
+| `hermes_core/draft_detective.py` | ~150 | Adversarial fact-check + APS | ast-grep-py + stdlib ast | 🟡 THIN SHIM |
+| `hermes_core/quorum_gate.py` | ~120 | Blast radius + audit receipt | Delegates AST work to ast-grep-py | 🟡 THIN SHIM |
+| `hermes_core/cog_verifier.py` | ~150 | Worker/Verifier dual-agent loop | **nemoguardrails** dialog rails OR `quorum_audit` plugin | 🔵 REPLACE via plugin |
+| `hermes_core/verification_matrix.py` | ~100 | Multi-tier pre-commit gate | `observer_gate` plugin hook already covers this | 🔴 DELETE |
+| `hermes_core/loop_contracts.py` | ~80 | Max-iter + VRAM + tabu stop | `config.yaml` `tool_loop_guardrails` (already exists) | 🔴 DELETE |
+| `hermes_core/branch_swapper.py` | ~150 | 2-strike tabu branch swap | `quorum_audit` plugin `pre_commit` hook config | 🔵 REPLACE via plugin |
+| `hermes_core/hypothesis_tree.py` | ~100 | MCTS-style branching | Git branching + JSON state file | 🟡 THIN SHIM |
+| `hermes_core/lineage.py` | ~130 | AVO lineage tree + supervisor | **gitpython** `Repo.git.log()` ancestry | 🔵 REPLACE with gitpython |
+| `bin/verify_harness_integrity.py` | 761 | 30-point capability audit | Thin pytest runner wrapper | 🟡 THIN SHIM (~30 lines) |
+| `bin/verify_skills_config.py` | 122 | Skill YAML frontmatter validation | **pydantic** schema + `openskills_manager` | 🔴 DELETE |
+| `bin/verify_transcript.py` | 97 | JSONL hash-chain audit | **openlit** spans + stdlib JSONL | 🔴 DELETE |
+
+---
+
+### Category 6: GEPA, Evolution & Self-Optimization
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/gepa_optimizer.py` | ~100 | Reflective Pareto prompt evolution | **dspy** `MIPROv2` teleprompter | 🔵 REPLACE |
+| `hermes_core/evolution.py` | ~90 | Genetic variation + Pareto frontier | **dspy** `BootstrapFewShotWithRandomSearch` | 🔵 REPLACE |
+| `hermes_core/harness_evolution.py` | ~72 | Full harness self-mutation | **dspy** + git branching | 🔵 REPLACE |
+| `hermes_core/reflective_learner.py` | ~100 | Correction event → memory card | `reflective_learner_adapter` plugin hook + **graphiti** | 🔵 REPLACE via plugin |
+| `hermes_core/recirculation.py` | ~80 | Session log → memory recirculation | `reflective_learner_adapter` plugin `on_session_end` hook | 🔵 REPLACE via plugin |
+| `bin/harness_architectural_evolution.py` | 72 | Ad-hoc evolution trigger | `gepa_optimizer` plugin hook | 🔴 DELETE |
+
+**Why DSPy**: `stanfordnlp/dspy` provides `MIPROv2` (same Pareto multi-objective optimization as GEPA), `BootstrapFewShotWithRandomSearch` (same A/B lift evaluation), and it improves with every Stanford/MLCommons release. GEPA custom code becomes a ~20-line DSPy config.
+
+---
+
+### Category 7: MCP, Tooling & Formatting
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/fastmcp.py` | ~80 | FastMCP server wrapper | **fastmcp** upstream `pip install fastmcp` — `from fastmcp import FastMCP` | 🔴 DELETE |
+| `hermes_core/formatter_pipeline.py` | ~60 | ruff/biome/rustfmt/gofmt dispatch | Shell commands via `subprocess.run(["ruff", "format", ...])` — no class | 🔴 DELETE |
+| `hermes_core/tools.py` | ~100 | Tool schema definitions | **fastmcp** `@mcp.tool` auto-generates JSON schemas | 🔴 DELETE |
+| `hermes_core/middleware.py` | ~60 | Prompt sanitization layer | **nemoguardrails** Colang input rails | 🔵 REPLACE |
+| `hermes_core/hook_router.py` | ~50 | Plugin hook dispatch | Native Hermes `plugin_loader.py` | 🔴 DELETE |
+| `hermes_core/hooks.py` | ~60 | Hook registration + fire | Native Hermes plugin system | 🔴 DELETE |
+| `bin/hub_cli.py` | 152 | Hub state JSON management | `.hermes/hub/state.json` + native config | 🔴 DELETE |
+| `bin/cache_ui_assets.py` | 54 | UI asset caching | Native terminal tool + shell | 🔴 DELETE |
+| `bin/container_cmd.py` | 50 | Distrobox wrapper | Native `terminal` tool in config | 🔴 DELETE |
+| `hermes_core/codebase_memory_mcp.py` | ~60 | Codebase MCP server | **fastmcp** `@mcp.tool` + ast-grep-py | 🔵 REPLACE |
+
+---
+
+### Category 8: Agent Orchestration & Multi-Agent
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/adk_custom_agent.py` | ~80 | Google ADK BaseAgent bridge | **google-adk** upstream — this IS the thin bridge | 🟢 KEEP |
+| `hermes_core/google_agentic_substrate.py` | ~200 | Tool schema registry (deprecated) | File says "Superseded by adk_custom_agent" | 🔴 DELETE |
+| `hermes_core/domain_fleet.py` | ~100 | Domain fleet manager | **google-adk** `Runner` + config | 🟡 THIN SHIM |
+| `hermes_core/swarm_engine.py` | ~150 | HermesOrchestrator multi-bot | **google-adk** orchestration | 🟡 THIN SHIM |
+| `hermes_core/swarm_system.py` | ~100 | Role capability masks | **google-adk** agent capabilities config | 🟡 THIN SHIM |
+| `hermes_core/multi_bot_delegation.py` | ~80 | Multi-bot task dispatch | **google-adk** `Runner` + `SessionService` | 🔴 DELETE |
+| `hermes_core/task_graph.py` | ~150 | TaskDAG + dependency ordering | **networkx** `DiGraph` + `topological_sort` | 🔵 REPLACE |
+| `hermes_core/intent_router.py` | ~80 | Prompt → bot profile routing | Native Hermes profile system + YAML | 🔴 DELETE |
+| `hermes_core/agent_os.py` | ~120 | AgentOSDaemon lifecycle | **google-adk** `Runner` + native plan.json | 🟡 THIN SHIM |
+| `hermes_core/agent_os_standards.py` | ~80 | Two-tier rules loader | Native `rules/` directory + `plugin_loader.py` | 🔴 DELETE |
+| `hermes_core/antigravity_skills.py` | ~60 | AGY skill definitions | Native AGY skill system | 🔴 DELETE |
+| `hermes_core/capability_masks.py` | ~60 | Role capability tables | **google-adk** agent config YAML | 🔴 DELETE |
+
+---
+
+### Category 9: Guardrails & Safety
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/nemo_guardrails_bridge.py` | ~80 | NeMo Guardrails wrapper | **nemoguardrails** `LLMRails(config, llm=...)` directly | 🟡 THIN SHIM (≤15 lines) |
+| `hermes_core/sandbox.py` | ~80 | Bubblewrap bwrap subprocess | `bwrap` CLI via `subprocess.run(["bwrap", ...])` — no class | 🔴 DELETE |
+| `hermes_core/hitl_gateway.py` | ~150 | HITL risk gate + diff display | **nemoguardrails** dialog rails + Colang | 🔵 REPLACE via NeMo |
+| `hermes_core/security_ctf.py` | ~100 | ELF binary analysis + capstone | **capstone** + **pwntools** + native objdump CLI | 🔴 DELETE |
+
+---
+
+### Category 10: Inference & Performance
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/speculative_executor.py` | ~100 | Speculative decoding orchestration | llama-server `--speculative` + `--draft-model` flags | 🔴 DELETE |
+| `hermes_core/prime_kernel.py` | ~80 | IPython REPL + sub-agent kernel | **ipykernel** + native subprocess | 🔵 REPLACE |
+| `hermes_core/cactus.py` | ~70 | Uncertainty estimation (CACTUS) | MC dropout via **transformers** or conformal prediction | 🔵 REPLACE |
+| `hermes_core/test_time_sampler.py` | ~60 | Test-time compute sampling | llama-server `temperature`/`top_k` params | 🔴 DELETE |
+| `hermes_core/qwen_mm_core.py` | ~50 | Qwen multimodal core | Handled by llama-server GGUF natively | 🔴 DELETE |
+| `hermes_core/prefix_cache.py` | ~80 | KV prefix cache alignment | llama-server `--cache-reuse` + static SOUL.md ordering | 🔴 DELETE |
+| `hermes_core/token_engine.py` | ~80 | Token counting + context pruning | **tiktoken** (`len(enc.encode(text))`) | 🔵 REPLACE |
+| `hermes_core/flatbuffers_state.py` | ~60 | FlatBuffers binary state serialization | **flatbuffers** (`pip install flatbuffers`) directly | 🔴 DELETE |
+| `hermes_core/ring_buffer.py` | ~60 | Ring buffer abstract base class | `collections.deque(maxlen=N)` stdlib | 🔴 DELETE |
+| `hermes_core/thread_safe_ringbuffer.py` | ~30 | Thread-safe ring buffer | `collections.deque` + `threading.Lock()` — 5 lines inline | 🔴 DELETE |
+
+---
+
+### Category 11: Observability & Trajectory
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/trajectory.py` | ~120 | Hash-chained event log + OpenLIT | **openlit** `openlit.init()` one line + stdlib JSONL append | 🟡 THIN SHIM (~20 lines) |
+
+**Why**: The hash-chain logic in `trajectory.py` reinvents OpenTelemetry trace IDs. `openlit.init()` provides GPU health, LLM latency, token usage, hallucination eval — all for free with one line.
+
+---
+
+### Category 12: Code Utilities & Misc
+
+| File | Lines | What It Does | Upstream Replacement | Verdict |
+|:-----|:------|:-------------|:---------------------|:--------|
+| `hermes_core/extract_code_mode.py` | 103 | Markdown fence stripper | stdlib `re` — 5 lines inline, or native Hermes parsing | 🔴 DELETE |
+| `hermes_core/humanizer.py` | ~70 | Robotic filler stripper | SOUL.md Rule 0 (mannered prose) — no Python needed | 🔴 DELETE |
+| `hermes_core/schema_anchors.py` | ~50 | Pydantic schema definitions | **pydantic** `BaseModel` directly | 🔴 DELETE |
+| `hermes_core/ide_substrate.py` | ~60 | IDE event bridge | Native desktop plugin system | 🔴 DELETE |
+| `hermes_core/lsp_bridge.py` | ~80 | LSP client bridge | **pylsp** / **pyright** via CLI subprocess | 🔴 DELETE |
+| `hermes_core/openviking_vfs.py` | ~60 | OpenViking VFS layer | Native filesystem + chezmoi | 🔴 DELETE |
+| `hermes_core/vfs.py` | ~60 | Virtual filesystem abstraction | Native filesystem | 🔴 DELETE |
+| `hermes_core/repo_onboard.py` | ~80 | GitHub repo ingestion + stack detect | **ast-grep-py** + native `git clone` + shell | 🔵 REPLACE |
+| `hermes_core/spec_first_planner.py` | ~100 | plan.json management | Native plan.json + **pydantic** schema | 🟡 THIN SHIM |
+| `hermes_core/prompt_slotting.py` | ~100 | 4-slot system prompt builder | SOUL.md already defines slots in text; no Python needed | 🔴 DELETE |
+| `hermes_core/process_guard.py` | ~60 | POSIX process group teardown | `subprocess.Popen(start_new_session=True)` + `os.killpg` — 10 lines inline | 🔴 DELETE |
+| `hermes_core/plugin_manifest.py` | ~50 | Plugin YAML schema | `pydantic` + `yaml.safe_load` | 🟡 THIN SHIM |
+| `hermes_core/plugin_loader.py` | ~50 | Plugin discovery + JIT load | This IS the native Hermes system | 🟢 KEEP |
+| `hermes_core/presets.py` | ~40 | Token estimate + prompt presets | **tiktoken** | 🔴 DELETE |
+| `hermes_core/lora_adapter.py` | ~80 | LoRA weight loading | **peft** `PeftModel.from_pretrained()` | 🔴 DELETE |
+| `hermes_core/lora_adapter_manager.py` | ~80 | Multi-adapter hot-swap | **peft** `model.add_adapter()` + `model.set_adapter()` | 🔴 DELETE |
+| `hermes_core/runner.py` | ~80 | Hermes CLI subprocess SDK | Native terminal tool + stdlib subprocess | 🔴 DELETE |
+| `hermes_core/sdk.py` | ~60 | 5-method code mode SDK | Native Hermes terminal tool + shell commands | 🔴 DELETE |
+| `hermes_core/visual_arbiter.py` | ~80 | Playwright headless HTML checker | **playwright** `async_playwright()` directly (2 lines) | 🔴 DELETE |
+| `hermes_core/codebase_memory_mcp.py` | ~60 | Codebase MCP server | **fastmcp** `@mcp.tool` + **ast-grep-py** | 🔵 REPLACE |
+| `types/templates/playwright_tdd_spec.py` | template | Playwright TDD boilerplate | Static template — not logic | 🟢 KEEP as template |
+| `types/templates/posix_worker_pool.py` | template | Worker pool boilerplate | Static template | 🟢 KEEP as template |
+
+---
+
+### Upstream Package → Hermes Plugin Map
+
+Every upstream package becomes a thin **FastMCP tool** or **Hermes plugin** — not a custom wrapper class.
+
+| Upstream Package | GitHub | pip install | Replaces Custom Files |
+|:-----------------|:-------|:------------|:----------------------|
+| **fastmcp** | `jlowin/fastmcp` | `fastmcp` | `fastmcp.py`, `tools.py`, `hook_router.py`, `hooks.py`, `codebase_memory_mcp.py` |
+| **crawl4ai** | `unclecode/crawl4ai` | `crawl4ai` | `web_grounding.py` (×2), `fast_research.py`, `extract_web_content.py`, `ingest_document.py`, `index_docs.py` |
+| **fastembed** | `qdrant/fastembed` | `fastembed` | `embeddings.py`, `skill_retriever.py` |
+| **dspy** | `stanfordnlp/dspy` | `dspy` | `gepa_optimizer.py`, `evolution.py`, `harness_evolution.py`, `skill_evaluator.py`, `skill_evolution.py`, `reflective_learner.py` |
+| **ast-grep-py** | `ast-grep/ast-grep` | `ast-grep-py` | `symbol_graph.py`, `symbol_indexer.py`, `knowledge_graph.py`, `repo_onboard.py`, observer_gate AST portion |
+| **graphiti-core** | `getzep/graphiti` | `graphiti-core` | `working_memory.py`, `experience_store.py` (semantic), `second_brain.py`, `cog_vault.py` |
+| **openlit** | `openlit/openlit` | `openlit` | `trajectory.py` (full), `verify_transcript.py` |
+| **nemoguardrails** | `NVIDIA/NeMo-Guardrails` | `nemoguardrails` | `nemo_guardrails_bridge.py`, `hitl_gateway.py`, `middleware.py`, `cog_verifier.py` |
+| **sqlmodel** | `tiangolo/sqlmodel` | `sqlmodel` | `database.py`, `session_persistence.py`, experience_store SQL layer |
+| **networkx** | `networkx/networkx` | `networkx` | `task_graph.py`, `graph_engine.py` |
+| **tiktoken** | `openai/tiktoken` | `tiktoken` | `token_engine.py`, `presets.py` |
+| **peft** | `huggingface/peft` | `peft` | `lora_adapter.py`, `lora_adapter_manager.py` |
+| **gitpython** | `gitpython-developers/GitPython` | `gitpython` | `lineage.py` |
+| **python-frontmatter** | `eyeseast/python-frontmatter` | `python-frontmatter` | `second_brain.py`, `cog_vault.py` |
+| **google-adk** | `google/adk-python` | `google-adk` | `agent_os.py`, `domain_fleet.py`, `swarm_engine.py`, `multi_bot_delegation.py`, `google_agentic_substrate.py` |
+| **playwright** | `microsoft/playwright-python` | `playwright` | `visual_arbiter.py` |
+
+---
+
+### Final Python File Count
+
+| Layer | Before | After | Net Delta |
+|:------|:-------|:------|:----------|
+| `hermes_core/` modules | ~68 files | ~12 genuine shims | **–56** |
+| `bin/` scripts | 15 files | 2 (observer_gate + verify_harness thinned) | **–13** |
+| **Total custom Python** | **~83** | **~14** | **–69 files** |
+
+### The 14 Surviving Python Files (Irreplaceable)
+
+| File | Why It Stays |
+|:-----|:-------------|
+| `hermes_core/openskills_manager.py` | SKILL.md L0/L1/L2 loader — IS the Hermes skill engine |
+| `hermes_core/adk_custom_agent.py` | ADK `BaseAgent` bridge — thin shim ~40 lines |
+| `hermes_core/domain_fleet.py` | Domain fleet thin shim ~30 lines |
+| `hermes_core/swarm_engine.py` | HermesOrchestrator thin shim ~30 lines |
+| `hermes_core/plugin_loader.py` | Plugin JIT discovery — IS the native system |
+| `hermes_core/plugin_manifest.py` | Plugin YAML schema — thin shim ~20 lines |
+| `hermes_core/agent_os.py` | AgentOS lifecycle thin shim ~20 lines |
+| `hermes_core/spec_first_planner.py` | plan.json manager thin shim ~30 lines |
+| `hermes_core/nemo_guardrails_bridge.py` | NeMo init thin shim ~15 lines |
+| `hermes_core/hypothesis_tree.py` | MCTS node tracker thin shim ~40 lines |
+| `hermes_core/trajectory.py` | `openlit.init()` + JSONL append ~20 lines |
+| `hermes_core/experience_store.py` | SQLModel episode schema ~30 lines |
+| `bin/observer_gate.py` | Pre-commit gate runner ~50 lines (calls ast-grep-py) |
+| `bin/verify_harness_integrity.py` | Pytest capability runner ~30 lines (calls pytest) |
+
+---
+
+### Phase 7: Upstream Migration Steps
+
+> Run after Phases 0–6. Each step is a git commit. No new Python files created.
+
+**7.1 — Install Upstream Packages**
+```bash
+pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openlit \
+            nemoguardrails sqlmodel networkx tiktoken peft gitpython \
+            python-frontmatter google-adk playwright
+```
+
+**7.2 — Delete Pure Wrapper Files (~55 files)**
+- All 🔴 DELETE files from the audit above.
+- Before each delete: `grep -r "from hermes_core.<name>" .hermes/` to confirm no imports remain.
+
+**7.3 — Thin-Shim Replacements (~13 files, each ≤30 lines)**
+- Strip all custom logic from 🟡 THIN SHIM files.
+- Replace with direct upstream `import` + single function call.
+
+**7.4 — Single FastMCP Tool Server**
+Create `.hermes/plugins/mcp_tools/__init__.py` (~60 lines total):
+```python
+from fastmcp import FastMCP
+from crawl4ai import AsyncWebCrawler
+from ast_grep_py import SgRoot
+
+mcp = FastMCP("hermes-tools")
+
+@mcp.tool
+async def web_extract(url: str, word_limit: int = 500) -> str:
+    async with AsyncWebCrawler() as c:
+        r = await c.arun(url=url, word_count_threshold=word_limit)
+        return r.markdown
+
+@mcp.tool
+def ast_search(pattern: str, code: str, lang: str = "python") -> list[dict]:
+    root = SgRoot(code, lang)
+    return [{"text": n.text(), "range": str(n.range())} for n in root.root().find_all(pattern)]
+```
+This single file replaces `web_grounding.py`, `fast_research.py`, `extract_web_content.py`, `tools.py`, `fastmcp.py`.
+
+**7.5 — Wire DSPy to GEPA Plugin**
+Edit `plugins/gepa_optimizer/hooks/on_session_end.py` (~25 lines):
+```python
+import dspy
+from dspy.teleprompt import MIPROv2
+# Load failed episodes as training set, SOUL.md as program
+# MIPROv2 auto-optimizes → writes improved rules back to SOUL.md
+```
+
+**7.6 — Wire Graphiti for Working Memory**
+Edit `plugins/reflective_learner_adapter/hooks/on_session_end.py` (~20 lines):
+```python
+from graphiti_core import Graphiti
+# g.add_episode(name=session_id, episode_body=summary, ...)
+```
+
+**7.7 — Wire OpenLIT**
+Reduce `hermes_core/trajectory.py` to ~20 lines:
+```python
+import openlit
+openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
+```
+
+**7.8 — Commit + Chezmoi Sync**
+```bash
+chezmoi add .hermes/src/hermes_core/ .hermes/bin/ .hermes/plugins/
+chezmoi git -- add -A
+chezmoi git -- commit -m "refactor(hermes-core): upstream migration — 69 files deleted, 13 thinned, 0 new"
+```

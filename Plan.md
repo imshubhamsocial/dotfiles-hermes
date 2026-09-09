@@ -1,70 +1,36 @@
-# Master Execution Plan: Domain 7 Finalization & Certification
+# Master Execution Plan: Future Roadmap & Nightly Memory Architecture
 
-> **Status**: Active Living Execution Plan  
-> **Target**: 100% Zero-Bloat, Native Upstream Packages with Local Hardware Calibrations, Clean Test Isolation  
-> **Hardware Boundary**: NVIDIA RTX 3050 Laptop (6GB VRAM, ≤ 4,812 MiB limit), llama-server port 8138  
+> **Status**: Future Living Execution Plan  
+> **Target**: Detached Nightly Memory Consolidation ("Sleep Cycle") without Core Bloat  
+> **Hardware Boundary**: NVIDIA RTX 3050 Laptop (6GB VRAM, ≤ 4,812 MiB limit), Off-Peak Batch Execution  
 
 ---
 
-## 4-Step Execution Matrix
+## Architectural Focus: Detached Nightly Memory Consolidation (Cognee Evaluation)
 
-| Step | Scope & Description | Status | Verification Evidence |
+### Objective
+Implement an autonomous, off-peak "Sleep / Memory Dream" consolidation cycle that ingests daily agent trajectories, diffs, and raw memory notes, distilling them into an entity-relation knowledge graph—without contaminating Hermes's core runtime with heavy dependencies or competing for GPU resources during interactive sessions.
+
+### Invariant Architectural Rules
+1. **Zero Core Contamination (Law #8)**:
+   * **DO NOT** install `cognee`, `lancedb`, `ladybug`, `fakeredis`, or `litellm` into Hermes's core runtime (`ws-hermes`, `pyproject.toml`, or main `Makefile`).
+   * Cognee and its dependency tree must live strictly inside a detached, isolated environment (e.g., `~/.local/share/cognee-env` or a separate sidecar container).
+2. **Off-Peak Batch Window**:
+   * Execution scheduled exclusively during off-peak hours (e.g., nightly at 03:00 AM via systemd user timer or cron).
+   * Zero contention with interactive daytime coding turns on `llama-server` port 8138.
+3. **Markdown-First Distillation Output**:
+   * The worker digests transcripts and raw logs, but writes distilled relational findings into standard, human-readable Markdown cards in `~/.hermes/knowledge/` and `~/.hermes/memories/`.
+   * Hermes core consumes these cards at daytime run-time via its existing native `second_brain.py` and `cog_vault.py` on CPU RAMDisk (<8ms latency, 0 MiB VRAM).
+4. **Fail-Safe Decoupling**:
+   * Any failure or crash in the nightly worker must never impact Hermes core CLI or agent execution.
+
+---
+
+## Phased Implementation Matrix
+
+| Phase | Scope & Description | Status | Verification Criteria |
 | :--- | :--- | :---: | :--- |
-| **Step 1** | **Clean Up Root `tests/` Directory (Benchmark Isolation)**<br>• Remove duplicate domain tests from root `tests/`<br>• Delete orphan `test_math_engine.py`<br>• Update `tests/conftest.py` sys.path<br>• Wire `Makefile` `test-internal` to `.hermes/tests/` | ✅ **DONE** | 184 internal tests pass in `.hermes/tests/`<br>602 contract tests pass in `tests/harness_contracts/` |
-| **Step 2** | **Harmonize Package Manifests (`pyproject.toml`, `setup.sh`, `Makefile`)**<br>• Formally declare `google-adk`, `nemoguardrails`, `openlit`, `crawl4ai`<br>• Remove deprecated `duckduckgo-search`<br>• Omit rejected `langgraph` framework<br>• Commit all package pins to Chezmoi | ✅ **DONE** | `pyproject.toml` updated<br>`Makefile` `py-deps` updated<br>Committed in Chezmoi (`03827b6`) |
-| **Step 3** | **Retire Redundant Custom Substrates (`google_agentic_substrate.py`)**<br>• Rationalize `google_agentic_substrate.py` (~444 LOC)<br>• Formally deprecate in favor of native `google-adk` (HermesADKCustomAgent & DomainFleetManager)<br>• Retained strictly as a lightweight compatibility shim for U80 contract tests | ✅ **DONE** | Deprecation notice added<br>U80 contract test passing (602/602 green)<br>Committed in Chezmoi (`1bcd2fb`) |
-| **Step 4** | **Master Certification & NVML Hardware Audit**<br>• Run `.hermes/bin/verify_harness_integrity.py` (30/30 capabilities)<br>• Run `make doctor` (audit 9 plugins & health contracts)<br>• Run live `run_final_integration_exam.py` vs champion model<br>• Final Chezmoi sync & git commit | ✅ **DONE** | • `run_final_integration_exam.py`: ALL EXAMS PASSED (E2E, U6, U7, U8, U17, U18, VRAM)<br>• `verify_harness_integrity.py`: APPROVED (all capabilities + contract spikes pass)<br>• `make doctor`: ALL 9 PLUGINS PASS (OK)<br>• `make test`: 786/786 tests pass (100% green)<br>• Chezmoi: 100% synced (`a16c6c9`) |
-
----
-
-## Live End-to-End Verification Evidence
-
-```json
-{
-  "timestamp_utc": "2026-09-08T21:21:59Z",
-  "all_passed": true,
-  "champion": "gemma-4-E4B-it-Q4_K_M + mtp-gemma-4-E4B-it-Q4_0 @ 8138",
-  "exams": {
-    "exam_e2e_engine_u6_chain": {
-      "passed": true,
-      "wall_seconds": 6.2,
-      "events": 7,
-      "chain": "chain intact: 7 events",
-      "dialect_complete": ["gate_check", "response", "tool_call", "tool_result", "turn_end", "turn_start"],
-      "artifact_written": true
-    },
-    "exam_u7_replay_match": {
-      "passed": true,
-      "replayed_steps": 1,
-      "drifted_steps": 0
-    },
-    "exam_u17_supervisor_quiet": {
-      "passed": true,
-      "interventions": []
-    },
-    "exam_u18_commit_gate": {
-      "passed": true,
-      "clean_variant_committed": true,
-      "bloat_blocked_reason": "token bloat blocked (128 > 33)"
-    },
-    "exam_u8_prefix_cache": {
-      "passed": true,
-      "mean_hit_ratio": 1.0,
-      "turns_sampled": 11,
-      "trap1_lint_registry_armed": true
-    },
-    "exam_vram_guard": {
-      "passed": true,
-      "start_mib": 4281,
-      "end_mib": 4301,
-      "budget_mib": 4812
-    }
-  }
-}
-```
-
-## Non-Negotiable Invariant Rules
-1. **Never Deviate**: Work strictly in the numbered order: Step 1 ➔ Step 2 ➔ Step 3 ➔ Step 4.
-2. **Law #8 Compliance**: Upstream official tools first (`google-adk`, `nemoguardrails`, `fastmcp`, `crawl4ai`). Never write custom framework boilerplate.
-3. **Hardware Ceiling**: GPU VRAM allocation across `llama-server` and workers must never exceed 4,812 MiB.
-4. **Test Integrity**: Every step must preserve 100% green pass rate across both `.hermes/tests/` and `tests/harness_contracts/`.
+| **Phase 1** | **Isolated Environment Provisioning**<br>• Create dedicated virtual environment at `~/.local/share/cognee-env`<br>• Install `cognee` and verify isolated execution<br>• Confirm zero leakage into `ws-hermes` core user-site | 📋 **PLANNED** | `cognee --version` passes in isolated env; `python3.13 -c "import cognee"` fails cleanly in `ws-hermes` |
+| **Phase 2** | **Nightly Ingestion & Distillation Pipeline**<br>• Author `.hermes/scripts/nightly_memory_consolidation.py`<br>• Read-only ingestion of `~/.hermes/sessions/`, `trajectory.jsonl`, and git logs<br>• Distill cross-session entity connections, recurring bugs, and project patterns | 📋 **PLANNED** | Script executes headless in dry-run mode, producing structured graph nodes in temporary cache |
+| **Phase 3** | **Markdown Synthesis & Second Brain Bridge**<br>• Format extracted graph relationships into clean Markdown cards<br>• Populate cards with YAML frontmatter into `~/.hermes/knowledge/`<br>• Verify seamless retrieval by native `second_brain.py` and `cog_vault.py` | 📋 **PLANNED** | `second_brain.search(...)` locates synthesized cross-session concepts without LLM extraction overhead |
+| **Phase 4** | **Systemd Timer / Cron Automation & VRAM Safeguards**<br>• Register user systemd service/timer (`hermes-memory-consolidation.timer`)<br>• Bind NVML check: only run if GPU is idle (`VRAM < 200 MiB` or when `llama-server` has 0 active requests)<br>• End-to-end integration run | 📋 **PLANNED** | Daemon runs unattended at scheduled hour; morning session verifies updated knowledge base with zero core regressions |

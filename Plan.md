@@ -1162,3 +1162,243 @@ chezmoi add .hermes/tests/ .hermes/src/
 chezmoi git -- add -A
 chezmoi git -- commit -m "test(hermes): harmonize test suite — purge 4.2k lines obsolete mock tests, refactor to upstream contracts"
 ```
+
+---
+
+## Deep Audit: All 'bin' and 'scripts' Directories in the Workspace
+
+> **Goal**: Audit every script across `.hermes/bin/`, `.hermes/scripts/`, `tests/runners/`, and `.local/bin/` to eliminate redundant wrappers and convert all executable logic into native Hermes plugin hooks or FastMCP tools.
+
+### 1. Complete Inventory of All Executable / Script Folders
+
+```
+Workspace Root (/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/)
+├── .hermes/bin/                # 15 bespoke Python utility scripts (~2,459 lines)
+├── .hermes/scripts/            # 5 ad-hoc operational scripts (benchmarks, training, daemons)
+├── tests/runners/              # 8 benchmark & evaluation runner scripts (~700 lines)
+├── .local/bin/                 # 86 CLI entry points (pip-generated binaries + 4 bash wrappers)
+└── .local/share/chezmoi/
+    ├── dot_local/bin/          # 4 tracked bash wrappers (executable_hermes, executable_llama-server, etc.)
+    └── private_dot_hermes/bin/ # Chezmoi mirror of .hermes/bin/
+```
+
+---
+
+### 2. Audit: `.hermes/bin/` (15 Files, ~2,459 Lines)
+
+| Script | Lines | Current Function | Structural Defect / Finding | Native Hermes / Upstream Replacement | Verdict |
+|:-------|:------|:-----------------|:----------------------------|:--------------------------------------|:--------|
+| `observer_gate.py` | 475 | Pre-commit 6-point AST gate | **Corrupted Shebang**: Line 1 has `import shutil` placed *before* `#!/usr/bin/env python3`, breaking shebang parsing! | Convert to standard `observer_gate` plugin `pre_commit` hook using `ast-grep-py` (~50 lines). | 🟡 **THIN TO HOOK** |
+| `verify_harness_integrity.py` | 761 | Master 30-point audit probe | Giant monolithic test script recreating pytest test runner | Replace with standard `pytest tests/harness_contracts/` invocation. | 🔴 **DELETE (USE PYTEST)** |
+| `skill_retriever.py` | 144 | FastEmbed cosine skill lookup | Re-invents skill semantic search | Native `hermes skills` discovery + `fastembed` | 🔴 **DELETE** |
+| `ingest_document.py` | 144 | Markdown/doc ingestion | Duplicates Trafilatura/Crawl4AI | **crawl4ai** FastMCP tool (`@mcp.tool`) | 🔴 **DELETE** |
+| `hub_cli.py` | 152 | Hub state JSON CLI | Re-invents plugin/pack state management | Native `hermes plugins pack` CLI | 🔴 **DELETE** |
+| `verify_skills_config.py` | 122 | Frontmatter YAML validator | Custom regex/yaml parser | Native `pydantic` validation in `openskills_manager` | 🔴 **DELETE** |
+| `index_docs.py` | 108 | Doc indexer to FastEmbed | Custom embedding script | **graphiti** / **crawl4ai** MCP tool | 🔴 **DELETE** |
+| `extract_code_mode.py` | 103 | Strip markdown fences from code | Regex fence cleaner | stdlib `re` inline or native Hermes response parsing | 🔴 **DELETE** |
+| `verify_transcript.py` | 97 | Hash-chain transcript audit | Custom audit for bespoke hash-chain | Native **openlit** span validation | 🔴 **DELETE** |
+| `extract_web_content.py` | 94 | Web URL extraction | Regex/requests wrapper | **crawl4ai** `AsyncWebCrawler` | 🔴 **DELETE** |
+| `harness_architectural_evolution.py` | 72 | Ad-hoc evolution trigger | Stub script invoking evolution | `gepa_optimizer` plugin `on_session_end` hook | 🔴 **DELETE** |
+| `cache_ui_assets.py` | 54 | Downloads & caches UI assets | Ad-hoc curl/request script | Simple curl in Makefile or generative-ui skill resource | 🔴 **DELETE** |
+| `container_cmd.py` | 50 | Distrobox wrapper script | Calls `distrobox-enter` | Native Hermes `terminal` tool | 🔴 **DELETE** |
+| `web_grounding.py` | 42 | DuckDuckGo search wrapper | Wrapper around `duckduckgo_search` | Native Hermes `web.backend: ddgs` in `config.yaml` | 🔴 **DELETE** |
+| `skill_router.py` | 41 | Keyword regex dispatcher | Custom routing logic | Native Hermes profile & skill description system | 🔴 **DELETE** |
+
+**Verdict for `.hermes/bin/`**: **14 out of 15 files completely deleted**. The only remaining logic (`observer_gate.py`) is shrunk from 475 lines to a ~50-line plugin hook inside `.hermes/plugins/observer_gate/`. The `.hermes/bin/` folder is eliminated entirely.
+
+---
+
+### 3. Audit: `.hermes/scripts/` (5 Files)
+
+| Script | Lines | What It Does | Upstream / Native Alignment | Verdict |
+|:-------|:------|:-------------|:----------------------------|:--------|
+| `benchmark_embeddings.py` | 12.8 KB | Benchmarks FastEmbed CPU vs GPU latency | Move to `tests/benchmarks/` or execute via `fastembed` directly | 🔄 **MOVE TO TESTS** |
+| `build_codebase_graph.py` | 6.0 KB | Custom AST graph builder saving to SQLite | Superseded by **ast-grep-py** / **graphify** skill | 🔴 **DELETE** |
+| `train_qlora_adapter.py` | 7.7 KB | QLoRA fine-tuning training loop | Move to `private_skills/mlops/models/gemma-trainer/resources/` | 🔄 **MOVE TO SKILL RESOURCE** |
+| `start_server_daemon.sh` | 1.1 KB | Starts llama.cpp server in background | Keep as convenience runner or systemd service | 🟢 **KEEP AS OPERATIONAL SCRIPT** |
+| `start_server_swarm.sh` | 0.6 KB | Starts multi-model inference ports | Keep as convenience runner | 🟢 **KEEP AS OPERATIONAL SCRIPT** |
+
+---
+
+### 4. Audit: `tests/runners/` (8 Files)
+
+| Script | Purpose | Finding | Verdict |
+|:-------|:--------|:--------|:--------|
+| `run_final_integration_exam.py` | Master 80-milestone integration runner | Dispatches test subprocesses and calculates score | 🟢 **KEEP**: Core test harness runner |
+| `test_hermes_autonomous_suite.py` | End-to-end multi-turn autonomous evaluation | Comprehensive agent evaluation | 🟢 **KEEP**: Core agent benchmark |
+| `run_hard_repo_benchmark.py` | Benchmark against complex codebases | Evaluation runner | 🟢 **KEEP**: Benchmark |
+| `benchmark_qwen_vs_gemma.py` | Comparative model evaluation | Benchmark runner | 🟢 **KEEP**: Benchmark |
+| `eval_thinking_and_code.py` | Evaluates CoT reasoning vs output | Evaluation runner | 🟢 **KEEP**: Benchmark |
+| `run_phase1_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
+| `run_phase2_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
+| `run_phase3_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
+
+---
+
+### 5. Audit: `.local/bin/` & Chezmoi `dot_local/bin/`
+
+- **`executable_hermes`**:
+  ```bash
+  #!/usr/bin/env bash
+  unset PYTHONPATH
+  unset PYTHONHOME
+  export PATH="$HOME/.local/bin:$PATH"
+  exec python3.13 -m hermes_cli.main "$@"
+  ```
+  - **Critical Finding**: This wrapper invokes `hermes_cli.main` — which is the **upstream NousResearch `hermes-agent` entry point**. It completely bypasses the custom `pyproject.toml` console script (`hermes_harness.cli:main`). This proves that the actual running agent is upstream `hermes-agent`, while `hermes_harness` was an unused competing stub!
+- **`executable_llama-server`**:
+  - Wrapper that launches the native `llama-server` with `--port 8138`, flash attention, and context ceiling. 🟢 **KEEP**.
+- **`executable_tirith`**:
+  - Binary security validator. 🟢 **KEEP**.
+
+---
+
+## Structural Layout Audit: The `.hermes/hermes-agent` Anomaly & Workspace Collisions
+
+> **The Major Anomaly**: An entire standalone clone of the upstream `https://github.com/NousResearch/hermes-agent.git` repository (500MB, full git history) is located **inside** the user's `.hermes/` configuration directory: `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent`.
+
+### 1. Upstream Layout vs Current Layout
+
+#### The Upstream NousResearch Architecture (How Hermes is designed to work):
+```
+[Engine / Runtime Layer] (Installed package or dev repo)
+├── Installed via: `pip install hermes-agent` OR cloned in `~/Development/hermes-agent`
+├── Entry point: `hermes` CLI (from `hermes_cli.main`)
+├── Bundled Plugins: `plugins/` (browser, kanban, image_gen, platforms, model-providers)
+└── Bundled Skills: `skills/` (builtin community skills)
+
+[User State & Dotfile Layer] (Lives at ~/.hermes/ or $HERMES_HOME)
+├── config.yaml          # Model, provider, tool guardrails, web backend
+├── SOUL.md              # System prompt & behavioral constitution
+├── plugins/             # User-installed plugins (e.g. quorum_audit, gepa_optimizer)
+├── skills/              # User-installed custom skills
+├── memory/              # Durable memory, session cards, state.db
+└── plan.json            # Active session milestone tracking
+```
+
+#### What We Actually Have (The Distorted Nested Layout):
+```
+/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/  ($HOME inside ws-hermes)
+├── .hermes/                                                 (State AND Engine mixed together!)
+│   ├── hermes-agent/                                        <-- FULL UPSTREAM REPO CLONED INSIDE STATE DIR!
+│   │   ├── .git/                                            (Unmanaged git repository inside chezmoi!)
+│   │   ├── hermes_cli/                                      (The actual running CLI)
+│   │   ├── plugins/                                         (Upstream bundled plugins)
+│   │   ├── skills/                                          (Upstream bundled skills)
+│   │   ├── tools/                                           (Upstream tools)
+│   │   └── tests/                                           (13,000+ upstream tests)
+│   ├── plugins/                                             <-- DUPLICATE: User plugins folder
+│   ├── skills/ & private_skills/                            <-- DUPLICATE: User skills folder
+│   ├── tests/                                               <-- DUPLICATE: 25 bespoke unit tests
+│   ├── bin/                                                 <-- DUPLICATE: 15 bespoke python scripts
+│   ├── src/hermes_core/                                     <-- DUPLICATE: 68 bespoke python files mimicking the engine
+│   ├── config.yaml
+│   └── SOUL.md
+├── tests/                                                   <-- TRIPLICATE: Root test contracts
+├── pyproject.toml                                           <-- GHOST PACKAGE: Declares "hermes-harness", not "hermes-agent"
+└── .local/share/chezmoi/                                    (Tracks .hermes/ but CANNOT track .hermes/hermes-agent/)
+```
+
+---
+
+### 2. Six Catastrophic Collisions Caused by This Layout
+
+1. **Collision 1: The Git-Inside-Git Chezmoi Blindspot**
+   - `.hermes/` is tracked by chezmoi via `private_dot_hermes/`.
+   - But `.hermes/hermes-agent` contains its own `.git/` folder.
+   - Chezmoi automatically ignores nested git repositories.
+   - **Consequence**: The entire 500MB `hermes-agent` engine is an untracked, unversioned orphan inside the dotfiles repository. Upstream updates cannot be managed cleanly by chezmoi, and dotfile syncs are prone to drift.
+
+2. **Collision 2: The Six Overlapping Folder Names**
+   - Both `.hermes/` and `.hermes/hermes-agent/` contain: `assets/`, `cron/`, `plugins/`, `scripts/`, `skills/`, `tests/`.
+   - When Python or the agent searches for a skill or plugin, path resolution depends on arbitrary `sys.path` order.
+   - To work around this collision, someone invented `private_skills/` and a custom `FourTierSkillRouter` just to avoid collisions with `hermes-agent/skills/`!
+
+3. **Collision 3: The Ghost Package Conflict (`hermes-agent` vs `hermes-harness`)**
+   - In `.local/lib/python3.13/site-packages`:
+     - `hermes_agent-0.20.6` is installed in editable mode from `.hermes/hermes-agent`
+     - `hermes_harness-1.0.0` is installed in editable mode from `.hermes/src`
+   - `hermes_harness` declares entry points `hermes = "hermes_harness.cli:main"`.
+   - But `hermes_harness.cli` DOES NOT EXIST! (The package in `src` is `hermes_core`, not `hermes_harness`).
+   - The wrapper script `.local/bin/hermes` has to explicitly run `python3.13 -m hermes_cli.main` to avoid hitting the broken entry point.
+
+4. **Collision 4: The Triple Test Suite Fragmentation**
+   - Test suite 1: `.hermes/hermes-agent/tests/` (13,000+ upstream test files)
+   - Test suite 2: `.hermes/tests/` (25 white-box unit tests)
+   - Test suite 3: `tests/` at workspace root (43 contract tests + 8 runners)
+   - Running `pytest` from the root discovers inconsistent test fixtures and conflicting `conftest.py` path injections.
+
+5. **Collision 5: The Distrobox `$HOME` Aliasing Confusion**
+   - In the `ws-hermes` container, `$HOME` is configured as `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes`.
+   - This causes user home dotfiles (`.bashrc`, `.ssh/`, `.gitconfig`, `.npm/`, `.cache/`, `.local/`) to live in the root of the project workspace.
+   - Meanwhile, on the host, `$HOME` is `/var/home/imshubhamsocial/`, which contains ANOTHER `.hermes/` directory (`/var/home/imshubhamsocial/.hermes`), causing confusion between host state and container state.
+
+6. **Collision 6: Upstream Update Impasse**
+   - Because custom code was injected directly into `.hermes/` (adjacent to `hermes-agent`) rather than through the standard plugin/skill API, updating `hermes-agent` risks breaking path assumptions, shadowing modules, or creating import loops.
+   - By decoupling `hermes-agent` as an external package and converting all custom code into clean plugins in `~/.hermes/plugins/`, **Hermes can be updated with a simple `pip install --upgrade hermes-agent` or `hermes update`**, receiving all upstream features and bug fixes naturally with zero breakage.
+
+---
+
+### 3. The Target Clean Layout (True Plugin Architecture)
+
+```
+[Installed Engine] (Installed via pip/uv into python site-packages)
+  hermes-agent (version >= 0.20.6)
+  ├── Provides: `hermes` CLI, core loop, gateway, bundled tools, TUI
+  └── Updatable via: `pip install --upgrade hermes-agent` or `hermes update`
+
+[Dotfiles & Agent State] (~/.hermes/ — Tracked cleanly by Chezmoi)
+  ~/.hermes/
+  ├── config.yaml          # Clean config (model, loop guardrails, providers)
+  ├── SOUL.md              # System prompt & operational laws
+  ├── hermes-pack.yaml     # Declarative plugin pack definition
+  ├── plugins/             # ONLY custom plugins (each with plugin.yaml + __init__.py)
+  │   ├── quorum_audit/    # Quorum consensus & AST pre-commit gate (uses ast-grep-py)
+  │   ├── gepa_optimizer/  # Reflective prompt evolution (uses dspy MIPROv2)
+  │   ├── mcp_tools/       # FastMCP tools (uses crawl4ai + fastembed + ast-grep-py)
+  │   ├── graphiti_memory/ # Temporal episodic memory (uses graphiti-core)
+  │   └── nemo_guard/      # NeMo guardrails bridge (Colang policies)
+  ├── skills/              # Custom skills (all 91 skills consolidated here!)
+  │   └── */SKILL.md       # Progressive disclosure L0/L1/L2
+  └── memory/              # state.db, plan.json, knowledge cards
+```
+
+---
+
+## Phase 9: Layout Normalization & Engine Decoupling Roadmap
+
+> **Goal**: Un-nest `hermes-agent`, eliminate the ghost `hermes-harness` package, consolidate skills into `~/.hermes/skills/`, and convert all custom Python into native Hermes plugins.
+
+**9.1 — Fix Corrupted Shebang in `observer_gate.py`**
+- Fix line 1 of `.hermes/bin/observer_gate.py` (move `import shutil` below `#!/usr/bin/env python3`).
+
+**9.2 — Clean Up Ghost Packaging in `pyproject.toml`**
+- Remove `[project.entry-points.console_scripts]` pointing to non-existent `hermes_harness.cli`.
+- Keep `pyproject.toml` strictly as a dependency lock manifest for the harness environment.
+- Uninstall editable `hermes-harness`: `pip uninstall -y hermes-harness`.
+
+**9.3 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
+- Move all skills from `.hermes/private_skills/` into `.hermes/skills/`.
+- Remove `private_skills/` directory.
+- This aligns with Hermes's native skill discovery (`hermes skills list`).
+
+**9.4 — Convert All Surviving Custom Logic into Native Plugins**
+- Ensure all 5 active plugins in `.hermes/plugins/` have valid `plugin.yaml` manifests and adhere to the upstream Hermes plugin specification.
+- Register them declaratively in `hermes-pack.yaml`.
+- Verify with `hermes plugins doctor`.
+
+**9.5 — Decouple `.hermes/hermes-agent` from Dotfiles**
+- Move `hermes-agent` outside `.hermes/` (or install it cleanly via `pip install -e /path/to/hermes-agent` in a dedicated `~/src/hermes-agent` or let uv/pip manage it).
+- Remove the untracked `.git` repository from inside `.hermes/`.
+- Chezmoi now tracks ONLY clean configuration, plugins, skills, and memory — zero nested git repositories.
+
+**9.6 — Purge `.hermes/bin/` and `.hermes/src/`**
+- Execute Phase 7 (deleting redundant wrappers) and Phase 8 (modernizing tests).
+- Once all logic is in plugins and upstream packages, remove `.hermes/bin/` and `.hermes/src/`.
+
+**9.7 — Commit & Chezmoi Sync**
+```bash
+chezmoi add .hermes/config.yaml .hermes/SOUL.md .hermes/hermes-pack.yaml .hermes/plugins/ .hermes/skills/
+chezmoi git -- add -A
+chezmoi git -- commit -m "refactor(layout): normalize hermes layout — decouple upstream engine, consolidate skills, eliminate bin sprawl"
+```

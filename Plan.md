@@ -35,3 +35,49 @@
   - **Context Engine**: Maintains persistent working memory across sessions (local filesystem, Redis, PostgreSQL) to allow seamless resumption of interrupted workflows without re-planning.
   - **Verification Grid**: Modular, extensible plugin architecture (`VerificationModule` subclasses) for domain-specific contract testing.
   - **Pipeline Adapter**: Adapts completed artifacts into external delivery formats (Git, S3, webhooks).
+
+### 2. Anthropic's Agent Engineering Playbook (Full Breakdown by CyrilXBT)
+- **Source**: https://x.com/cyrilXBT/status/2096253035563426134
+- **Author / Originator**: CyrilXBT (@cyrilXBT) tracing Anthropic's internal engineering blog, Claude Agent SDK, and prompting documentation.
+- **Core Thesis**:
+  > *"Build the structure that makes an agent's behavior verifiable and its progress durable, rather than trusting a smarter model to compensate for the absence of that structure. The harness, the verification discipline, the memory system, matter more as models get more capable and more autonomous, not less."*
+
+- **Key Principles & Architectural Patterns**:
+  1. **Solving Multi-Session Amnesia via Durable Handoffs**:
+     - Multi-session agents have no memory by default ("engineers on separate shifts who remember nothing from the shift before").
+     - **Anthropic SDK Two-Role Pattern**: An *Initializer Agent* sets up the environment and plans once; a *Coding Agent* makes incremental progress per session and leaves behind clear, durable artifacts (notes, file states, execution logs of what was tried and what happened) so the next session resumes seamlessly without rediscovering context.
+  2. **Separate The Brain From The Hands**:
+     - Reasoning happens in one place; tool execution occurs inside an isolated sandbox.
+     - Delivers faster time-to-first-token (TTFT) and clear fault isolation (distinguishing cognitive reasoning errors from execution sandbox failures).
+  3. **Server-Side Execution & Fine-Grained Step Logging**:
+     - Decouple agent processes from local laptop terminal sessions.
+     - Log every single action and state transition in real-time. Enables crash recovery by replaying context from the log rather than re-running from zero.
+  4. **Make Failure Cheap**:
+     - Treat failures as normal, expected events to recover from at minimal cost, rather than exceptions to prevent at all costs.
+     - Retry dead sandboxes cheaply; replay lost state from execution logs.
+  5. **Turn Yesterday's Logs Into Tomorrow's Memory ("Dreaming")**:
+     - Offline/off-peak batch pass processes accumulated session logs into new skills and permanent memory cards.
+     - Memory files must include a scannable one-line summary at the top so future sessions can judge relevance instantly without ingesting full files into context.
+  6. **Maker vs. Verifier Separation ("Never Let It Grade Its Own Work")**:
+     - The cognitive perspective that produced a solution has structural blind spots and skews falsely positive.
+     - Architectural separation: Separate the agent producing work from the agent evaluating it.
+     - The evaluator must have access to independent ground-truth evidence that the maker didn't generate (raw test outputs, requirement specs, external verification checks).
+  7. **Conservative Multi-Agent Scaling**:
+     - Token economics: Single agent consumes $\approx 4\times$ normal chat tokens; multi-agent systems consume $\approx 15\times$.
+     - Multi-agent outperforms single agents (e.g., $+90.2\%$ on internal research evaluations) *only* when the task structurally fans out into independent, parallel inquiries.
+     - Sequential tasks get zero benefit from multi-agent setups—it only multiplies cost. Rule: Start with a single agent by default.
+  8. **Disciplined Root Instructions (CLAUDE.md / System Instructions)**:
+     - Mental model: "A brilliant new employee with amnesia."
+     - Target length: Under 200 lines (disciplined teams $\approx 60$ lines). Include only universal instructions relevant to nearly every session.
+     - Reserve explicit emphasis markers (`IMPORTANT`, `YOU MUST`) strictly for rare non-negotiables to avoid signal dilution.
+  9. **The Grep Decision (Simplicity over Complexity)**:
+     - Claude Code team tested vector search/embeddings vs. plain `grep` and `glob` for codebase navigation: plain grep/glob "outperformed everything. By a lot."
+     - Exact syntax, symbol names, and import paths require literal matching; semantic vector search surfaces plausible but misleading distractor files.
+  10. **Evidence-Grounded Progress Audit**:
+      - Solves the documented failure mode where agents prematurely claim steps are finished.
+      - Tested prompt contract:
+        > *"Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for. If something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output. If a step was skipped, state that. When something is done and verified, state it plainly without hedging."*
+      - The specific word **"audit"** statistically triggers stricter self-checking than soft requests like "be careful" or "double check".
+  11. **Progressive Disclosure for Skills**:
+      - Prevent root context bloat by packaging situational procedures, domain procedures, and specific tool protocols into modular skills.
+      - Load deep context JIT (just-in-time) only when task keywords or AST file touches explicitly require it.

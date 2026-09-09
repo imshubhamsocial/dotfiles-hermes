@@ -82,14 +82,33 @@ All autonomous code generation turns must strictly satisfy these 8 architectural
 │ 7  │ Quorum Consensus Audit Gate   │ Cross-model AST & claim verification: Author != Auditor     │
 │    │                               │ (fitness score ≥ 0.85) required before pre-commit.          │
 ├────┼───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 8  │ Upstream Tool / Plugin First  │ Never write custom Python boilerplate when an official      │
-│    │                               │ package (Quorum, GEPA, FastMCP, NVML) or plugin exists.     │
+│ 8  │ Upstream Engine + Hardware    │ Never write custom framework boilerplate when an official   │
+│    │ Calibration Adapter First     │ package (Google ADK, NeMo, FastMCP, Crawl4AI) exists.       │
+│    │                               │ Use thin, declarative calibration adapters solely to bind   │
+│    │                               │ them to local hardware (port 8138, CPU ONNX, ≤ 4,812 MiB). │
 └────┴───────────────────────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5. STANDARD OPERATING LIFECYCLE (6-PHASE PROTOCOL)
+## 5. TWO-TIER TESTING ARCHITECTURE (BENCHMARKS VS. INTERNAL TESTS)
+
+To prevent test suite clutter and preserve clear boundaries:
+
+1. **Root `tests/` (System Benchmarks & envHarness Evaluations — Black-Box)**:
+   - Evaluates the macro capabilities of Hermes Agent OS against Google envHarness criteria.
+   - Houses contract spikes, prompt-cache hit verification, VRAM ceiling stress tests, and oracle references.
+   - Run via: `make test-contracts` or `pytest tests/harness_contracts/`.
+
+2. **Internal Tests (`.hermes/tests/` — White-Box Component & Adapter Integrity)**:
+   - Categorized into upstream subfolders: `agent/`, `tools/`, `monitoring/`, `safety/`, `core/`.
+   - Verifies individual adapters, AST parsers, NVML hooks, and tool bindings in milliseconds without spinning up LLM inference.
+   - Guarantees that updating an upstream library (e.g. `google-adk` or `fastmcp`) does not break hardware grounding or raise silent exceptions.
+   - Run via: `python3.13 -m pytest .hermes/tests/ -q`.
+
+---
+
+## 6. STANDARD OPERATING LIFECYCLE (6-PHASE PROTOCOL)
 
 ```mermaid
 graph TD
@@ -105,17 +124,33 @@ graph TD
 
 ---
 
-## 6. VERIFICATION & AUDIT COMMANDS
+## 7. VERIFICATION & AUDIT COMMANDS
 
 When completing or reviewing tasks in this repository, always run the standard verification pipeline:
 
 ```bash
-# 1. Run all 620 contract and domain tests
+# 1. Run internal component & adapter tests (fast white-box audit)
+python3.13 -m pytest .hermes/tests/ -q
+
+# 2. Run all system contract benchmarks & domain suites
 make test
 
-# 2. Run master capability exam and live integration gates
+# 3. Run master capability exam and live integration gates
 make exam
 
-# 3. Audit Hermes system health & plugin contracts
+# 4. Audit Hermes system health & plugin contracts
 make doctor
 ```
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

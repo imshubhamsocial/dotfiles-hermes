@@ -38,7 +38,11 @@ The following baseline capabilities are implemented, tested, and active:
 * [x] **Milestone 0.3: Official Google `gemma-skills` Integration**
   * Imported `gemma-dev` and `gemma-trainer` into `.hermes/skills/mlops/models/`.
   * Complete contract test suite `test_gemma_skills.py` passing (L0 discovery <100 tokens, dynamic JIT lifecycle, BM25 routing, AST syntax).
-  * Overall test suite passing at **188 tests** (`make test-internal`).
+* [x] **Milestone 0.4: Local AST Codebase Knowledge Graph via Graphify**
+  * Provisioned decoupled environment `~/.local/share/graphify-env` with zero core contamination (Law #8).
+  * Authored `.hermes/scripts/build_codebase_graph.py` with headless AST extraction and SecondBrain bridge.
+  * Installed Hermes skill package `graphify` into `.hermes/skills/engineering/code/graphify/`.
+  * Complete contract test suite `test_graphify_bridge.py` passing (193 total internal tests passing via `make test-internal`).
 
 ---
 
@@ -48,8 +52,8 @@ The roadmap is strictly sequenced into prioritized phases. Subsequent tracks bui
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ TRACK 1: Local AST Codebase Knowledge Graph via Graphify (ACTIVE)      │
-│ Phase 1.1 (Env) ──► Phase 1.2 (Worker) ──► Phase 1.3 (Wiki Bridge) ──► Phase 1.4 (Tests)
+│ TRACK 1: Local AST Codebase Knowledge Graph via Graphify (COMPLETED)   │
+│ ✅ Phase 1.1 (Env) ──► ✅ 1.2 (Worker) ──► ✅ 1.3 (Wiki) ──► ✅ 1.4 (Tests)
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
@@ -73,15 +77,15 @@ The roadmap is strictly sequenced into prioritized phases. Subsequent tracks bui
 
 ---
 
-### Track 1: Local AST Codebase Knowledge Graph via Graphify (ACTIVE PRIORITY)
+### Track 1: Local AST Codebase Knowledge Graph via Graphify (✅ COMPLETED)
 *Goal: Deterministic, vector-store-free knowledge graph generation for codebases, schemas, and architecture docs. Converts code into Markdown wiki articles for Hermes's native RAMDisk second brain.*
 
-| Sequence | Milestone & Scope | Deliverables & Implementation Details | Gate / Verification Criteria |
-| :---: | :--- | :--- | :--- |
-| **1.1** | **Isolated Graphify Environment Provisioning** | • Provision dedicated directory `~/.local/share/graphify-env` via `uv`<br>• Install `graphifyy` with tree-sitter bindings strictly inside this venv<br>• Zero exposure to `ws-hermes` or `pyproject.toml` | `~/.local/share/graphify-env/bin/graphify --version` succeeds; core container `python3.13 -c "import graphifyy"` raises `ModuleNotFoundError`. |
-| **1.2** | **Codebase Graph Ingestion Script** | • Author `.hermes/scripts/build_codebase_graph.py`<br>• Invokes isolated graphify CLI headlessly to generate AST graph, community clusters, and god node reports | Script generates `graphify-out/graph.json` and `graphify-out/GRAPH_REPORT.md` on Hermes repository in CPU user space. |
-| **1.3** | **Markdown Wiki & Second Brain Bridge** | • Bridge `graphify-out/wiki/` articles into `~/.hermes/knowledge/codebase/`<br>• Verify fast-path search by `second_brain.py` (<8ms, 0 MiB VRAM)<br>• Add Hermes skill `graphify` under `.hermes/skills/engineering/code/graphify/` | Hermes queries locate cross-module AST relationships and call graphs from RAMDisk without reading raw source files into context. |
-| **1.4** | **Contract Tests & Chezmoi Sync** | • Author `.hermes/tests/core/test_graphify_bridge.py`<br>• Validate L0 skill discovery, JSON graph parsing, and Wiki Markdown ingestion<br>• Commit to Chezmoi | `pytest .hermes/tests/core/test_graphify_bridge.py` passes; `make test-internal` passes with 0 regressions. |
+| Sequence | Milestone & Scope | Status | Deliverables & Implementation Details | Gate / Verification Criteria |
+| :---: | :--- | :---: | :--- | :--- |
+| **1.1** | **Isolated Graphify Environment Provisioning** | ✅ **DONE** | • Provisioned dedicated directory `~/.local/share/graphify-env` via `uv`<br>• Installed `graphifyy` with tree-sitter bindings strictly inside this venv<br>• Zero exposure to `ws-hermes` or `pyproject.toml` | `~/.local/share/graphify-env/bin/graphify --version` succeeds; core container `python3.13 -c "import graphifyy"` raises `ModuleNotFoundError`. |
+| **1.2** | **Codebase Graph Ingestion Script** | ✅ **DONE** | • Authored `.hermes/scripts/build_codebase_graph.py`<br>• Invokes isolated graphify CLI headlessly to generate AST graph, community clusters, and god node reports | Script generates `graphify-out/graph.json` and `graphify-out/GRAPH_REPORT.md` on Hermes repository in CPU user space. |
+| **1.3** | **Markdown Wiki & Second Brain Bridge** | ✅ **DONE** | • Bridges `graphify-out/wiki/` articles into `~/.hermes/knowledge/concepts/`<br>• Verified fast-path search by `second_brain.py` (<8ms, 0 MiB VRAM)<br>• Added Hermes skill `graphify` under `.hermes/skills/engineering/code/graphify/` | Hermes queries locate cross-module AST relationships and call graphs from RAMDisk without reading raw source files into context. |
+| **1.4** | **Contract Tests & Chezmoi Sync** | ✅ **DONE** | • Authored `.hermes/tests/core/test_graphify_bridge.py`<br>• Validated L0 skill discovery, JSON graph parsing, and Wiki Markdown ingestion<br>• Committed to Chezmoi | `pytest .hermes/tests/core/test_graphify_bridge.py` passes 5/5; `make test-internal` passes with 193/193 tests green. |
 
 ---
 

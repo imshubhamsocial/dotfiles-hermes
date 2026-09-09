@@ -1,7 +1,7 @@
 ---
 name: generative-ui-artifact
 category: software-development
-description: Generate zero-dependency, standalone interactive HTML/WebGL UI artifacts.
+description: "Generate standalone interactive HTML and WebGL artifacts."
 ---
 
 # Generative UI Artifacts Standard (Antigravity 2.0 Native Interface)

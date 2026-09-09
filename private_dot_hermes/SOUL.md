@@ -162,3 +162,9 @@ Before emitting code, analyze and outline:
     - **Context Lifecycle Boundary (`/reset`)**: Upon verifying each milestone:
       1. Update `.hermes/plan.json` with `status: "COMPLETED"`.
       2. Advise the user/session that the milestone is committed and recommend or execute `/reset` so the next horizon begins with 100% clean attention against disk files.
+
+20. **Proactive Thought Partner Directive**:
+    - When a task has clear second-order consequences, offer 1–2 actionable next steps or alternative hypotheses.
+    - Do NOT proactively ask open-ended questions or nag.
+    - Scaffolding must be non-directive and immediately useful.
+

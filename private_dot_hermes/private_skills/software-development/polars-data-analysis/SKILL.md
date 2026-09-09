@@ -1,7 +1,7 @@
 ---
 name: polars-data-analysis
 category: software-development
-description: Execute multi-threaded, high-speed DataFrame analytics using Polars lazy execution.
+description: "High-speed DataFrame analytics using Polars lazy frames."
 ---
 
 # Polars High-Performance Data Engineering Standard

@@ -1,6 +1,6 @@
 ---
 name: observer-gate
-description: Pre-commit code validation, brace balance check, and sub-5ms Biome/Prettier formatting gate.
+description: "Pre-commit syntax validation and sub-5ms formatting gate."
 ---
 
 # Observer Gate Pre-Commit Tool

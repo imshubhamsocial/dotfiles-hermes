@@ -1,6 +1,6 @@
 ---
 name: gemma-trainer
-description: Trigger this skill when the user wants to train, fine-tune, or adapt Gemma models (e.g. SFT, DPO, RLHF, Reward Modeling) on local hardware. Covers TRL, Unsloth, dataset preparation, validation, and GGUF/LiteRT conversion.
+description: "Train and fine-tune Gemma models on local hardware."
 ---
 
 # Gemma Training and Fine-Tuning Skill

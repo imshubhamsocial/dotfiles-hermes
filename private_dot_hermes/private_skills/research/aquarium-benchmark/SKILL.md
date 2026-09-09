@@ -1,7 +1,7 @@
 ---
 name: aquarium-benchmark
 category: research
-description: Build AAA 3D WebGL aquarium with boids fish, spring-mass water, and physics.
+description: "Build 3D WebGL aquarium simulations with physics."
 ---
 
 # AAA 3D Aquarium Simulation

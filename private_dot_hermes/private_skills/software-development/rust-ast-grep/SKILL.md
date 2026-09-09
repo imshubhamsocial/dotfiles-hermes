@@ -1,6 +1,6 @@
 ---
 name: rust-ast-grep
-description: Structural AST code search, linting, and refactoring using Rust ast-grep (sg) for precision code edits without regex bugs.
+description: "Structural AST code search and refactoring with ast-grep."
 ---
 
 # Rust AST-Grep Structural Code Tool

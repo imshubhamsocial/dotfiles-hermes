@@ -1,6 +1,6 @@
 ---
 name: spider-web-research
-description: Blazing-fast Rust-powered web research and documentation scraping for LLMs using spider_cli and ddgs (<1,500 tokens).
+description: "Fast web research and scraping via spider_cli and ddgs."
 ---
 
 # Spider Web Research & Distillation Skill

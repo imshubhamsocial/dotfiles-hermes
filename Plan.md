@@ -1088,80 +1088,60 @@ Workspace Root (/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/)
 
 ---
 
-# PART III: Unified Master Implementation Roadmap (Phases 0 through 9)
+# PART III: Unified Master Implementation Roadmap (Phases 0 through 6)
 
-> **Execution Order Principle**: Lowest risk and immediate value first. Pure config and context discipline (Phase 0) precedes structural decoupling (Phase 1), package installation (Phase 2), and wrapper purging (Phase 4). Zero new bespoke Python files.
+> **Core Constraint**: Reduce custom Python files as low as possible. Zero new bespoke wrapper files. Prefer standard upstream packages, native Hermes config, declarative plugin hooks, and skills.
+>
+> **Execution Order Principle**: Lowest risk and immediate value first. Pure config and context discipline (Phase 0) precedes plugin conversion and wrapper purging (Phase 1), loop architecture (Phase 2), memory/observability (Phase 3), skills (Phase 4), multi-agent (Phase 5), and self-optimization (Phase 6).
 
 ---
 
-### Phase 0 — Foundation: Context Hygiene & Prompt Discipline
+### Phase 0 — Foundation & Environment Hygiene
 *Zero new code. Zero file deletions. Immediate impact on every single session from turn 1.*
 
 **0.1 — Enable Hard Stop on Tool Loop** *(Item 14)*
-- Edit `.hermes/config.yaml`: `tool_loop_guardrails.hard_stop_enabled: true`
-- This enforces the falsifiable loop invariant from Mahaximus: bounded iterations, no infinite loops or runaway token burn.
-- **Delta**: 1-line config change.
+- Edit `.hermes/config.yaml`: set `tool_loop_guardrails.hard_stop_enabled: true`.
+- Enforces the falsifiable loop invariant from Mahaximus: bounded iterations, machine-checkable stop conditions, and zero runaway token burn on failing loops.
+- **Delta**: 1-line config edit in `config.yaml`.
 
 **0.2 — Mannered Prose Elimination in SOUL.md** *(Item 11)*
-- Prepend Anthropic's diagnostic contract to `.hermes/SOUL.md` as Rule 0 (highest precedence).
-- Eliminates robotic throat-clearing, apologetic filler, and sycophantic preamble: cuts response token bloat by 30-40%.
-- Shorthand fallback: `"Please remove all mannered prose"` as a terminal directive.
-- **Delta**: ~8 lines in SOUL.md.
+- Prepend Anthropic's diagnostic contract to `.hermes/SOUL.md` as Rule 0 (highest precedence):
+  ```markdown
+  Rule 0 (Mannered Prose Elimination):
+  Eliminate all conversational filler, apologetic throat-clearing ("Certainly!", "I would be happy to help", "I understand that..."), and sycophantic reassurance. Deliver dense, factual, professional engineering prose immediately. Code blocks, command outputs, and diffs must be emitted directly without preamble. Shorthand fallback: "Please remove all mannered prose" acts as an immediate override.
+  ```
+- Instantly cuts 30–40% verbose filler from model turns.
+- **Delta**: ~8 lines added to `SOUL.md`.
 
-**0.3 — Skill Description Hygiene Audit** *(Item 10)*
-- Audit all 91 `SKILL.md` frontmatter `description` fields.
-- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
-- Prevents L0 progressive disclosure from exceeding discovery token budgets.
-- **Delta**: Config/text edits only, no Python.
-
-**0.4 — AGENTS.md Pruning & Duplicate Removal** *(Item 10)*
-- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
-- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
-- Merge `.hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate maintenance hazard.
-- **Delta**: Text deletion only.
-
----
-
-### Phase 1 — Layout Normalization & Engine Decoupling
-*Resolves the 6 workspace collisions and decouples the upstream engine from dotfiles.*
-
-**1.1 — Fix Corrupted Shebang in `observer_gate.py`**
-- Fix line 1 of `.hermes/bin/observer_gate.py`: move `import shutil` below `#!/usr/bin/env python3` so POSIX shebang execution succeeds without syntax errors.
+**0.3 — Fix Corrupted Shebang in `observer_gate.py`**
+- Fix line 1 of `.hermes/bin/observer_gate.py`: move `import shutil` below `#!/usr/bin/env python3` so standard POSIX shebang execution succeeds without syntax or mime-type parsing errors.
 - **Delta**: 1-line fix.
 
-**1.2 — Clean Up Ghost Packaging in `pyproject.toml`**
+**0.4 — Clean Up Ghost Packaging in `pyproject.toml`**
 - In root `pyproject.toml`, remove stale entry points:
-  `hermes = "hermes_harness.cli:main"` (which does not exist).
+  `hermes = "hermes_harness.cli:main"` (package `hermes_harness` does not exist; actual CLI is `hermes_cli.main`).
 - Uninstall the broken editable package: `pip uninstall -y hermes-harness`.
 - Keep `pyproject.toml` strictly as the harness dependency lock manifest.
 - **Delta**: Config edit + pip uninstall.
 
-**1.3 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
-- Move all 91 skills from `.hermes/private_skills/` into `.hermes/skills/` (the standard upstream location).
-- Remove the redundant `private_skills/` directory and update any references.
-- **Delta**: Directory move.
-
-**1.4 — Relocate Static Assets & Templates to Skill Resources**
-- Move `.types` and code templates from `src/hermes_core/types/` to their respective `skills/*/resources/` directories:
-  - `nodejs_types.types` → `skills/software-development/node-inspect-debugger/resources/`
-  - `posix_types.types` → `skills/devops/resources/`
-  - `threejs_types.types` & `webgl_canvas_boilerplate.html` → `skills/software-development/generative-ui-artifact/resources/`
-  - `playwright_tdd_spec.py` → `skills/software-development/test-driven-development/resources/`
-- Delete the `types/` sub-tree from `src/hermes_core/`.
-- **Delta**: File relocations.
-
-**1.5 — Decouple `.hermes/hermes-agent` Git Repository**
-- Decouple the nested `hermes-agent` git repository from the chezmoi-managed `.hermes/` state directory.
+**0.5 — Decouple `.hermes/hermes-agent` Git Repository**
+- Decouple the nested 500MB `hermes-agent` git repository from the chezmoi-managed `.hermes/` dotfiles directory.
 - Install `hermes-agent` as a clean Python package (or place the dev clone in a dedicated `~/Development/hermes-agent` path).
 - Chezmoi now cleanly tracks ONLY dotfiles, configuration, skills, and plugins — zero nested `.git` blobs.
 - **Delta**: Git repository un-nesting.
 
+**0.6 — `AGENTS.md` Pruning & Duplicate Removal** *(Item 10)*
+- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
+- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
+- Merge `.hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate maintenance hazard.
+- **Delta**: Text deletion & file consolidation.
+
 ---
 
-### Phase 2 — Upstream Package Installation
-*Installs the 16 maintained upstream packages that replace 69 custom Python files.*
+### Phase 1 — Upstream Plugin Substrate, Wrapper Purge & Test Modernization
+*Transitions to battle-tested upstream packages, slashes 69 custom Python wrapper files, and purges 4.2k lines of obsolete mock tests.*
 
-**2.1 — Install Upstream Packages**
+**1.1 — Install 16 Upstream Packages**
 ```bash
 pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openlit \
             nemoguardrails sqlmodel networkx tiktoken peft gitpython \
@@ -1169,12 +1149,7 @@ pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openl
 ```
 - **Dependencies resolved**: Every capability (AST parsing, temporal graph memory, prompt optimization, guardrails, web extraction, tracing) is now backed by a dedicated upstream package.
 
----
-
-### Phase 3 — Plugin Architecture Conversion & FastMCP Tool Server
-*Transitions custom Python tools into standard Hermes plugins and a unified FastMCP server.*
-
-**3.1 — Build Single Unified FastMCP Tool Server**
+**1.2 — Build Single Unified FastMCP Tool Server**
 Create `.hermes/plugins/mcp_tools/__init__.py` (~60 lines total):
 ```python
 from fastmcp import FastMCP
@@ -1198,37 +1173,27 @@ def ast_search(pattern: str, code: str, lang: str = "python") -> list[dict]:
 ```
 - **Replaces**: `web_grounding.py`, `fast_research.py`, `extract_web_content.py`, `tools.py`, `codebase_memory_mcp.py`, and `fastmcp.py`.
 
-**3.2 — Declarative Plugin Pack Registration**
+**1.3 — Declarative Plugin Pack Configuration**
 - Ensure all 5 active plugins in `.hermes/plugins/` have valid `plugin.yaml` manifests adhering to upstream specs.
 - Register them in `hermes-pack.yaml`:
   `quorum_audit`, `gepa_optimizer`, `observer_gate`, `mcp_tools`, `reflective_learner_adapter`.
 - Validate with: `hermes plugins doctor`.
 - **Delta**: YAML plugin configurations.
 
----
-
-### Phase 4 — Codebase & Wrapper Purge
-*Deletes 69 redundant wrapper files and slashes custom Python maintenance overhead.*
-
-**4.1 — Delete Pure Wrapper Files in `hermes_core/` (~55 files)**
+**1.4 — Delete Pure Wrapper Files in `hermes_core/` (~55 files)**
 - Delete all 🔴 **DELETE** files audited in Part II, Category 1 through 12:
   `database.py`, `embeddings.py`, `fast_research.py`, `flatbuffers_state.py`, `formatter_pipeline.py`, `google_agentic_substrate.py`, `hook_router.py`, `hooks.py`, `humanizer.py`, `intent_router.py`, `loop_contracts.py`, `lora_adapter.py`, `lora_adapter_manager.py`, `lsp_bridge.py`, `middleware.py`, `multi_bot_delegation.py`, `opencode_mem.py`, `openviking_vfs.py`, `prefix_cache.py`, `presets.py`, `process_guard.py`, `prompt_slotting.py`, `qwen_mm_core.py`, `ring_buffer.py`, `runner.py`, `sandbox.py`, `schema_anchors.py`, `sdk.py`, `security_ctf.py`, `skill_router.py`, `skills_catalog.py`, `skills_registry.py`, `speculative_executor.py`, `symbol_graph.py`, `symbol_indexer.py`, `test_time_sampler.py`, `thread_safe_ringbuffer.py`, `tools.py`, `verification_matrix.py`, `vfs.py`, `visual_arbiter.py`, `web_grounding.py`.
-- Pre-deletion verification: `grep -rn "from hermes_core.<name>" .hermes/` to confirm zero remaining internal imports.
+- Pre-deletion check: `grep -rn "from hermes_core.<name>" .hermes/` to confirm zero remaining internal imports.
 
-**4.2 — Delete 14 Redundant Scripts in `.hermes/bin/`**
+**1.5 — Delete 14 Redundant Scripts in `.hermes/bin/`**
 - Delete: `bin/cache_ui_assets.py`, `bin/container_cmd.py`, `bin/extract_code_mode.py`, `bin/extract_web_content.py`, `bin/harness_architectural_evolution.py`, `bin/hub_cli.py`, `bin/index_docs.py`, `bin/ingest_document.py`, `bin/skill_retriever.py`, `bin/skill_router.py`, `bin/verify_harness_integrity.py`, `bin/verify_skills_config.py`, `bin/verify_transcript.py`, `bin/web_grounding.py`.
 - Convert surviving `observer_gate.py` to a ~50-line pre-commit hook in `plugins/observer_gate/`.
 - Remove `.hermes/bin/` entirely.
 
-**4.3 — Thin-Shim Surviving Modules (12 files, each ≤30 lines)**
+**1.6 — Thin-Shim Surviving Modules (12 files, each ≤30 lines)**
 - Keep only thin pass-through adapters: `adk_custom_agent.py`, `domain_fleet.py`, `swarm_engine.py`, `swarm_system.py`, `agent_os.py`, `spec_first_planner.py`, `nemo_guardrails_bridge.py`, `hypothesis_tree.py`, `trajectory.py`, `experience_store.py`, `plugin_manifest.py`, `openskills_manager.py`.
 
----
-
-### Phase 5 — Test Suite Modernization & Harmonization
-*Eliminates 4.2k lines of obsolete mock tests and focuses exclusively on invariant contract verification.*
-
-**5.1 — Purge Obsolete White-Box Tests (7 files, 1,777 lines)**
+**1.7 — Purge Obsolete White-Box Tests (7 files, 1,777 lines)**
 ```bash
 rm .hermes/tests/tools/test_symbol_graph.py       # 637L: custom Tree-Sitter SQLite indexer
 rm .hermes/tests/tools/test_fast_research.py      # 195L: custom HTML cleaner
@@ -1239,7 +1204,7 @@ rm .hermes/tests/safety/test_hitl_gateway.py      # 98L: custom ASCII DAG dashbo
 rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
 ```
 
-**5.2 — Refactor Remaining 15 Test Files to Lean Invariant Contracts**
+**1.8 — Refactor Remaining 15 Test Files to Lean Invariant Contracts**
 - Refactor remaining 15 test files to test behavioral contracts against upstream packages (`networkx`, `fastmcp`, `openlit`, `sqlmodel`, `dspy`, `nemoguardrails`).
 - Retain vital hardware/safety invariant tests:
   - VRAM budget ceiling (≤4,812 MiB)
@@ -1248,41 +1213,39 @@ rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
   - Bubblewrap filesystem isolation & setsid process teardown
   - NeMo guardrails injection & command blocking
 - **Total test code drops from 4,722 lines to ~503 lines (–89% reduction)**.
-
-**5.3 — Harmonize with Root `tests/harness_contracts/`**
-- Ensure `pytest .hermes/tests` and `pytest tests/harness_contracts` discover tests uniformly under `make test-contracts`.
+- Harmonize discovery with root `tests/harness_contracts/` under `make test-contracts`.
 
 ---
 
-### Phase 6 — Loop Architecture: Finish-First & Falsifiable Verification
+### Phase 2 — Loop Architecture & Finish-First Contract
 *Formalizes the 4-phase lifecycle and ensures the agent never stops at a first-pass draft.*
 
-**6.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
+**2.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
 - Add to `SOUL.md` §11 (Session Lifecycle): unambiguous completion definition pattern.
 - *"Completion requires: build → test → verify → fix until green. Never stop at first-pass draft. A task is complete only when verified by an executable tool check."*
-- **Delta**: ~5 lines in SOUL.md.
+- **Delta**: ~5 lines in `SOUL.md`.
 
-**6.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
+**2.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
 - Add to `rules/project.md`: Anthropic's evidence-audit contract.
 - *"Before reporting task progress or milestone completion, audit each claim against a concrete tool output from the current session. Speculative claims are strictly forbidden."*
 - **Delta**: ~6 lines in `rules/project.md`.
 
-**6.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
+**2.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
 - Create `skills/software-development/diamond-orchestration/SKILL.md`.
 - Encodes the fan-out → deterministic-reduce → skeptic-verify → converge multi-agent template for complex multi-file refactors.
 - **Delta**: New SKILL.md (no Python).
 
 ---
 
-### Phase 7 — Memory, Dreaming & Self-Optimization
-*Turns passive session logs into durable persistent memory cards and activates automated prompt evolution.*
+### Phase 3 — Memory, Dreaming & Observability
+*Turns passive session logs into durable persistent memory cards and activates automated observability.*
 
-**7.1 — Dreaming Hook in `reflective_learner_adapter`** *(Item 2)*
+**3.1 — Dreaming Hook in `reflective_learner_adapter`** *(Item 2)*
 - Edit `plugins/reflective_learner_adapter/plugin.yaml` to add `on_session_end` hook.
 - Summarizes `.hermes/logs/` into `memory/experiential.jsonl` memory cards with scannable one-line titles.
 - **Delta**: Plugin YAML hook.
 
-**7.2 — Wire Graphiti for Temporal Working Memory** *(Item 15)*
+**3.2 — Wire Graphiti for Temporal Working Memory** *(Item 15)*
 - In `plugins/reflective_learner_adapter/hooks/on_session_end.py` (~20 lines):
   ```python
   from graphiti_core import Graphiti
@@ -1290,7 +1253,85 @@ rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
   ```
 - Replaces custom working memory with bi-temporal entity resolution.
 
-**7.3 — Wire DSPy MIPROv2 to GEPA Plugin** *(Items 12, 3)*
+**3.3 — Wire OpenLIT for Observability** *(Item 12)*
+- In `hermes_core/trajectory.py` (shrunk to ~20 lines):
+  ```python
+  import openlit
+  openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
+  ```
+- Full GPU health, latency, token spend, and hallucination metrics out of the box.
+
+**3.4 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
+- Extend `skills/software-development/plan/SKILL.md` to mandate <150-word checkpoint cards:
+  Completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
+- **Delta**: Edit existing SKILL.md.
+
+**3.5 — Obsidian Vault Memory Integration** *(Item 15)*
+- Edit `skills/note-taking/obsidian/SKILL.md` to add the autonomous content-OS workflow:
+  Log every generated asset, source citation, and angle into a structured Obsidian vault.
+- **Delta**: Edit existing SKILL.md.
+
+---
+
+### Phase 4 — Skills & Proactive Thought Partnership
+*Consolidates skill trees, enforces progressive disclosure token budgets, and adds proactive scaffolding.*
+
+**4.1 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
+- Move all 91 skills from `.hermes/private_skills/` into `.hermes/skills/` (the standard upstream location).
+- Remove the redundant `private_skills/` directory and update any references.
+- **Delta**: Directory move.
+
+**4.2 — Relocate Static Assets & Templates to Skill Resources**
+- Move `.types` and code templates from `src/hermes_core/types/` to their respective `skills/*/resources/` directories:
+  - `nodejs_types.types` → `skills/software-development/node-inspect-debugger/resources/`
+  - `posix_types.types` → `skills/devops/resources/`
+  - `threejs_types.types` & `webgl_canvas_boilerplate.html` → `skills/software-development/generative-ui-artifact/resources/`
+  - `playwright_tdd_spec.py` → `skills/software-development/test-driven-development/resources/`
+- Delete the `types/` sub-tree from `src/hermes_core/`.
+- **Delta**: File relocations.
+
+**4.3 — Skill Description Hygiene Audit** *(Item 10)*
+- Audit all 91 `SKILL.md` frontmatter `description` fields.
+- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
+- Prevents L0 progressive disclosure from exceeding discovery token budgets.
+- **Delta**: Config/text edits only, no Python.
+
+**4.4 — Proactive Thought Partner Directive in SOUL.md** *(Item 8)*
+- Add proactive behavior guidelines to `SOUL.md`:
+  *"When a task has clear second-order consequences, offer 1–2 actionable next steps or alternative hypotheses. Do NOT proactively ask open-ended questions or nag. Scaffolding must be non-directive and immediately useful."*
+- **Delta**: ~5 lines in `SOUL.md`.
+
+**4.5 — Spec-Driven Regeneration Skill** *(Item 13)*
+- Create `skills/software-development/spec-driven-regen/SKILL.md` ("Design Docs Are All You Need").
+- Encodes the literate typed graph approach: write typed spec first, derive code deterministically, regenerate from spec on drift.
+- **Delta**: 1 new `SKILL.md`.
+
+---
+
+### Phase 5 — Multi-Agent & Maker/Verifier Gate
+*Hardens asymmetric agent roles and connects external research substrates.*
+
+**5.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
+- Review `quorum_audit` plugin hooks: strictly enforce `Author != Auditor` on all mutating operations.
+- Ensure `@tester` profile has no file-write tools; `@coder` profile cannot sign off on its own post-commit audit.
+- **Delta**: Plugin YAML and profile capability mask edits.
+
+**5.2 — Gemini NotebookLM MCP Bridge** *(Item 15)*
+- Add MCP server configuration entry to `config.yaml` for Gemini Notebook.
+- Enables Hermes to query multi-modal research notebooks (PDFs, YouTube transcripts, audio) via standard MCP tool calls.
+- **Delta**: Config entry only.
+
+**5.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
+- Add token economics directive to `SOUL.md`:
+  *"Single-agent turns cost 4×; multi-agent fan-out costs 15×. Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration."*
+- **Delta**: ~4 lines in `SOUL.md`.
+
+---
+
+### Phase 6 — Harness Self-Optimization & Model Infrastructure
+*Wires DSPy for continuous prompt compilation and provides forward-looking local inference guides.*
+
+**6.1 — Wire DSPy MIPROv2 Teleprompter to GEPA Plugin** *(Items 12, 3)*
 - In `plugins/gepa_optimizer/hooks/on_session_end.py` (~25 lines):
   ```python
   import dspy
@@ -1299,59 +1340,16 @@ rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
   ```
 - Self-optimizing prompts backed by Stanford's DSPy compiler.
 
-**7.4 — Wire OpenLIT for Observability** *(Item 12)*
-- In `hermes_core/trajectory.py` (shrunk to ~20 lines):
-  ```python
-  import openlit
-  openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
-  ```
-- Full GPU health, latency, token spend, and hallucination metrics out of the box.
-
-**7.5 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
-- Extend `skills/software-development/plan/SKILL.md` to mandate <150-word checkpoint cards:
-  Completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
-- **Delta**: Edit existing SKILL.md.
-
-**7.6 — Obsidian Vault Memory Integration** *(Item 15)*
-- Edit `skills/note-taking/obsidian/SKILL.md` to add the autonomous content-OS workflow:
-  Log every generated asset, source citation, and angle into a structured Obsidian vault.
-- **Delta**: Edit existing SKILL.md.
-
----
-
-### Phase 8 — Multi-Agent: Maker/Verifier & External Integrations
-*Hardens asymmetric agent roles and connects external research substrates.*
-
-**8.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
-- Review `quorum_audit` plugin hooks: strictly enforce `Author != Auditor` on all mutating operations.
-- Ensure `@tester` profile has no file-write tools; `@coder` profile cannot sign off on its own post-commit audit.
-- **Delta**: Plugin YAML and profile capability mask edits.
-
-**8.2 — Gemini NotebookLM MCP Bridge** *(Item 15)*
-- Add MCP server configuration entry to `config.yaml` for Gemini Notebook.
-- Enables Hermes to query multi-modal research notebooks (PDFs, YouTube transcripts, audio) via standard MCP tool calls.
-- **Delta**: Config entry only.
-
-**8.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
-- Add token economics directive to `SOUL.md`:
-  *"Single-agent turns cost 4×; multi-agent fan-out costs 15×. Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration."*
-- **Delta**: ~4 lines in SOUL.md.
-
----
-
-### Phase 9 — Forward-Looking Model Infrastructure
-*Forward-looking documentation and guides for when local model infrastructure is upgraded.*
-
-**9.1 — Declarative Attention (vLLM upgrade path)** *(Items 6, 7)*
+**6.2 — Declarative Attention (vLLM Upgrade Path)** *(Items 6, 7)*
 - When upgrading inference servers: document vLLM block-masking configuration in `skills/mlops/inference/serving-llms-vllm/SKILL.md`.
 - **Delta**: Skill documentation.
 
-**9.2 — NoRA Fine-Tuning Guide** *(Item 9)*
+**6.3 — NoRA Fine-Tuning Guide** *(Item 9)*
 - Document normalized down-projection matrix A initialization in `skills/mlops/models/gemma-trainer/SKILL.md`.
 - **Delta**: Skill documentation.
 
-**9.3 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
-- Document the find $	o$ validate $	o$ patch $	o$ regression-test workflow in `skills/devops/sdlc-review/SKILL.md`.
+**6.4 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
+- Document the find → validate → patch → regression-test workflow in `skills/devops/sdlc-review/SKILL.md`.
 - **Delta**: Skill documentation.
 
 ---
@@ -1360,15 +1358,11 @@ rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
 
 | Phase | Focus | Core Deliverables | Approach | Custom Python Delta |
 |:---|:---|:---|:---|:---|
-| **0** | Foundation | Hard-stop enabled, mannered prose eliminated, 91 skill descriptions audited, AGENTS.md pruned | `config.yaml` + `SOUL.md` edits | 0 added, 0 removed |
-| **1** | Layout Normalization | Fix `observer_gate` shebang, clean `pyproject.toml`, un-nest `hermes-agent`, consolidate skills | File moves & config edits | 0 added, 0 removed |
-| **2** | Upstream Packages | Install 16 maintained packages (`crawl4ai`, `dspy`, `fastmcp`, `openlit`, etc.) | `pip install` | 0 added, 0 removed |
-| **3** | Plugin Conversion | Single 60-line FastMCP server (`mcp_tools`), register 5 plugins in `hermes-pack.yaml` | FastMCP + Plugin YAML | **1 thin file added** |
-| **4** | Codebase Purge | Delete 55 wrappers in `hermes_core`, delete 14 scripts in `bin/`, thin surviving shims | File deletions | **–69 files removed** |
-| **5** | Test Modernization | Purge 7 obsolete mock test files (1,777 lines), refactor 15 files to invariant contracts | Test refactoring | **–7 test files removed** (–4,219 lines) |
-| **6** | Loop Architecture | Completion contract in `SOUL.md`, evidence audit rule, diamond orchestration skill | `SOUL.md` + 1 new `SKILL.md` | 0 added, 0 removed |
-| **7** | Memory & Self-Optimization | Wire Graphiti temporal memory, activate DSPy `MIPROv2` teleprompter, wire OpenLIT spans | 2 small plugin hooks (~45L) | 0 added, 0 removed |
-| **8** | Multi-Agent | Harden Maker/Verifier separation, configure Gemini Notebook MCP bridge, token budget rule | `config.yaml` + `SOUL.md` | 0 added, 0 removed |
-| **9** | Model Infrastructure | Declarative Attention / vLLM docs, NoRA fine-tuning guide, CodeMender vulnerability docs | `SKILL.md` doc additions | 0 added, 0 removed |
-| **TOTAL** | | **Comprehensive Harness Evolution End-to-End** | **True Plugin Architecture** | **Net: –68 custom Python files, –4,219 test lines** |
-
+| **0** | Foundation & Environment Hygiene | Hard-stop enabled, mannered prose eliminated, `observer_gate` shebang fixed, `pyproject.toml` cleaned, `hermes-agent` un-nested, `AGENTS.md` pruned | `config.yaml` + `SOUL.md` edits + git moves | 0 added, 0 removed |
+| **1** | Plugin Substrate & Wrapper Purge | Install 16 upstream packages, create 60L FastMCP tool server (`mcp_tools`), delete 55 `hermes_core` wrappers, delete 14 `bin` scripts, purge 4.2k test lines | `pip install` + FastMCP + file deletions | **+1 thin file added, –69 custom files removed, –4,219 test lines** |
+| **2** | Loop Architecture | Completion contract in `SOUL.md`, evidence audit rule, diamond orchestration skill | `SOUL.md` + 1 new `SKILL.md` | 0 added, 0 removed |
+| **3** | Memory & Observability | Dreaming hook in `reflective_learner_adapter`, wire Graphiti temporal memory, wire OpenLIT spans, checkpoint skill, Obsidian vault integration | 2 small plugin hooks (~40L) + skill edits | 0 added, 0 removed |
+| **4** | Skills & Proactive Partnership | Consolidate 91 skills to `skills/`, relocate `.types`/templates to resources, audit descriptions (≤60 chars), proactive partner directive, spec-driven regen skill | File moves + rule text + 1 new `SKILL.md` | 0 added, 0 removed |
+| **5** | Multi-Agent & Maker/Verifier | Harden Maker/Verifier separation in `quorum_audit`, Gemini NotebookLM MCP bridge, conservative token budget rule | `config.yaml` + `SOUL.md` | 0 added, 0 removed |
+| **6** | Self-Optimization & Model Infra | Wire DSPy `MIPROv2` teleprompter hook (~25L), document Declarative Attention / vLLM, NoRA fine-tuning, CodeMender vulnerability harness | 1 small plugin hook (~25L) + skill docs | 0 added, 0 removed |
+| **TOTAL** | | **Comprehensive Harness Evolution End-to-End** | **True Plugin Architecture** | **Net: –68 custom Python files, –4,219 test lines, 0 bespoke wrappers** |

@@ -15,11 +15,16 @@ capabilities:
   - "polars-lazy-analytics"
   - "pre-commit-observer-gate"
   - "graphify-ast-knowledge-graph"
-  - "gemma-aps-claim-deconstruction"
-  - "cactus-uncertainty-gate"
+  - "fastmcp-tool-server"
+  - "nemo-guardrails-policies"
+  - "dspy-mipro-teleprompter"
+  - "graphiti-temporal-memory"
+  - "openlit-otlp-telemetry"
+  - "quorum-maker-verifier-gate"
   - "lora-adapter-hot-swap"
   - "gemma-multimodal-vision-budget"
   - "zero-test-folder-self-audit"
+
 tags:
   - "agent-os"
   - "local-slm"

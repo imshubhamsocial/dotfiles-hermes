@@ -155,3 +155,28 @@
      - In-editor generative UI prevents external dashboard round-trips. Developers inspect runtime telemetry, performance benchmarks, and architecture graphs directly in the agent conversation loop.
      - Accessible natively via natural language intent or the `/generative_ui` slash command.
 
+### 6. Declarative Attention: Language Models Can Control Their Own Attention
+- **Source**:
+  - X Post: https://x.com/omarsar0/status/2095612805496164801
+  - Paper: arXiv:2609.02737 ("Language Models Can Control Their Own Attention")
+- **Authors / Institutions**: Namgyu Ho, Huzama Ahmad, Woosung Koh, Se-Young Yun (KAIST AI) & Tal Schuster, Cicero Nogueira dos Santos (Google DeepMind) / Curated by Elvis Saravia (@omarsar0)
+- **Core Thesis & Problem Definition**:
+  > *"Standard autoregressive transformers waste immense memory bandwidth brute-force scanning the entire Key-Value (KV) cache for every single token step, even though attention weights are intrinsically sparse. Language models can intrinsically declare and govern their own attention scopes during reasoning."*
+
+- **Mechanics & Protocol (Declarative Attention - DA)**:
+  1. **Self-Directed Attention Scoping**:
+     - Rather than relying on external heuristics, fixed sliding windows, or learned external retrieval routers, the LLM explicitly emits declarative tokens in its Chain-of-Thought (CoT) specifying its attention target before generating text.
+  2. **Three Operational Attention Modes**:
+     - **Global**: Full attention over all past context tokens (activated during initial context grounding, cross-document synthesis, or plan consolidation).
+     - **Focus**: Targeted attention restricted to declared segments, named context spans, or specific tool outputs/code blocks.
+     - **Local**: Sliding-window attention over immediate recent tokens for local syntactic formulation and intermediate deduction.
+  3. **High-Performance Inference Engine Implementation**:
+     - Integrated with **vLLM** and fully compatible with **FlashAttention**.
+     - Employs **block-aligned, in-place KV cache masking**: unselected cache blocks are completely skipped at the GPU memory bus level, converting theoretical attention sparsity into real-world latency and memory bandwidth gains.
+  4. **Empirical Benchmarks & Scaling Behavior**:
+     - Evaluated across 15 long-context benchmark tasks in zero-shot settings:
+       - **Gemma-4-31B**: Attended token count reduced by **52.0%** with a negligible **1.27 percentage point** accuracy delta.
+       - **Qwen-3.6-27B**: Attended token count reduced by **31.1%** with a **2.75 percentage point** accuracy delta.
+     - **Scaling Trend**: The accuracy gap between full attention and Declarative Attention strictly narrows as model scale increases, proving that larger models possess superior metacognitive ability to govern their own attention.
+
+

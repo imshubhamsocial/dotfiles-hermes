@@ -22,6 +22,10 @@ Every item on this roadmap must strictly adhere to the following invariants:
 4. **Contract Test Gate & Chezmoi Synchronization**:
    * No phase is marked complete without passing deterministic unit/contract tests running in `make test-internal`.
    * All configurations, scripts, and tests must be synchronized with `.local/share/chezmoi`.
+5. **Harness-First Native Self-Audit (Zero Loose Tests Objective)**:
+   * Standalone test files created during experimentation are scaffolding.
+   * Once an end-to-end capability stabilizes, its contract verification probes must be folded directly into Hermes's native self-audit harness (`verify_harness_integrity.py`, `hermes doctor`, internal health probes).
+   * The ultimate architectural state of Hermes Agent OS is self-evaluating and self-auditing, eliminating the need for bulky, external loose test directories.
 
 ---
 

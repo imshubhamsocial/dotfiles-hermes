@@ -410,3 +410,258 @@
   4. **Tier 4: Durable Memory Vault (Obsidian Vault Integration)**:
      - Automatically logs every generated asset, source citation, content angle, and campaign context into a structured local Obsidian Markdown vault.
      - Eliminates the multi-session amnesia problem: before drafting new deliverables, Hermes audits previous vault entries to maintain stylistic continuity, brand voice, and avoid duplicate topic coverage.
+
+---
+
+## Hermes Current State Audit
+
+> **Constraint**: Reduce custom Python files as low as possible. Prefer native Hermes config/skills/rules/plugins over bespoke scripts. Every change must be minimal delta.
+
+### Architecture Overview
+
+Hermes is a fully self-contained, chezmoi-managed personal AI agent harness running inside the `ws-hermes` Distrobox container. Core components:
+
+| Layer | Path | Description |
+|:------|:-----|:------------|
+| **Inference** | `llama-server` at `:8138` | llama.cpp server, Gemma-4-4B, 65536 ctx |
+| **Agent Engine** | `.hermes/hermes-agent/` | The upstream Hermes agent runtime (CLI, conversation loop, tools, plugins, TUI gateway, web server) |
+| **Core Library** | `.hermes/src/hermes_core/` | ~60 Python modules: agent_os, GEPA, quorum, skill routing, embeddings, context sieve, task graph, trajectory, etc. |
+| **Config** | `.hermes/config.yaml` | Model, terminal, browser, web backend, tool-loop guardrails, plugin registry |
+| **System Prompt** | `.hermes/SOUL.md` | 19-rule behavioral constitution (the agent's character and operating law) |
+| **Agent Instruction** | `.hermes_AGENTS.md` (root) & `AGENTS.md` | Constraint tables, 8 laws, 6-phase lifecycle, verification commands |
+| **Skills** | `.hermes/private_skills/` | 91 SKILL.md files across: software-dev, research, creative, GitHub, productivity, MLOps, media, devops, email, smart-home, social-media |
+| **Profiles** | `.hermes/profiles/` | architect, coder, debugger, tester, researcher + lever-compound, lever-mcp, lever-memory, frontier variants |
+| **Plugins** | `.hermes/plugins/` | quorum_audit, gepa_optimizer, observer_gate, cog_verifier, agent_os, symbol_index, recirculation_adapter, reflective_learner_adapter, synergy_bus_adapter |
+| **Rules** | `.hermes/rules/project.md` | Project-specific architectural constraints |
+| **Memory** | `.hermes/memory/experiential.jsonl` | Episodic memory store |
+| **Knowledge** | `.hermes/knowledge/` | blueprints, concepts, evals, evidence, signal_digest |
+| **Bin Scripts** | `.hermes/bin/` | 15 Python utility scripts (observer_gate, skill_retriever, verify_harness_integrity, ingest_document, etc.) |
+| **Tests** | `tests/` + `.hermes/tests/` | Black-box harness contracts + white-box component tests |
+| **Chezmoi** | `.local/share/chezmoi/` | Dotfile manager syncing entire `.hermes/` to the container |
+
+### What Already Exists (Do Not Rebuild)
+
+| Item | Already Present As |
+|:-----|:------------------|
+| **Plan→Execute→Verify→Ship loop** (Item 1) | 6-Phase Protocol in AGENTS.md + `.hermes/plan.json` + tabu branch pruner |
+| **Multi-session amnesia / durable handoffs** (Item 2) | `.hermes/memory/experiential.jsonl` + chezmoi-tracked state + session persistence in `hermes_core/session_persistence.py` |
+| **Maker/Verifier separation** (Item 2) | `quorum_audit` plugin (edit→audit→agree→retro→commit) + separate `@tester`/`@coder` profiles |
+| **Progressive disclosure for skills** (Items 2, 10) | 91 skills loaded JIT via `skill_router.py` + `skill_retriever.py` + Tier 1/2 system prompt sieve |
+| **Spec-first planning** (Items 1, 13) | `.hermes/plan.json` contract + Phase 1 in SOUL.md + spec_first_planner.py |
+| **Observer Gate** (Items 1, 12) | `observer_gate` plugin + `bin/observer_gate.py` (475 lines) — AST syntax, brace balance, oracle checks |
+| **GEPA reflective evolution** (Item 12) | `gepa_optimizer` plugin + `hermes_core/gepa_optimizer.py` + `hermes_core/evolution.py` |
+| **Quorum consensus / Maker≠Auditor** (Item 12) | `quorum_audit` plugin + `hermes_core/cog_verifier.py` |
+| **Context sieve / token budget** (Items 2, 10) | `hermes_core/context_sieve.py` + `context_window_guard.py` + `token_engine.py` |
+| **Grep over vectors** (Item 2) | AGENTS.md Law §9 + `symbol_graph.py` (Tree-Sitter AST search) — already preferring grep/glob |
+| **Generative UI artifacts** (Item 5) | `software-development/generative-ui-artifact/SKILL.md` already exists |
+| **Web grounding** (Items 2, 4) | `hermes_core/web_grounding.py` + `bin/web_grounding.py` + `ddgs` backend in config |
+| **Task graph / dependency ordering** (Items 1, 14) | `hermes_core/task_graph.py` |
+| **Experience / episodic memory** (Item 12) | `hermes_core/experience_store.py` + `memory/experiential.jsonl` |
+| **Subagent delegation / multi-agent** (Items 2, 14) | SOUL.md §13 + `hermes_core/domain_fleet.py` + `swarm_engine.py` |
+| **Chezmoi sync** (all items) | Full chezmoi pipeline already operational, 39 commits ahead |
+| **Obsidian vault** (Item 15) | `private_skills/note-taking/obsidian/SKILL.md` |
+| **ArXiv research** (Items 6, 7, 8, 9) | `private_skills/research/arxiv/SKILL.md` |
+| **Harness integrity verification** (Item 12) | `bin/verify_harness_integrity.py` (761 lines) |
+
+### What Can Be Replaced / Simplified
+
+| Custom Python File | Current Role | Replace With |
+|:-------------------|:-------------|:-------------|
+| `bin/skill_router.py` (41 lines) | Keyword-based skill dispatch | Native Hermes skill description routing — config-only, no Python needed |
+| `bin/skill_retriever.py` (144 lines) | FastEmbed cosine similarity skill lookup | Native `skills_catalog.py` already in `hermes_core`; deduplicate |
+| `bin/web_grounding.py` (42 lines) | DuckDuckGo search wrapper | Native `web` tool in config (`web.backend: ddgs`) — this script is redundant |
+| `bin/extract_web_content.py` (94 lines) | URL content extraction | Hermes native browser+web tools already handle this |
+| `bin/extract_code_mode.py` (103 lines) | Code block extraction | `hermes_core/context_sieve.py` already does this |
+| `bin/harness_architectural_evolution.py` (72 lines) | Ad-hoc evolution trigger | `gepa_optimizer` plugin's `on_session_end` hook replaces this |
+| `bin/hub_cli.py` (152 lines) | Hub state management | `.hermes/hub/state.json` + native plugin state — can be config only |
+| `bin/ingest_document.py` (144 lines) | Document ingestion | Hermes native file+browser tools; `index_docs.py` overlaps |
+| `bin/container_cmd.py` (50 lines) | Distrobox command wrapper | Native `terminal` tool in config already handles this |
+
+### What Can Be Added (New — Not Yet Present)
+
+| Item | Capability | Hermes Addition Required |
+|:-----|:-----------|:------------------------|
+| **Item 2 — Dreaming logs** | Offline batch: session logs → memory cards | New `on_session_end` hook in `reflective_learner_adapter` plugin (config-only, ~20 lines) |
+| **Item 8 — Proactive Thought Partners** | Agent-initiated ambient suggestions | New `proactive` rule in `rules/` + lightweight ambient skill (no Python) |
+| **Item 10 — Skill description hygiene** | All 91 skill descriptions ≤60 chars, router-only | Audit pass on all `SKILL.md` frontmatter `description` fields |
+| **Item 10 — Completion definition** | Explicit done-criteria in every SOUL.md task pattern | Edit SOUL.md §11 to add explicit completion contract |
+| **Item 11 — Mannered prose elimination** | Anti-mannered-prose directive baked into SOUL.md | 3-line addition to SOUL.md: the Anthropic diagnostic contract |
+| **Item 13 — Spec-Driven Regeneration** | Design-doc-first pattern: tangle code from docs | New skill `software-development/spec-driven-regen/SKILL.md` (no Python) |
+| **Item 14 — Diamond orchestration pattern** | Explicit fan-out→reduce→verify→converge multi-agent template | New skill `software-development/diamond-orchestration/SKILL.md` |
+| **Item 14 — Hard stop limit in loops** | Bounded iteration count enforcement | Edit `tool_loop_guardrails.hard_stop_enabled: true` in `config.yaml` |
+| **Item 15 — NotebookLM MCP bridge** | MCP server connecting Hermes → Gemini Notebook | New MCP config entry (config-only, no Python) |
+
+### What Can Be Removed
+
+| File / Component | Reason |
+|:-----------------|:-------|
+| `bin/container_cmd.py` | Redundant — native terminal tool covers this |
+| `bin/web_grounding.py` | Redundant — native `web.backend: ddgs` in config |
+| `bin/harness_architectural_evolution.py` | Superseded by `gepa_optimizer` plugin hook |
+| `bin/extract_web_content.py` | Redundant — native browser/web tools |
+| `bin/skill_router.py` | Superseded by native skill routing + descriptions |
+| `dot_hermes_AGENTS.md` (from `.hermes_AGENTS.md`) | Merge into AGENTS.md — two copies of agent instructions is a maintenance hazard |
+
+---
+
+## Implementation Roadmap
+
+> **Order**: Dependencies first. Config/rule/skill changes before Python. Removals after replacements are confirmed working.
+
+### Phase 0 — Foundation: Context Hygiene & Prompt Discipline
+*Zero new code. Pure config + text edits. Immediate impact on every session.*
+
+**0.1 — Enable Hard Stop on Tool Loop** *(Item 14)*
+- Edit `config.yaml`: `tool_loop_guardrails.hard_stop_enabled: true`
+- This enforces the falsifiable loop invariant from Mahaximus: bounded iterations, no infinite loops.
+- **Delta**: 1-line config change.
+
+**0.2 — Mannered Prose Elimination in SOUL.md** *(Item 11)*
+- Prepend Anthropic's diagnostic contract to SOUL.md as Rule 0 (highest precedence).
+- Shorthand fallback: `"Please remove all mannered prose"` as a terminal directive.
+- **Delta**: ~8 lines in SOUL.md.
+
+**0.3 — Skill Description Hygiene Audit** *(Item 10)*
+- Audit all 91 `SKILL.md` frontmatter `description` fields.
+- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
+- **Delta**: Config/text edits only, no Python.
+
+**0.4 — AGENTS.md Pruning** *(Item 10)*
+- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
+- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
+- Merge `dot_hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate.
+- **Delta**: Text deletion only.
+
+---
+
+### Phase 1 — Loop Architecture: Finish-First & Falsifiable Verification
+*Formalizes the 4-phase lifecycle already partially present.*
+
+**1.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
+- Add to SOUL.md §11 (Session Lifecycle): explicit completion definition pattern.
+- *"Completion requires: build → test → verify → fix until green. Never stop at first-pass draft."*
+- **Delta**: ~5 lines in SOUL.md.
+
+**1.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
+- Add to `rules/project.md`: the Anthropic evidence-audit contract.
+- *"Before reporting progress, audit each claim against a tool result from this session."*
+- **Delta**: ~6 lines in `rules/project.md`.
+
+**1.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
+- Create `private_skills/software-development/diamond-orchestration/SKILL.md`.
+- Contains: fan-out → deterministic-reduce → skeptic-verify → converge template.
+- **Delta**: New SKILL.md, no Python.
+
+---
+
+### Phase 2 — Memory: Dreaming Logs & Durable Handoffs
+*Converts session logs to persistent memory cards. Zero new Python.*
+
+**2.1 — Dreaming Hook in reflective_learner_adapter** *(Item 2)*
+- Edit `plugins/reflective_learner_adapter/plugin.yaml` to add `on_session_end` hook.
+- Hook body: shell command that summarizes `.hermes/logs/` into `memory/experiential.jsonl` cards with one-line scannable summaries.
+- Can be a shell script or tiny YAML template — no new standalone Python file.
+- **Delta**: Edit existing plugin.yaml + tiny shell hook.
+
+**2.2 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
+- Extend `private_skills/software-development/plan/SKILL.md` to include the <150-word checkpoint protocol.
+- Covers: completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
+- **Delta**: Edit existing SKILL.md.
+
+**2.3 — Obsidian Vault Memory Integration** *(Item 15)*
+- Edit `private_skills/note-taking/obsidian/SKILL.md` to add content-OS workflow: log every research artifact, source citation, content angle into vault before generating new content.
+- **Delta**: Edit existing SKILL.md.
+
+---
+
+### Phase 3 — Skills & Routing: Progressive Disclosure + Proactive Partnership
+*JIT skill loading cleanup and new thin skills for new patterns.*
+
+**3.1 — Proactive Thought Partner Rule** *(Item 8)*
+- Create `rules/proactive.md` defining prospective scaffolding behavior.
+- Lightweight ambient suggestion protocol: non-directive, opt-in, sidebar framing.
+- **Delta**: New rules file (~20 lines), no Python.
+
+**3.2 — Spec-Driven Regeneration Skill** *(Item 13)*
+- Create `private_skills/software-development/spec-driven-regen/SKILL.md`.
+- Encodes the x0k-folio + DeepMind "Design Docs Are All You Need" pattern.
+- Tangle workflow: natural-language design doc → sub-agent code generation → CI verification.
+- **Delta**: New SKILL.md only.
+
+**3.3 — Remove Redundant Bin Scripts** *(Items 10, 12)*
+- Remove: `bin/container_cmd.py`, `bin/web_grounding.py`, `bin/harness_architectural_evolution.py`, `bin/extract_web_content.py`, `bin/skill_router.py`
+- Verify each is either superseded by native tooling or covered by existing `hermes_core/` modules.
+- **Delta**: Deletions. No new Python.
+
+---
+
+### Phase 4 — Multi-Agent: Maker/Verifier & External Integrations
+*Solidifies separation of production vs. evaluation agents and adds new MCP bridges.*
+
+**4.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
+- Review `quorum_audit` plugin hooks — ensure `Author != Auditor` is enforced on all write operations.
+- Ensure `@tester` profile has no write tools; `@coder` profile cannot run its own post-commit audit.
+- **Delta**: Plugin YAML and profile capability mask edits only.
+
+**4.2 — NotebookLM / Gemini Notebook MCP Bridge** *(Item 15)*
+- Add MCP server config entry to `config.yaml` or `.hermes/mcp/` for Gemini Notebook.
+- Enables `hermes` to query notebook sources via MCP tool calls directly.
+- **Delta**: Config entry only, no Python.
+
+**4.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
+- Add to SOUL.md: the token economics note (single-agent = 4×, multi-agent = 15×; only fan-out for genuinely parallelizable tasks).
+- **Delta**: ~4 lines in SOUL.md.
+
+---
+
+### Phase 5 — Harness Learning: GEPA & Self-Optimization
+*Activates the existing GEPA infrastructure for live prompt evolution.*
+
+**5.1 — Activate GEPA on Session End** *(Items 12, 3)*
+- Verify `gepa_optimizer` plugin `on_session_end` hook fires correctly.
+- Configure GEPA to target: SOUL.md rules + skill descriptions + top-failure prompts.
+- **Delta**: Plugin config verification + GEPA seed corpus in `knowledge/`.
+
+**5.2 — Harness Engineering Signal Digest** *(Item 12)*
+- Populate `knowledge/signal_digest.md` with the Phase 1–5 evolutionary taxonomy from Item 12.
+- Used by GEPA as a reference corpus for prompt mutation direction.
+- **Delta**: Edit existing markdown file.
+
+**5.3 — Looped Transformer Config Note** *(Item 3)*
+- Add to `knowledge/signal_digest.md`: note on Nanbeige 4.2 / Mixture-of-Recursions.
+- Relevant for future model selection: when swapping local models, prefer weight-tied looped architectures (better VRAM/performance trade-off at small scale).
+- **Delta**: Documentation only.
+
+---
+
+### Phase 6 — Advanced: Declarative Attention & NoRA Fine-Tuning
+*Forward-looking — applies when upgrading local model infrastructure.*
+
+**6.1 — Declarative Attention (vLLM upgrade path)** *(Items 6, 7)*
+- When `llama-server` is next upgraded: evaluate vLLM with FlashAttention as alternative backend.
+- Add a skill note in `private_skills/mlops/inference/serving-llms-vllm/SKILL.md` documenting the DA block-masking configuration.
+- **Delta**: Skill documentation addition.
+
+**6.2 — NoRA Fine-Tuning Guide** *(Item 9)*
+- Add to `private_skills/mlops/models/gemma-trainer/SKILL.md`: NoRA normalization note.
+- One-line change to LoRA init: normalize down-projection matrix A at initialization.
+- **Delta**: Skill documentation addition.
+
+**6.3 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
+- Document the Fairwind/CodeMender pattern (find → validate → patch → regression-test) as a workflow in `private_skills/devops/sdlc-review/SKILL.md`.
+- **Delta**: Skill documentation addition.
+
+---
+
+### Roadmap Summary Table
+
+| Phase | Items | Approach | Python Files Added/Removed |
+|:------|:------|:---------|:--------------------------|
+| **0** — Foundation | 11, 10, 14 | config.yaml + SOUL.md + AGENTS.md edits | 0 added, 0 removed |
+| **1** — Loop Architecture | 1, 10, 14 | SOUL.md + rules + 1 new SKILL.md | 0 added, 0 removed |
+| **2** — Memory / Dreaming | 2, 14, 15 | plugin.yaml hook + SKILL.md edits | 0 added, 0 removed |
+| **3** — Skills / Routing | 8, 13, 10 | new rules file + 1 new SKILL.md + deletions | 0 added, **5 removed** |
+| **4** — Multi-Agent | 1, 2, 12, 15 | plugin YAML + config MCP entry + SOUL.md | 0 added, 0 removed |
+| **5** — Harness Learning | 12, 3 | knowledge/ markdown + GEPA config | 0 added, 0 removed |
+| **6** — Adv. Infra | 6, 7, 9, 4 | SKILL.md documentation additions | 0 added, 0 removed |
+| **Total** | | | **0 new Python files**, **5 removed** |

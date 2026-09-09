@@ -262,6 +262,29 @@
      - Frontier models can be tentative regarding task termination, sometimes pausing after a first-pass draft.
      - Define completion up-front in the request (e.g. specify that completion requires building, testing, verifying, and fixing until green) rather than allowing implicit early stopping.
 
+### 11. Eliminating Mannered Prose (Anthropic's Style Architecture for Claude Fable 5.1 & GPT-5.6 Sol)
+- **Sources**:
+  - X Post: https://x.com/omarsar0/status/2097059598960132110
+  - DAIR.AI Resource Guide: https://academy.dair.ai/resources/write-better-with-claude-fable-5-1
+  - Anthropic Documentation: *Prompting Claude Fable 5.1: Writing density*
+- **Author / Originator**: Anthropic / Curated & Tested by Elvis Saravia (@omarsar0)
+- **Core Problem Definition**:
+  - Frontier language models (specifically Claude Fable 5.1 and GPT-5.6 Sol) often succumb to "mannered prose"—overloading sentences with decorative metaphors, performative flourishes, and indirect figurative language instead of clear, literal declarations.
+  - Examples of mannered degradation:
+    - *"a dial worth turning"* instead of *"a parameter worth varying"*
+    - *"this point earns its keep"* instead of *"this point still matters"*
+    - *"gives your budget a clearer runway, while manual entry remains a path you can continue to walk"* instead of *"saves you time. You can still enter every expense by hand if you prefer."*
+  - **The Failure of "Be Concise"**: Generic imperatives like "Be concise" merely set an ambiguous goal without giving the model diagnostic criteria for identifying or pruning performative language.
+
+- **The Canonical De-Mannering Prompt Contract**:
+  > *"Mannered prose substitutes metaphor and flourish for direct statement. Instead of 'a parameter worth varying,' the mannered writer produces 'a dial worth turning.' Instead of 'this point still matters,' they write 'this point earns its keep.' The phrases exist to display the writer, not to convey the idea, and readers can tell. That is why mannered prose irritates: it makes the reader work harder so the writer can perform. It is also imprecise. Metaphors drag in connotations the writer did not choose and cannot control. The fix is to say what you mean. When a literal phrase is available, use it."*
+
+- **Key Takeaways & Universal Applicability**:
+  1. **Diagnostic Contrast Mechanism**: The prompt works because it defines the flaw, provides concrete before/after pairs, outlines the cognitive friction imposed on the reader, and supplies a clear operational test ("When a literal phrase is available, use it").
+  2. **Zero-Latency Shorthand**: In compact workflows or system prompt constraints, Anthropic verified that the directive *"Please remove all mannered prose"* reliably triggers this exact behavior without requiring the full descriptive paragraph.
+  3. **Cross-Architecture Generalization**: Evaluated across multiple frontier model families—delivering identical density, clarity, and precision improvements in GPT-5.6 Sol as in Claude Fable 5.1.
+
+
 
 
 

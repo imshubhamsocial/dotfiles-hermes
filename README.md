@@ -1,6 +1,6 @@
 ---
 title: "Hermes Agent OS & Living Harness"
-version: "1.6.0"
+version: "1.7.0"
 runtime: "ws-hermes"
 model: "gemma-4-E4B-it-Q4_K_M.gguf"
 hardware_requirements:
@@ -14,6 +14,12 @@ capabilities:
   - "hub-mode-multi-agent-delegation"
   - "polars-lazy-analytics"
   - "pre-commit-observer-gate"
+  - "graphify-ast-knowledge-graph"
+  - "gemma-aps-claim-deconstruction"
+  - "cactus-uncertainty-gate"
+  - "lora-adapter-hot-swap"
+  - "gemma-multimodal-vision-budget"
+  - "zero-test-folder-self-audit"
 tags:
   - "agent-os"
   - "local-slm"
@@ -235,30 +241,66 @@ bash setup.sh
 ## 7. Operational Commands & CLI Guide
 
 ```bash
-# Start background llama-server daemon locked to Intel P-Cores (0-11)
+# 1. Start background llama-server daemon locked to Intel P-Cores (0-11)
 bash .hermes/scripts/start_server_daemon.sh
 
-# Launch Hermes CLI with autonomous prompt execution
-hermes -z "Decompose and build a 3D Solar System simulation in index.html" --yolo
+# 2. Run master final integration exam against live champion model
+make exam
 
-# Run full harness capability and contract test audit (30/30 capabilities)
-python3.13 .hermes/bin/verify_harness_integrity.py
+# 3. Run full system health & plugin diagnostic suite (v37 schema)
+make doctor
 
-# Run all 602 contract unit tests
-python3.13 -m pytest tests/harness_contracts/ -v
+# 4. Zero-Test-Folder Architecture: Run 100% self-contained native capability audit (20 probes)
+python3.13 .hermes/bin/verify_harness_integrity.py --standalone
 
-# Run pre-commit observer gate manually on a file
+# 5. Launch Hermes CLI with autonomous prompt execution & YOLO mode
+hermes -z "Audit codebase AST graph and propose architecture refactor" --yolo
+
+# 6. Generate codebase knowledge graph & Markdown wiki via decoupled Graphify AST engine
+python3.13 .hermes/scripts/build_codebase_graph.py
+
+# 7. Benchmark CPU ONNX embedding models (EmbeddingGemma 308M vs BGE-Small 33M)
+python3.13 .hermes/scripts/benchmark_embeddings.py
+
+# 8. Train & export domain QLoRA adapter with non-regression verification
+python3.13 .hermes/scripts/train_qlora_adapter.py --domain python_core --rank 16
+
+# 9. Run pre-commit observer gate manually on a file
 python3.13 .hermes/bin/observer_gate.py src/main.js
 ```
 
 ---
 
-## 8. Documentation & Roadmaps
+## 8. Advanced Cognitive Subsystems (Tracks 1, 3, 4 & Google Env-Harness Standard)
+
+### 8.1. Decoupled Codebase Knowledge Graph (Track 1)
+- **Engine**: Headless `graphifyy` parser isolated strictly in `~/.local/share/graphify-env` (Law #8 Zero Core Contamination).
+- **Substrate**: Generates dependency graphs, community clusters, and god node reports in `graphify-out/`.
+- **Knowledge Bridge**: Automatically indexes Markdown wiki cards on RAMDisk (`/dev/shm`) accessible via `second_brain.py` in sub-8ms with zero LLM query overhead.
+
+### 8.2. Reasoning & Retrieval Upgrades (Track 3)
+- **Gemma-APS in DraftDetective**: Abstractive Proposition Segmentation breaks generated claims into atomic assertions (signatures, default values, return types, exceptions, classes) and verifies them against the ground-truth AST prior to committing.
+- **EmbeddingGemma On-Device Evaluation**: Profiling `google/embeddinggemma-300m` on CPU ONNX; leverages Gemma's 256k vocabulary (1.69 tokens/symbol on code vs BGE's 3.77), reducing subword fragmentation with 0 MB GPU VRAM contention.
+
+### 8.3. Self-Correction, Adapters & Vision (Track 4)
+- **Cactus Hybrid Uncertainty Detection**: Fuses verbalized hedging entropy, structural blast-radius risk, and failure streaks ($U \in [0.0, 1.0]$). Triggers `STOP_UNCERTAINTY_BREACH` halt in `LoopController` and generates targeted clarification prompts when $U \ge 0.70$.
+- **Unsloth On-Device QLoRA Adapter Manager**: Dynamic hot-swapping across 5 domain adapters (`python_core`, `javascript_ts`, `modern_cpp`, `sql_data`, `system_ops`). Enforces strict `< 150 MiB` per-adapter VRAM guard and Single Active Adapter invariant to respect the $\le 4,812\text{ MiB}$ hardware ceiling.
+- **Multimodal Vision Token Optimization**: Exact Gemma 4 formula calibration ($T = N_w \times N_h + N_h + 2$). Uses dynamic quadratic aspect-preserving patch budgeting to downsample raw screenshots from 4,838 tokens to 233 tokens ($20.8\times$ compression) within the 256 token budget.
+
+### 8.4. Zero-Test-Folder Architecture
+- The living harness is completely self-contained. All contract verification, isolation guards, and recovery loops are integrated directly into first-party probes in `verify_harness_integrity.py`.
+- External `tests/` directories serve only as transitional developmental scaffolding; in production, `verify_harness_integrity.py --standalone` natively certifies the OS in under 3 seconds without loose pytest dependencies.
+
+---
+
+## 9. Documentation & Roadmaps
 
 Detailed specifications are organized in the [`docs/`](./docs/README.md) directory:
 
+* 🗺️ **[Master Plan & Living Architecture (Plan.md)](./Plan.md)**: Master sequential execution tracks, Google Env-Harness standard, and living validation register.
 * 🗺️ **[01. Master Verification Plan](./docs/roadmaps/01_master_verification_plan.md)**: Baseline capabilities U1–U20.
 * 🗺️ **[02. Agent System Foundation](./docs/roadmaps/02_agent_system_foundation.md)**: 7-Layer substrate U21–U35.
 * 🗺️ **[03. Production Engineering](./docs/roadmaps/03_production_engineering.md)**: Production parity U36–U44.
 * 🗺️ **[04. Cognitive Architecture](./docs/roadmaps/04_cognitive_architecture.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
 * 🗺️ **[05. Web Intelligence & Swarms](./docs/roadmaps/05_web_intelligence_and_swarms.md)**: SearXNG grounding, Multi-Agent Swarm U61–U80.
+

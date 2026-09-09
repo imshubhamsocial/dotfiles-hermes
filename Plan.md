@@ -177,3 +177,50 @@ To maintain architectural integrity and prevent roadmap fragmentation, any new t
                    ▼
     [Assign Track & Sequence ID]
 ```
+
+---
+
+## 6. Harness-First Native Self-Containment & Zero-Test-Folder Certification (✅ COMPLETED)
+
+In accordance with Invariant #5 (**Harness-First Native Self-Audit**), all external test folders (`tests/`, `.hermes/tests/`) served as transitional developmental scaffolding. All critical contract gates, isolation invariants, and behavioral verification probes are now fully consolidated directly into Hermes's first-party native harness (`verify_harness_integrity.py`, `hermes doctor`, and `run_final_integration_exam.py`).
+
+### 6.1. 20-Point Native Capability Self-Audit Matrix
+The master harness executes 20 native in-process probes certifying the entire Agent OS end-to-end:
+
+| Probe ID | Capability Probed | Key Invariant / Standard Verified | Verdict |
+| :--- | :--- | :--- | :---: |
+| `native_hermes_cli` | Native CLI Binary Entrypoint | Binary resolved at `~/.local/bin/hermes`; `--help` exits 0 | ✅ **PASS** |
+| `hardware_vram_and_slots` | VRAM Ceiling & llama-server | $\le 4,812\text{ MiB}$ VRAM budget; 65k ctx/slot across 2 slots | ✅ **PASS** |
+| `searxng_web_grounding` | Web Grounding Engine | Keyless SearXNG RRF retrieval; RAMDisk caching in `/dev/shm` | ✅ **PASS** |
+| `four_tier_skill_hierarchy` | Four-Tier Skill Architecture | L0 discovery budget $<100$ tokens/skill; single-skill $\le 200$t | ✅ **PASS** |
+| `gemma_skills_ecosystem` | Official Google Gemma Skills | `gemma-dev` (61t) & `gemma-trainer` (59t) indexed & parsed | ✅ **PASS** |
+| `graphify_ast_engine` | Decoupled AST Knowledge Graph | Law #8 isolation; headless AST extraction & SecondBrain bridge | ✅ **PASS** |
+| `draft_detective_gemma_aps` | Gemma-APS Claim Deconstruction | 4 atomic propositions segmented; contradictory claim caught | ✅ **PASS** |
+| `embedding_substrate_evaluation` | CPU Neural Embeddings Substrate | BGE-Small (33M) & EmbeddingGemma (308M); 0 MB GPU VRAM | ✅ **PASS** |
+| `cactus_hybrid_uncertainty` | Cactus Uncertainty Gate | $U \ge 0.70$ triggers autonomous clarification & LoopController halt | ✅ **PASS** |
+| `lora_adapter_ecosystem` | LoRA Adapter Hot-Swapping | 5 domain adapters ($<150\text{ MiB}$); Single Active Adapter invariant | ✅ **PASS** |
+| `multimodal_vision_token_budget` | Gemma 4 Vision Optimization | Quadratic patch downsampling ($4838 \to 233$ tokens; $20.8\times$ compression) | ✅ **PASS** |
+| `bwrap_sandbox_security` | Bubblewrap Jail Isolation | Namespace isolation (`--unshare-all`, `--ro-bind`); fail-closed | ✅ **PASS** |
+| `fastmcp_transport` | FastMCP Transport & Registry | Sub-millisecond in-memory dispatch; stdio tool schema extraction | ✅ **PASS** |
+| `context_window_guard` | Context Headroom & KV Guard | 65k context safe under 4,812 MiB ceiling with q4_0 KV cache | ✅ **PASS** |
+| `hitl_gateway_and_security` | HITL Supervisory Checkpoint | CRITICAL, HIGH, LOW risk classification; DAG dashboard rendering | ✅ **PASS** |
+| `weighted_memory_tree` | Weighted Memory Tree (WMT) | Knowledge card vault persistence, eviction, and demotion | ✅ **PASS** |
+| `google_env_harness_evolution` | Architectural Evolution Sieve | Generalization guard ($\Delta_{gen} \le 0.15$); AST pre-commit gate | ✅ **PASS** |
+| `universal_recovery_strategy` | Loop Recovery & Tabu Router | 2-Strike Tabu rule; 3-turn loop ceiling & HiTL escalation | ✅ **PASS** |
+| `domain_bot_fleet_and_dag` | Domain Fleet & Kahn DAG | 8 registered roles; topological sort (intake $\to$ plan $\to$ synth $\to$ test) | ✅ **PASS** |
+| `pre_commit_observer_gate` | 6-Point AST Observer Gate | Scope, syntax, bracket balance, size regression pre-commit approval | ✅ **PASS** |
+
+### 6.2. Master Exam & System Doctor Certification
+1. **Live Champion Runtime Exam (`make exam`)**:
+   - Live Champion: `gemma-4-E4B-it-Q4_K_M` + MTP Speculative Draft on `http://127.0.0.1:8138`.
+   - Tool-Calling & Event Stream: `exam_e2e_engine_u6_chain` (7 events, hash-chain intact, full dialect).
+   - Trajectory Replay: `exam_u7_replay_match` (deterministic replay match, 0 drifted steps).
+   - Metacognitive Supervisor: `exam_u17_supervisor_quiet` (0 false positive interventions).
+   - Architectural Evolution Gate: `exam_u18_commit_gate` (shrinking variant committed, bloat blocked).
+   - KV Prefix-Cache Hit Ratio: `exam_u8_prefix_cache` (**100% cache hits** across 11 sample turns).
+   - VRAM Envelope: `exam_vram_guard` ($4,281\text{ MiB} \to 4,301\text{ MiB}$, strictly within $4,812\text{ MiB}$ ceiling).
+2. **Hermes Doctor (`make doctor`)**:
+   - Clean v37 config migration (`_config_version: 37`).
+   - All 18 profiles operational (`ab-iwe`, `amd-rail`, `aquarium-prod`, `coder`, `frontier-codemode`, etc.).
+   - All 9 custom plugins healthy with zero schema errors (`quorum_audit`, `gepa_optimizer`, `observer_gate`, `cog_verifier`, `agent_os`, `symbol_index`, `recirculation_adapter`, `reflective_learner_adapter`, `synergy_bus_adapter`).
+

@@ -346,10 +346,48 @@
      - **CI Verification**: Continuous integration verifies that committed source files strictly correspond to the code blocks in the design documents, ensuring prose and implementation never drift out of sync.
      - **Durable Reasoning Recovery**: Gives subsequent human engineers and autonomous agents complete context recovery regarding *why* an architectural decision was made before touching the implementation.
 
+### 14. Agents, Loops, Graphs: The Unified Architecture Framework (Mahaximus)
+- **Sources**:
+  - Notion Document: https://app.notion.com/p/Agents-Loops-Graphs-Everything-You-Need-to-Know-in-One-Place-3b613313097a815a946fcb5d01feee42
+  - X Guide & Video: https://x.com/mahaximus_/status/2085024744387092973 / https://x.com/Mahaximus_/status/2085725676145975422
+- **Author / Originator**: Mahaximus (@mahaximus_)
+- **Core Thesis**:
+  > *"Most people use AI in a linear chat: ask, read, fix, ask again. That is the slowest possible way. Advanced agent architectures break down into three distinct structural components: Agents (autonomous execution), Loops (falsifiable self-correction), and Graphs (parallel multi-agent orchestration)."*
 
-
-
-
+- **The Tripartite Architecture**:
+  1. **Part 1 — Agents (The Anatomy of Autonomous Execution)**:
+     - **Definition**: An agent is not a smarter model; it is a model surrounded by **Tools** (unsupervised search/read/write/run), **Memory** (retention of past decisions and attempts), and a **Loop** (persisting until goal completion rather than emitting a single conversational turn).
+     - **Four Autonomy Levels**:
+       - *Level 1 (Chat)*: Direct human driving.
+       - *Level 2 (Tool-augmented)*: Model autonomously decides when to query tools before replying.
+       - *Level 3 (Multi-step work)*: Model decomposes high-level goals, plans, executes, verifies, and hands off finished deliverables.
+       - *Level 4 (Fully Autonomous)*: Event/schedule-triggered headless execution with zero in-the-loop intervention.
+     - **Triad of Agent Invariants**:
+       - *Research Agent*: Strict relevance filtering, mandatory citations per claim, explicit contradiction flagging.
+       - *Data Agent*: Interpretation over description, outlier detection, single prescriptive decision sentence.
+       - *Code Agent*: Working code over promising code, mandatory mental dry-run trace, single-sentence root-cause explanation for bug fixes.
+     - **Structured Memory Checkpoint Protocol**:
+       - *Mid-task Checkpoint*: <150 words capturing completed sub-tasks, architectural decisions with rationale, pending work, and new-session resumption tokens.
+       - *Long-context Compression*: Re-grounding on original goal, empirical findings, and remaining tasks as a fresh starting point.
+       - *Session Handoff*: Resuming from checkpoint state without repeating work.
+  2. **Part 2 — Loops (Falsifiable Self-Correction & Quality Gates)**:
+     - **The 5-Step Loop**: `PLAN` $\rightarrow$ `EXECUTE` $\rightarrow$ `CHECK` $\rightarrow$ `ITERATE` $\rightarrow$ `STOP`.
+     - **Two Non-Negotiable Invariants**:
+       - *Falsifiable Check*: The check must be capable of failing (a binary pass/fail test or harsh numerical threshold). Soft checks lead to models hallucinating completion.
+       - *Hard Stop Limit*: Bounded iteration count (e.g. max 8 attempts) to prevent infinite loops and runaway compute spend.
+     - **Viability Filter**: Only deploy a loop if (1) task is repeated, (2) output can grade itself objectively, (3) zero babysitting is required, and (4) "done" is a measurable fact rather than subjective taste.
+     - **The Canonical One-Prompt Loop**:
+       `DRAFT` $\rightarrow$ `SCORE` (rate 1–10 harshly against strict measurable criteria) $\rightarrow$ `GAPS` (isolate weakest point) $\rightarrow$ `CALL` (if all criteria $\ge 8$, mark `DONE` and stop; else `NEXT PASS` focusing exclusively on the lowest-scoring gap).
+  3. **Part 3 — Graphs (Parallel Multi-Agent Workflows & The Diamond Pattern)**:
+     - **Definitions**:
+       - *Node*: Atomic job with strict JSON input/output schemas (rejecting and retrying non-conforming structures).
+       - *Edge*: True data dependency (Node B only depends on Node A if B strictly consumes A's payload).
+     - **The Fake Edge Test**: Audit workflow arrows to remove artificial sequential constraints, converting serialized bottlenecks into parallel pipelines.
+     - **The Diamond Orchestration Pattern**:
+       - *Fan Out*: Spawn parallel independent worker agents simultaneously across distinct task dimensions/angles.
+       - *Deterministic Reduce*: Aggregate raw findings via plain code (deduplication/filtering) at zero token cost.
+       - *Independent Skeptic Verification*: Fresh-context evaluator agents attempt to aggressively disprove each survivor (`keep` or `drop`).
+       - *Convergence Synthesis*: Single synthesis agent compiles verified survivors into the final structured report.
 
 
 

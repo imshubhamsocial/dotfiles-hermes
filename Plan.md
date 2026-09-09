@@ -239,6 +239,30 @@
      - Demonstrates universal improvements across Pretraining, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL).
      - Accelerates training convergence, yields superior final benchmark accuracy, enforces optimization stability, and significantly mitigates catastrophic forgetting.
 
+### 10. Rethinking Skills and Prompts for Modern Frontier Models (Eric Provencher on GPT-6 Astra)
+- **Source**:
+  - X Article: https://x.com/pvncher/status/2095991462416490862 / https://x.com/i/article/2095989703967125509
+- **Author / Originator**: Eric Provencher (@pvncher)
+- **Core Thesis**:
+  > *"What used to require a lot of handholding and scaffolding no longer does. If you’ve been using agents over the last year, you’ve likely accumulated bloated instructions. With frontier reasoning models like GPT-6 Astra, over-scaffolding actively degrades agent performance."*
+
+- **Key Principles & Operational Guidelines**:
+  1. **Skill System Hygiene & Anti-Patterns**:
+     - **Context Squashing**: Each installed skill loads its name and description into the system prompt. When descriptions are verbose or skills are numerous, the agent environment (Codex/Agy) truncates them to fit context budgets, impairing the agent's ability to discriminate between skills.
+     - **Eliminate "Pick-Me" Energy**: Skill descriptions must be minimal and strictly scoped to exact triggering conditions (e.g. "Run when executing database schema migrations" vs. broad "Run whenever database files are referenced").
+     - **Progressive Disclosure as Router**: The root skill file (`SKILL.md`) should act strictly as a lightweight router pointing to auxiliary documentation and scripts, pulling in instructions JIT rather than bloating context upfront and hastening context window compaction.
+     - **De-emphasize Rigid Recipes**: Overly granular, step-by-step itineraries constrain modern high-reasoning models. Models handle ambiguity gracefully; over-specified instructions create brittle failure modes.
+  2. **AGENTS.md Context Discipline**:
+     - Prune legacy instructions that mandate reading the entire repo map or documentation before performing trivial edits (e.g. fixing typos). This burns tokens and drastically increases latency.
+     - Avoid redundant behavioral nudges (e.g., modern models naturally self-test; nagging prompts induce circular test loops).
+  3. **Permission Scaffolding & Safe Autonomy**:
+     - Frontier models exhibit heightened respect for decision boundaries. Guardrails written to restrain older, errant models cause modern models to freeze or ask for needless confirmation.
+     - Provide explicit, scoped autonomy waivers for safe environments (e.g., local disposable test fixtures: *"Run tests, fix failures caused by the change, and rerun without asking for approval at each step"*).
+  4. **Defining Completion & Persistence**:
+     - Frontier models can be tentative regarding task termination, sometimes pausing after a first-pass draft.
+     - Define completion up-front in the request (e.g. specify that completion requires building, testing, verifying, and fixing until green) rather than allowing implicit early stopping.
+
+
 
 
 

@@ -30,7 +30,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from hermes_core.trajectory import (
+from plugins.reflective_learner_adapter.trajectory import (
     TrajectoryRecorder,
     init_observability,
     get_trajectory_tracer,

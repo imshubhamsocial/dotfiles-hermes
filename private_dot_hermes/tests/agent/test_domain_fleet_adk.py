@@ -14,11 +14,11 @@ from unittest.mock import MagicMock
 import pytest
 from google.adk.agents import SequentialAgent
 
-from hermes_core.adk_custom_agent import (
+from plugins.adk_orchestrator.adk_custom_agent import (
     HermesADKCustomAgent,
     adk_content_to_str,
 )
-from hermes_core.agent import Response
+from plugins.adk_orchestrator.agent import Response
 
 
 class TestDomainFleetADK:

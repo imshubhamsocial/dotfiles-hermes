@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from hermes_core.openskills_manager import (
+from plugins.openskills import (
     OpenSkillsManager,
     get_openskills_manager,
     reset_openskills_manager,

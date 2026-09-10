@@ -1,11 +1,48 @@
-"""Hermes Plugin: agent_os"""
-import sys
-from pathlib import Path
+"""
+Hermes Plugin: agent_os
+=======================
+Two-Tier Agent OS Standards & Plan.json Decomposition Engine.
+"""
 
-for p in [Path.home() / ".hermes/src", Path.home() / ".local/share/chezmoi/private_dot_hermes/src"]:
-    if str(p) not in sys.path and p.exists():
-        sys.path.insert(0, str(p))
+from .standards import (
+    RuleFile,
+    CompiledStandards,
+    RuleParser,
+    TwoTierStandardsEngine,
+    build_two_tier_slot3_injection,
+    get_standards_engine,
+    reset_standards_engine,
+)
+from .planner import (
+    EngineeringSpec,
+    PlanStep,
+    Plan,
+    SpecFirstPlanner,
+    inject_plan_into_slot3,
+    enforce_plan_gate_before_edit,
+    get_spec_first_planner,
+    reset_spec_first_planner,
+)
 
 def register(ctx=None):
     """Registers plugin agent_os into Hermes runtime."""
     pass
+
+__all__ = [
+    "RuleFile",
+    "CompiledStandards",
+    "RuleParser",
+    "TwoTierStandardsEngine",
+    "build_two_tier_slot3_injection",
+    "get_standards_engine",
+    "reset_standards_engine",
+    "EngineeringSpec",
+    "PlanStep",
+    "Plan",
+    "SpecFirstPlanner",
+    "inject_plan_into_slot3",
+    "enforce_plan_gate_before_edit",
+    "get_spec_first_planner",
+    "reset_spec_first_planner",
+    "register",
+]

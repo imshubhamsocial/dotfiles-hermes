@@ -15,7 +15,7 @@ Token budget enforced at discovery time: summary_block_tokens() <= 150.
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .plugin_manifest import PluginManifest, estimate_tokens, load_manifest
+from .manifest import PluginManifest, estimate_tokens, load_manifest
 
 TIER1_TOKEN_BUDGET = 150
 

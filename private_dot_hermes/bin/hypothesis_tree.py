@@ -81,3 +81,26 @@ class HypothesisTree(BaseModel):
             except Exception:
                 pass
         return cls()
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Hypothesis Tree MCTS Tracker")
+    parser.add_argument("--add-failure", type=str, help="Record failure trace and backtrack")
+    parser.add_argument("--constraint", type=str, default="Unknown constraint", help="Negative constraint for failure")
+    parser.add_argument("--branch", nargs=2, metavar=("TITLE", "HYPOTHESIS"), help="Add new branch")
+    parser.add_argument("--status", action="store_true", help="Print accumulated constraints and state")
+
+    args = parser.parse_args()
+    tree = HypothesisTree.load_state()
+
+    if args.add_failure:
+        node = tree.record_failure_and_backtrack(args.add_failure, args.constraint)
+        tree.save_state()
+        print(f"Recorded failure. Backtracked to: {node.id if node else 'root'}")
+    elif args.branch:
+        node = tree.add_branch(args.branch[0], args.branch[1])
+        tree.save_state()
+        print(f"Created branch: {node.id} ({node.title})")
+    elif args.status:
+        print(f"Active node: {tree.active_node_id}")
+        print("Accumulated constraints:", tree.get_accumulated_negative_constraints())

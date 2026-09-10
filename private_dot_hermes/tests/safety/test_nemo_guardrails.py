@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / ".hermes" / "src"))
 
 import pytest
 
-from hermes_core.nemo_guardrails_bridge import (
+from plugins.nemo_guardrails import (
     HermesGuardrailsEngine,
     GuardrailVerdict,
     get_guardrails_engine,

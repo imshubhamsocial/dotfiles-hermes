@@ -12,7 +12,7 @@ import ast
 from pathlib import Path
 import pytest
 
-from hermes_core.openskills_manager import (
+from plugins.openskills import (
     OpenSkillsManager,
     SkillParser,
     get_openskills_manager,

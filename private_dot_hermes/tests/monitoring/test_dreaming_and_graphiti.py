@@ -29,7 +29,7 @@ from plugins.reflective_learner_adapter.hooks.on_session_end import (
     on_session_end,
     GRAPHITI_AVAILABLE,
 )
-from hermes_core.trajectory import init_observability, OPENLIT_AVAILABLE
+from plugins.reflective_learner_adapter.trajectory import init_observability, OPENLIT_AVAILABLE
 
 
 def test_dreaming_scannable_summary_extraction():
@@ -72,7 +72,7 @@ def test_graphiti_temporal_memory_integration():
 
 def test_openlit_telemetry_integration(monkeypatch):
     assert OPENLIT_AVAILABLE is True
-    import hermes_core.trajectory as traj_mod
+    import plugins.reflective_learner_adapter.trajectory as traj_mod
     monkeypatch.setattr("openlit.init", lambda **kwargs: None)
     monkeypatch.setattr(traj_mod, "_OBSERVABILITY_INITIALIZED", False)
     res = init_observability(otlp_endpoint="http://localhost:4318", application_name="hermes-test")

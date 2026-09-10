@@ -1,0 +1,7 @@
+name: openskills
+version: "1.0.0"
+description: "OpenSkills L0/L1/L2 Progressive Disclosure & Schema Manager."
+author: "berrzebb / Hermes Agent OS"
+kind: standalone
+tags: [skills, openskills, progressive-disclosure, schemas]
+enabled: true

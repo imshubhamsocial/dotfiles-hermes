@@ -1,0 +1,7 @@
+name: branch_swapper
+version: "1.0.0"
+description: "Two-Strike Tabu Pattern Detector and Git Branch Rollback Engine."
+author: "berrzebb / Hermes Agent OS"
+kind: standalone
+tags: [git, rollback, tabu, recovery]
+enabled: true

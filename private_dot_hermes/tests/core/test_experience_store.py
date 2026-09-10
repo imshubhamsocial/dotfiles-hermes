@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / ".hermes" / "src"))
 
 import pytest
 
-from hermes_core.experience_store import (
+from plugins.reflective_learner_adapter.experience_store import (
     EpisodeRecord,
     ExperienceStore,
     create_experience_store,

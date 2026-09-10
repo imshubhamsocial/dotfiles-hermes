@@ -1,0 +1,7 @@
+name: capability_guard
+version: "1.0.0"
+description: "Role-Based Capability Masks and Tool Security Policy Enforcement."
+author: "berrzebb / Hermes Agent OS"
+kind: standalone
+tags: [security, rbac, capability-masks, tools]
+enabled: true

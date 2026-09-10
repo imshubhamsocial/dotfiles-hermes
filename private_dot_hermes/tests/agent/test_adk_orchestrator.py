@@ -20,13 +20,13 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from hermes_core.agent import Agent, Response, Result
-from hermes_core.adk_custom_agent import (
+from plugins.adk_orchestrator.agent import Agent, Response, Result
+from plugins.adk_orchestrator.adk_custom_agent import (
     HermesADKCustomAgent,
     adk_content_to_str,
     hermes_response_to_adk_event,
 )
-from hermes_core.swarm_engine import HermesOrchestrator
+from plugins.adk_orchestrator.swarm_engine import HermesOrchestrator
 
 
 class TestADKOrchestrator:

@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / ".hermes" / "src"))
 
-from hermes_core.branch_swapper import (
+from plugins.branch_swapper import (
     BranchSwapper, create_branch_swapper, SwapTrigger,
     RepairTurn, TabuPattern, NegativeConstraint
 )

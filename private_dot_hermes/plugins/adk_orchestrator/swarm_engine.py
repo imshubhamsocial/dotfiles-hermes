@@ -93,8 +93,11 @@ class HermesOrchestrator:
         init_len = len(messages)
         turns = 0
 
-        # U6: hash-chained append-only trajectory stream (RAMDisk-active).
-        from .trajectory import TrajectoryRecorder
+        try:
+            from plugins.reflective_learner_adapter.trajectory import TrajectoryRecorder
+        except Exception:
+            class TrajectoryRecorder:
+                def append(self, **kwargs): pass
         recorder = getattr(self, "_u6_recorder", None) or TrajectoryRecorder()
         self._u6_recorder = recorder
 

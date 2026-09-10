@@ -50,5 +50,5 @@ This document maps out how every subsystem interacts during a turn, and provides
 | **Agent Keeps Repeating Hallucinated File** | Draft Detective gate failed or was bypassed | Run `pytest tests/harness_contracts/test_roadmap4_u55_draft_detective.py` |
 | **Changes Refuse to Commit** | Quorum consensus rejected code due to syntax or test drift | Inspect receipt in `.hermes/knowledge/evidence/` or check `quorum_gate.py` |
 | **Plugin Not Discovered** | `plugin.yaml` missing or syntax error in manifest | Run `hermes plugins doctor <plugin-name>` |
-| **Database Lock / Busy Errors** | SQLite not in WAL mode or concurrent writers blocked | Verify WAL mode: `python3.13 -c "from hermes_core.database import get_state_db_factory; print(get_state_db_factory().is_wal_mode())"` |
+| **Database Lock / Busy Errors** | SQLite not in WAL mode or concurrent writers blocked | Run `hermes doctor` or `sqlite3 ~/.hermes/state.db "PRAGMA journal_mode;"` |
 | **Search Grounding Fails** | SearXNG container stopped | Start daemon: `podman start searxng-hermes` (or check `web_grounding.py`) |

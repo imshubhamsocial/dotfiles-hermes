@@ -9,13 +9,15 @@ This document explains the project folder structure in plain, easy-to-understand
 ```
 hermes/
 ├── .hermes/                       # Live symlink to ~/.hermes (Runtime Home)
-│   ├── src/hermes_core/           # Single source of truth Python library (91 modules)
-│   ├── plugins/                   # Official Hermes Plugins v1 extensions
-│   ├── bin/                       # Executable CLI scripts and verification tools
-│   ├── private_skills/            # Domain-specific agent skills
+│   ├── plugins/                   # Native Hermes Plugins v1 extensions (16 plugins)
+│   ├── skills/                    # Modular skills library & execution routines
+│   ├── rules/                     # Behavioral directives & cognitive bounds
+│   ├── memories/                  # SQLite WAL database & persistent knowledge cards
+│   ├── bin/                       # Executable CLI scripts & self-evolution tools
 │   ├── profiles/                  # Agent persona definitions (coder, architect, etc.)
-│   ├── state.db                   # SQLite WAL database for episodic memory
-│   └── config.yaml                # Core runtime configuration
+│   ├── SOUL.md                    # Core persona & cognitive architecture definition
+│   ├── config.yaml                # Core runtime configuration & enabled plugins
+│   └── hermes-agent/              # Isolated upstream NousResearch engine clone & venv
 │
 ├── .local/share/chezmoi/          # Dotfiles source repository (tracked by Git)
 │   ├── private_dot_hermes/        # Chezmoi source for ~/.hermes
@@ -24,33 +26,34 @@ hermes/
 │   └── setup.sh                   # Automated one-click installation & provisioning
 │
 ├── docs/                          # Architecture, benchmark, and workflow guides
-│   ├── test.md               # Evaluation metrics & benchmarking guide
+│   ├── test.md                    # Evaluation metrics & benchmarking guide
 │   ├── filesystem.md              # Directory structure explanation (this file)
 │   ├── defaults.md                # System invariants, timeouts, and flags
 │   ├── components.md              # Catalog of all tools, libraries, and submodules
 │   └── flow.md                    # End-to-end component interaction flow
 │
-└── tests/                         # Complete test suite (620 tests)
-    ├── harness_contracts/         # 39 contract test suites (602 unit tests)
-    ├── runners/                   # Integration and live validation exam runners
-    └── test_*.py                  # Domain-specific and plugin tests
+└── tests/                         # Complete test suite (unit, plugin, and contract tests)
 ```
 
 ---
 
 ## 2. Directory Purpose in Plain English
 
-### `src/hermes_core/` (The Brain Engine)
-Contains the core Python classes that power the agent. This includes the FastMCP server proxy, SQLite database layer, AST graph parser, and the multi-agent loop controller.
+### `plugins/` (The Extension Store & Cognitive Capabilities)
+Self-contained packages (`agent_os`, `adk_orchestrator`, `nemo_guardrails`, `reflective_learner_adapter`, `mcp_tools`, etc.) that add new capabilities without modifying core engine files. Each plugin has a `plugin.yaml` manifest and standard Python entry points.
 
-### `plugins/` (The Extension Store)
-Self-contained packages (`quorum_audit`, `gepa_optimizer`, `observer_gate`, etc.) that add new capabilities without modifying core engine files. Each plugin has a `plugin.yaml` manifest and a `SKILL.md` instruction file.
+### `skills/` (The Dynamic Procedures)
+Modular task guides and operational protocols loaded just-in-time when specific task keywords or execution domains require them.
 
-### `bin/` (The Executables)
-Scripts you can run directly from your terminal, such as `verify_harness_integrity.py` to audit system health or `web_grounding.py` for CLI search queries.
+### `bin/` (The Executables & Self-Evolution Tools)
+Scripts you can run directly from the terminal, such as `hypothesis_tree.py` for multi-branch hypothesis exploration or diagnostics.
+
+### `memories/` (The Long-Term Memory)
+SQLite database in WAL journal mode and memory markdown cards preserving episodic memories, trajectory traces, and learned behavioral invariants.
 
 ### `tests/` (The Safety Net)
-A comprehensive suite of 620 tests ensuring that no code change breaks backward compatibility, token budgets, or hardware limits.
+A comprehensive suite of tests ensuring that no code change breaks backward compatibility, plugin contracts, or safety invariants.
 
 ### `docs/` (The Manual)
 Clear references explaining how every piece works, how to benchmark it, and how to debug issues.
+

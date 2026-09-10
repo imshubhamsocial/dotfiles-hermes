@@ -22,18 +22,26 @@ A structured directory of every open-source tool, library, package, and custom s
 
 ---
 
-## 2. Core First-Party Subsystems (`hermes_core`)
+## 2. Native Userland Plugins (`.hermes/plugins/`)
 
-| Module | Purpose |
+Hermes extends upstream functionality through idiomatic Plugins v1 modules located in `~/.hermes/plugins/` (tracked via `dotfiles-hermes` Chezmoi).
+
+| Plugin | Capabilities & Purpose |
 |---|---|
-| **`quorum_gate.py`** | Implements Quorum cross-model consensus, blast radius calculation, and fitness gates |
-| **`gepa_optimizer.py`** | Implements Pareto multi-objective optimization and reflective prompt mutation |
-| **`context_window_guard.py`** | Enforces the 4,812 MiB VRAM ceiling using NVML bindings and selects safe context tiers |
-| **`cog_verifier.py`** | Dual-agent verifier generating cryptographic verification receipts before pre-commit |
-| **`draft_detective.py`** | Adversarial fact-checker auditing claimed filesystem paths, symbol references, and AST braces |
-| **`vfs.py`** | High-speed in-memory POSIX Virtual File System with SHA-256 state snapshots |
-| **`fastmcp.py`** | FastMCP server dispatcher with multi-hop JSON-RPC proxying and automatic unwrapping |
-| **`database.py`** | SQLite connection factory enforcing WAL mode, schema migrations, and concurrency locks |
-| **`process_guard.py`** | Non-blocking streaming process execution with CPU timeout and inactivity monitors |
-| **`sandbox.py`** | Bubblewrap (`bwrap`) OS namespace jail for untrusted code execution |
-| **`branch_swapper.py`** | 2-Strike Tabu search and Git commit auto-rollback on agent error loops |
+| **`adk_orchestrator`** | Google Agent Development Kit (ADK) Swarm engine, workflow composition, and agent delegation |
+| **`agent_os`** | Standardized pre-commit planner, invariant assertions, and structured execution gates |
+| **`branch_swapper`** | 2-Strike Tabu search and Git commit auto-rollback on recurring execution error loops |
+| **`capability_guard`** | Role-based capability masks and tool security boundary enforcement |
+| **`cog_verifier`** | Dual-agent adversarial verifier and second-brain retrieval vault |
+| **`gepa_optimizer`** | Genetic-Pareto prompt and skill reflection optimizer hooked to session finalize |
+| **`mcp_tools`** | FastMCP server providing Crawl4AI web extraction and ast-grep polyglot AST search |
+| **`nemo_guardrails`** | NVIDIA NeMo Guardrails bridge enforcing formal Colang input, output, dialog, and loop rails |
+| **`observer_gate`** | Autonomous observer lifecycle monitor with non-blocking execution tracing |
+| **`openskills`** | OpenSkills progressive disclosure manager and skill manifest resolver |
+| **`quorum_audit`** | Cross-model audit gate hooked to `pre_tool_call` (`edit → audit → agree → retro → commit`) |
+| **`recirculation_adapter`** | System-2 prefill hook delivering reasoning lift via Lyapunov energy convergence |
+| **`reflective_learner_adapter`** | TaskDAG trajectory recorder and SQLite WAL episodic memory learner hooked to `on_session_end` |
+| **`symbol_index`** | Codebase Memory AST indexer and symbol graph server for fast AST lookups |
+| **`synergy_bus_adapter`** | Asynchronous reactive event bus bridging session lifecycle events to subscribers |
+| **`demo_validator`** | AST syntax validation gate for Python, JavaScript, and HTML artifacts |
+

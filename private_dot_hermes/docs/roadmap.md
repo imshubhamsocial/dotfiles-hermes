@@ -1,6 +1,6 @@
 # Roadmap 7 — Hermes Codebase De-Bloat, Directory Restructure & Official Tool Migration
 
-> **Generated**: 2026-08-30 · **Scope**: All Python files in `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/`
+> **Generated**: 2026-08-30 · **Scope**: All Python files in `~/.hermes/`
 > **Prerequisite**: Domains 1–6 fully implemented and certified (614 contract tests green).
 
 ---
@@ -184,7 +184,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / ".hermes" / "bin"))
 ├── roadmap7.md              ← THIS FILE
 └── Issues.md / AGENTS.md
 
-~/Projects/Workspace/Personal/hermes/   (git working tree)
+~/.hermes/   (git working tree)
 ├── .gitignore               ← add: /build/, /src/, *.egg-info/
 ├── pyproject.toml
 ├── setup.sh

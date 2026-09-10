@@ -11,7 +11,7 @@
 
 As part of Domain 7's framework rationalization, Google Agent Development Kit (ADK) was evaluated as a candidate primary orchestration layer to replace or standardize Hermes's custom Swarm engine (`swarm_engine.py`, ~650 LOC), task graph orchestration (`task_graph.py`, ~1,100 LOC), and multi-agent delegation (`domain_fleet.py` / `multi_bot_delegation.py`, ~390 LOC).
 
-In Milestone D7-13, [`HermesADKCustomAgent`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/src/hermes_core/adk_custom_agent.py) was built as an official subclass of `google.adk.agents.BaseAgent`, wrapping [`HermesOrchestrator`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/src/hermes_core/swarm_engine.py) to bridge Hermes's local model inference, cognitive governors, and capability masks into ADK's native `Runner`, `SessionService`, and `Event` stream.
+In Milestone D7-13, [`HermesADKCustomAgent`](file://~/.hermes/plugins/adk_orchestrator/adk_custom_agent.py) was built as an official subclass of `google.adk.agents.BaseAgent`, wrapping [`HermesOrchestrator`](file://~/.hermes/plugins/adk_orchestrator/swarm_engine.py) to bridge Hermes's local model inference, cognitive governors, and capability masks into ADK's native `Runner`, `SessionService`, and `Event` stream.
 
 ---
 
@@ -58,7 +58,7 @@ In Milestone D7-13, [`HermesADKCustomAgent`](file:///var/home/imshubhamsocial/Pr
 
 ## 5. Certification & Contract Test Verification
 
-The wrapper is certified via 9 contract tests in [`tests/harness_contracts/test_adk_orchestrator_d7_13.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/tests/harness_contracts/test_adk_orchestrator_d7_13.py):
+The wrapper is certified via 9 contract tests in [`~/.hermes/tests/agent/test_adk_orchestrator.py`](file://~/.hermes/tests/agent/test_adk_orchestrator.py):
 - `test_agent_instantiation_and_fields`
 - `test_invalid_name_validation`
 - `test_adk_content_to_str_extraction`

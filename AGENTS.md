@@ -20,18 +20,18 @@ Your objective is to execute complex multi-file engineering tasks with **mathema
 
 All agents operating in this repository must adhere to the official **Agent Plugins v1** architecture and developer toolchain:
 
-1. **Declarative Plugin Pack ([`hermes-pack.yaml`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/hermes-pack.yaml))**:
+1. **Declarative Plugin Pack ([`hermes-pack.yaml`](file://~/.hermes/hermes-pack.yaml))**:
    Single declarative manifest tracking all active capability plugins (`quorum_audit`, `gepa_optimizer`, `observer_gate`, `cog_verifier`, `agent_os`, `symbol_index`, etc.).
-2. **Unified Master Makefile ([`Makefile`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/Makefile))**:
+2. **Unified Master Makefile ([`Makefile`](file://~/Makefile))**:
    Standardized developer commands: `make test`, `make exam`, `make doctor`, `make plugins-sync`, `make server-setup`.
-3. **Core Documentation ([`docs/`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/))**:
-   - [`docs/test.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/test.md): Benchmarking standards, Google Env-Harness criteria, and validation commands.
-   - [`docs/filesystem.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/filesystem.md): Plain-English directory layout and subsystem purpose.
-   - [`docs/defaults.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/defaults.md): Hardcoded flags, timeouts, token budgets, and hardware ceilings.
-   - [`docs/components.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/components.md): Upstream packages (Quorum, GEPA-Lite, FastMCP, NVML) and custom engines.
-   - [`docs/flow.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/flow.md): End-to-end execution pipeline and failure diagnosis matrix.
-   - [`docs/roadmap.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/roadmap.md): Architectural audit and replacement findings.
-4. **Historical Registry ([`Issues.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/Issues.md))**:
+3. **Core Documentation ([`.hermes/docs/`](file://~/.hermes/docs/))**:
+   - [`.hermes/.hermes/docs/test.md`](file://~/.hermes/.hermes/docs/test.md): Benchmarking standards, Google Env-Harness criteria, and validation commands.
+   - [`.hermes/.hermes/docs/filesystem.md`](file://~/.hermes/.hermes/docs/filesystem.md): Plain-English directory layout and subsystem purpose.
+   - [`.hermes/.hermes/docs/defaults.md`](file://~/.hermes/.hermes/docs/defaults.md): Hardcoded flags, timeouts, token budgets, and hardware ceilings.
+   - [`.hermes/.hermes/docs/components.md`](file://~/.hermes/.hermes/docs/components.md): Upstream packages (Quorum, GEPA-Lite, FastMCP, NVML) and custom engines.
+   - [`.hermes/.hermes/docs/flow.md`](file://~/.hermes/.hermes/docs/flow.md): End-to-end execution pipeline and failure diagnosis matrix.
+   - [`.hermes/.hermes/docs/roadmap.md`](file://~/.hermes/.hermes/docs/roadmap.md): Architectural audit and replacement findings.
+4. **Historical Registry ([`Issues.md`](file://~/Issues.md))**:
    Tracks the 48 closed developmental issues for cross-session verification and regression checks.
 
 ---
@@ -41,7 +41,7 @@ All agents operating in this repository must adhere to the official **Agent Plug
 | Component | Target System / Value | Operational Boundary & Invariant |
 | :--- | :--- | :--- |
 | **Execution Sandbox** | Distrobox Container `ws-hermes` | Fedora Linux runtime; non-root user `imshubhamsocial`. |
-| **Workspace Root** | `~/Projects/Workspace/Personal/hermes` | **Strict Rule**: Always use relative paths or `$HOME` / `~`. Zero hardcoded canonical paths. |
+| **Workspace Root** | `~` | **Strict Rule**: Always use relative paths or `$HOME` / `~`. Zero hardcoded canonical paths. |
 | **Python Toolchain** | Python `3.13.15` (User Site) | Invoke strictly via `python3.13` or `python3.13 -m <module>`. |
 | **Local Inference Host** | `http://127.0.0.1:8138/v1` | `llama-server` running `gemma-4-E4B-it-Q4_K_M.gguf` (`-c 131072 -np 2`, `q4_0` KV cache $\rightarrow$ 64K/slot). |
 | **GPU VRAM Ceiling** | NVIDIA RTX 3050 Laptop (6,144 MiB) | **Hard Physical Guard**: Max allocation **$\le 4,812\text{ MiB}$** (enforced via `nvidia-ml-py` NVML driver checks). Never allocate unquantized $f16$ KV cache. |

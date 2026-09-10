@@ -25,7 +25,7 @@ filesystem:
     - "~/.hermes/policy/agent_capabilities.yaml"
   sandbox_isolation:
     enforce_workspace_confinement: true
-    workspace_root: "~/Projects/Workspace/Personal/hermes"
+    workspace_root: "~"
 
 credentials:
   env_var_passthrough: false

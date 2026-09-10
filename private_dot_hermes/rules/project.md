@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 category: project
 extends: global
 ---
@@ -12,7 +12,8 @@ These rules supplement global constraints with project-specific conventions.
 - Use modular prompt slotting (Slot 1-4) for system prompts
 - Implement progressive disclosure for skills (L0/L1/L2)
 - Vector memory must use SQLite WAL + FastEmbed CPU ONNX
-- All new modules must have contract tests in tests/harness_contracts/
+- Plugins must follow official NousResearch Hermes Agent Plugin specification (`plugin.yaml`)
+- All new modules must have contract and unit tests in `~/.hermes/tests/`
 
 ## Stack Requirements
 - Python 3.13+ with strict type annotations
@@ -23,11 +24,13 @@ These rules supplement global constraints with project-specific conventions.
 
 ## Testing Commands
 ```bash
-# Unit tests
-distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/ -q
+# Unit & contract tests
+make test
+# or
+distrobox enter ws-hermes -- python3.13 -m pytest ~/.hermes/tests/ -q
 
-# Specific test
-distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_roadmap4_u48_agent_os_specs.py -v
+# System doctor & plugin verification
+make doctor
 ```
 
 ## Code Style
@@ -37,11 +40,13 @@ distrobox enter ws-hermes -- python3.13 -m pytest tests/harness_contracts/test_r
 - Exit codes: 0 on success, non-zero on failure
 
 ## File Organization
-- Core library: src/hermes_core/
-- Tests: tests/harness_contracts/
-- Config: .hermes/
-- Assets: assets/
+- Agent Home: `~/.hermes/`
+- Plugins: `~/.hermes/plugins/`
+- Tests: `~/.hermes/tests/`
+- Documentation: `~/.hermes/docs/`
+- Skills: `~/.hermes/skills/`
+- Rules: `~/.hermes/rules/`
+- Policy: `~/.hermes/policy/`
 
 ## Evidence-Grounded Progress Audit
 Before reporting task progress or milestone completion, audit each claim against a concrete tool output from the current session. Speculative claims are strictly forbidden. Only report work you can point to evidence for. If something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, cite the exact error; if a step was skipped, state that clearly.
-

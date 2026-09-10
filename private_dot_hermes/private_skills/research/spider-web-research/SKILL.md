@@ -11,7 +11,7 @@ Use this skill when you need live web research, API documentation, mathematical 
 
 1. **Search and Distill Topic**:
 ```bash
-python3 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/fast_web_research.py "<query>"
+python3 ~/.hermes/bin/fast_web_research.py "<query>"
 ```
 
 2. **Scrape Specific URL to Clean LLM Markdown in Sub-10ms**:

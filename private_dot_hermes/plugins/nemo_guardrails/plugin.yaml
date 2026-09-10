@@ -1,0 +1,10 @@
+name: nemo_guardrails
+version: "1.0.0"
+description: "NVIDIA NeMo Guardrails Integration Bridge for formal input, output, dialog, and loop rails."
+author: "berrzebb / Hermes Agent OS"
+kind: standalone
+tags: [safety, guardrails, colang, validation]
+enabled: true
+provides_hooks:
+  - pre_execution
+  - post_execution

@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
+*.egg-info/
+**/*.egg-info/
 .hermes/skills/.usage.json
+.pytest_cache/

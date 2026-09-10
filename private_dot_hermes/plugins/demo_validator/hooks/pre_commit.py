@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-"""Demo plugin pre-commit hook: validates syntax before disk write."""
-import ast
+"""Demo plugin pre-commit hook: delegates to demo_validator AST and syntax validation."""
 from pathlib import Path
+from plugins.demo_validator import validate_artifact
 
 
 def run(context: dict) -> dict:
     filepath = context.get("filepath", "")
-    content = context.get("content", "")
-    suffix = Path(filepath).suffix.lower()
+    if not filepath:
+        return {"ok": True, "detail": "No filepath provided."}
 
-    if suffix == ".py":
-        try:
-            ast.parse(content)
-            return {"ok": True, "detail": "Python syntax valid."}
-        except SyntaxError as e:
-            return {"ok": False, "detail": f"Python SyntaxError at line {e.lineno}: {e.msg}"}
+    path = Path(filepath)
+    suffix = path.suffix.lower()
 
-    return {"ok": True, "detail": f"No syntax probe for {suffix} (pass-through)."}
+    if suffix in (".html", ".htm", ".js", ".ts", ".jsx", ".tsx"):
+        res = validate_artifact(path)
+        return {
+            "ok": res["passed"],
+            "detail": res["message"],
+            "checks": res.get("checks", []),
+        }
+
+    return {"ok": True, "detail": f"Pass-through for {suffix}."}

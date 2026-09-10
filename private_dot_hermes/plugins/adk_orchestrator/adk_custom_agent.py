@@ -17,9 +17,23 @@ import asyncio
 import copy
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from google.adk.agents import BaseAgent
-from google.adk.events import Event, EventActions
-from google.genai import types
+try:
+    from google.adk.agents import BaseAgent
+    from google.adk.events import Event, EventActions
+    from google.genai import types
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    class BaseAgent:  # type: ignore[no-redef]
+        """Fallback when google-adk is not installed."""
+        def __init__(self, *args, **kwargs):
+            pass
+    class Event:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs):
+            pass
+    EventActions = None  # type: ignore[assignment]
+    types = None  # type: ignore[assignment]
+
 from pydantic import Field
 
 from .agent import Agent, Response, Result

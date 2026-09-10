@@ -35,11 +35,16 @@ auxiliary:
 _config_version: 37
 plugins:
   enabled:
+    - adk_orchestrator
     - agent_os
+    - branch_swapper
+    - capability_guard
     - cog_verifier
     - gepa_optimizer
     - mcp_tools
+    - nemo_guardrails
     - observer_gate
+    - openskills
     - quorum_audit
     - recirculation_adapter
     - reflective_learner_adapter
@@ -49,7 +54,16 @@ plugins:
   entries:
     mcp_tools:
       allow_tool_override: false
-
+    nemo_guardrails:
+      allow_tool_override: false
+    adk_orchestrator:
+      allow_tool_override: false
+    branch_swapper:
+      allow_tool_override: false
+    capability_guard:
+      allow_tool_override: false
+    openskills:
+      allow_tool_override: false
 mcp_servers:
   notebooklm:
     command: npx
@@ -57,8 +71,7 @@ mcp_servers:
       - -y
       - notebooklm-mcp
     env:
-      GEMINI_API_KEY: "${GEMINI_API_KEY}"
-
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
 
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,

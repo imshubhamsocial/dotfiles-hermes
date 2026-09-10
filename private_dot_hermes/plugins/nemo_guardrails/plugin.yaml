@@ -5,6 +5,4 @@ author: "berrzebb / Hermes Agent OS"
 kind: standalone
 tags: [safety, guardrails, colang, validation]
 enabled: true
-provides_hooks:
-  - pre_execution
-  - post_execution
+

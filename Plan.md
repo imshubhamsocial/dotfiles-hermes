@@ -1,1368 +1,310 @@
-# Master Plan & Architecture Ingestion Register
+# Hermes Agent OS — Implementation Plan
 
-## Ingested References
-
-### 1. Mythos-Harness & "Finish-First" Agent Loop
-- **Sources**:
-  - X Post: https://x.com/DanKornas/status/2096055546403012908
-  - GitHub Repository: https://github.com/Magma1321/mythos-agent-pipe
-- **Author / Originator**: Dan Kornas (@DanKornas) / Magma1321
-- **Overview & Core Thesis**:
-  > *"Agent workflows don’t fail at the prompt. They fail in the gap between execution and verification."*
-  
-  Mythos-Harness presents a four-phase "finish-first" agent loop optimized for high-reasoning models (Claude Opus 4.7). It structures the software lifecycle into an assembly line where the agent plans, executes, verifies against strict constraints, and ships finished artifacts autonomously without babysitting or manual intervention.
-
-- **Four-Phase "Finish-First" Lifecycle**:
-  1. **Plan Phase**:
-     - Decomposes high-level natural language objectives into modular, actionable sub-tasks.
-     - Maps explicit input/output formats, dependencies, and strict pass/fail success criteria per task.
-  2. **Execute Phase**:
-     - Executes tasks in dependency order with full session context retention.
-     - Captures operational metrics, timestamps, filesystem mutations, and API calls.
-  3. **Verify Phase & Remediation Loop (Verification Grid)**:
-     - Automated validation including:
-       - **Structure Check**: File and folder layout validation against required blueprints.
-       - **Syntax Lint**: Language-specific static analysis and syntax validation.
-       - **Type Coherence**: Variable types and function signatures matched against declarations.
-       - **Test Execution**: Unit test execution and pass/fail gate checks.
-       - **Performance Thresholds**: Execution time and memory profiling to detect outliers.
-     - **Remediation Loop**: On test or constraint failure, detailed error diagnostics are routed into an automated re-execution fix cycle up to a defined retry limit.
-  4. **Ship Phase**:
-     - Bundles verified outputs into deliverables: Git commits, zip archives, staging deployments, webhooks, or notification channels.
-
-- **System Architecture**:
-  - **Orchestrator**: Coordinates phases, handles state progression, and drives error recovery.
-  - **Context Engine**: Maintains persistent working memory across sessions (local filesystem, Redis, PostgreSQL) to allow seamless resumption of interrupted workflows without re-planning.
-  - **Verification Grid**: Modular, extensible plugin architecture (`VerificationModule` subclasses) for domain-specific contract testing.
-  - **Pipeline Adapter**: Adapts completed artifacts into external delivery formats (Git, S3, webhooks).
-
-### 2. Anthropic's Agent Engineering Playbook (Full Breakdown by CyrilXBT)
-- **Source**: https://x.com/cyrilXBT/status/2096253035563426134
-- **Author / Originator**: CyrilXBT (@cyrilXBT) tracing Anthropic's internal engineering blog, Claude Agent SDK, and prompting documentation.
-- **Core Thesis**:
-  > *"Build the structure that makes an agent's behavior verifiable and its progress durable, rather than trusting a smarter model to compensate for the absence of that structure. The harness, the verification discipline, the memory system, matter more as models get more capable and more autonomous, not less."*
-
-- **Key Principles & Architectural Patterns**:
-  1. **Solving Multi-Session Amnesia via Durable Handoffs**:
-     - Multi-session agents have no memory by default ("engineers on separate shifts who remember nothing from the shift before").
-     - **Anthropic SDK Two-Role Pattern**: An *Initializer Agent* sets up the environment and plans once; a *Coding Agent* makes incremental progress per session and leaves behind clear, durable artifacts (notes, file states, execution logs of what was tried and what happened) so the next session resumes seamlessly without rediscovering context.
-  2. **Separate The Brain From The Hands**:
-     - Reasoning happens in one place; tool execution occurs inside an isolated sandbox.
-     - Delivers faster time-to-first-token (TTFT) and clear fault isolation (distinguishing cognitive reasoning errors from execution sandbox failures).
-  3. **Server-Side Execution & Fine-Grained Step Logging**:
-     - Decouple agent processes from local laptop terminal sessions.
-     - Log every single action and state transition in real-time. Enables crash recovery by replaying context from the log rather than re-running from zero.
-  4. **Make Failure Cheap**:
-     - Treat failures as normal, expected events to recover from at minimal cost, rather than exceptions to prevent at all costs.
-     - Retry dead sandboxes cheaply; replay lost state from execution logs.
-  5. **Turn Yesterday's Logs Into Tomorrow's Memory ("Dreaming")**:
-     - Offline/off-peak batch pass processes accumulated session logs into new skills and permanent memory cards.
-     - Memory files must include a scannable one-line summary at the top so future sessions can judge relevance instantly without ingesting full files into context.
-  6. **Maker vs. Verifier Separation ("Never Let It Grade Its Own Work")**:
-     - The cognitive perspective that produced a solution has structural blind spots and skews falsely positive.
-     - Architectural separation: Separate the agent producing work from the agent evaluating it.
-     - The evaluator must have access to independent ground-truth evidence that the maker didn't generate (raw test outputs, requirement specs, external verification checks).
-  7. **Conservative Multi-Agent Scaling**:
-     - Token economics: Single agent consumes $\approx 4\times$ normal chat tokens; multi-agent systems consume $\approx 15\times$.
-     - Multi-agent outperforms single agents (e.g., $+90.2\%$ on internal research evaluations) *only* when the task structurally fans out into independent, parallel inquiries.
-     - Sequential tasks get zero benefit from multi-agent setups—it only multiplies cost. Rule: Start with a single agent by default.
-  8. **Disciplined Root Instructions (CLAUDE.md / System Instructions)**:
-     - Mental model: "A brilliant new employee with amnesia."
-     - Target length: Under 200 lines (disciplined teams $\approx 60$ lines). Include only universal instructions relevant to nearly every session.
-     - Reserve explicit emphasis markers (`IMPORTANT`, `YOU MUST`) strictly for rare non-negotiables to avoid signal dilution.
-  9. **The Grep Decision (Simplicity over Complexity)**:
-     - Claude Code team tested vector search/embeddings vs. plain `grep` and `glob` for codebase navigation: plain grep/glob "outperformed everything. By a lot."
-     - Exact syntax, symbol names, and import paths require literal matching; semantic vector search surfaces plausible but misleading distractor files.
-  10. **Evidence-Grounded Progress Audit**:
-      - Solves the documented failure mode where agents prematurely claim steps are finished.
-      - Tested prompt contract:
-        > *"Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for. If something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output. If a step was skipped, state that. When something is done and verified, state it plainly without hedging."*
-      - The specific word **"audit"** statistically triggers stricter self-checking than soft requests like "be careful" or "double check".
-  11. **Progressive Disclosure for Skills**:
-      - Prevent root context bloat by packaging situational procedures, domain procedures, and specific tool protocols into modular skills.
-      - Load deep context JIT (just-in-time) only when task keywords or AST file touches explicitly require it.
-
-### 3. Looped Transformers & Recurrent Depth (Sebastian Raschka on OpenAI Astra, Nanbeige 4.2, Mixture-of-Recursions)
-- **Sources**:
-  - X Post: https://x.com/rasbt/status/2095141254958858496
-  - YouTube Video: https://www.youtube.com/watch?v=KT4n-z_4QJU
-- **Author / Originator**: Sebastian Raschka (@rasbt)
-- **Core Thesis & Background**:
-  - Explores recurrent depth and looped transformer architectures in light of the Nanbeige 4.2 release and architectural discussions surrounding OpenAI Astra.
-  - Investigates how weight-tied layer reuse provides parameter efficiency and dynamic compute scaling without expanding memory/VRAM requirements.
-
-- **Key Principles & Architectural Insights**:
-  1. **Looped Transformers & Layer Weight Reuse**:
-     - Instead of stacking $N$ distinct physical transformer layers, a smaller stack of $L$ layers is reused across multiple sequential passes ($R$ loops) per token step (effective depth $= L \times R$).
-     - Example: Nanbeige 4.2-3B builds a 22-layer physical stack and runs it twice ($R=2$), behaving with the expressive capacity of a 44-layer network while maintaining a 3B parameter footprint.
-  2. **Memory Footprint vs. Compute Trade-offs**:
-     - Parameter count, disk storage, and GPU VRAM footprint remain strictly fixed to the base layer count.
-     - Token efficiency: A looped transformer achieves $\approx 75\%$ of the performance/token efficiency of a model trained with fully independent weights of equivalent depth.
-     - FLOP cost: Inference FLOPs scale linearly with the loop count ($\approx 2\times$ compute for 2 passes), trading latency/compute for dramatic memory savings and edge/VRAM viability.
-     - Diminishing returns: Reusing the stack more than twice ($R > 2$) yields steep diminishing returns and significantly slower training convergence.
-  3. **Mixture-of-Recursions (Adaptive Token Compute)**:
-     - Advanced architecture presented at NeurIPS adding a dynamic, learned router to looped transformers.
-     - Rather than forcing all tokens through uniform recurrent passes, the model dynamically routes "easy" tokens after a single pass and loops "difficult" tokens through multiple passes.
-     - Achieves variable per-token compute allocation in latent representation space.
-  4. **Latent Representation vs. Chain-of-Thought (CoT) Reasoning**:
-     - Recurrent depth adds internal latent compute before token emission.
-     - While it does not eliminate the necessity of explicit chain-of-thought tokens for multi-step reasoning, latent recurrence allows deeper feature refinement per token, potentially shrinking the number of verbose reasoning tokens required to solve complex logic steps.
-
-### 4. Google Fairwind Program & Autonomous Security Harness (Gemini 3.8 Flash Cyber & CodeMender)
-- **Sources**:
-  - X Post: https://x.com/sundarpichai/status/2095184464800526655
-  - Google Blog: https://blog.google/innovation-and-ai/technology/safety-security/fairwind-program/
-- **Author / Originator**: Sundar Pichai (@sundarpichai) / Four Flynn (VP Security & Privacy, Google)
-- **Core Thesis & Defender Dilemma**:
-  > *"Spotting weaknesses creates awareness and fear; autonomously finding and fixing vulnerabilities delivers security. The defender’s edge comes from shrinking the time between detecting a flaw and patching it."*
-  
-  Defenders historically faced an acute trade-off: deploy massive frontier models (prohibitively expensive, complex enterprise context governance) or small open-weight models (inadequate reasoning for deep exploit remediation, requiring custom harness engineering from scratch). Fairwind bridges this via specialized domain-tuned small models coupled with targeted agentic scaffolding.
-
-- **System Architecture & Key Capabilities**:
-  1. **Gemini 3.8 Flash Cyber**:
-     - Specialized cybersecurity model tuned for vulnerability identification, verification, and code-level patch synthesis.
-     - Benchmark performance: **86.2% on CyberGym**.
-     - Real-world efficacy: **2.6× more effective** at producing correct patches for Chrome security vulnerabilities compared to larger commercial general-purpose models.
-     - Operates at high inference speed and low cost profile characteristic of the Flash model tier.
-  2. **CodeMender Agentic Harness**:
-     - Pairs the model with an automated harness that executes the entire vulnerability lifecycle: finding flaws, validating root causes, drafting patches, and running regression tests to verify fixes before merging.
-     - Operates directly inside an organization's secure cloud perimeter.
-     - Compresses vulnerability remediation timelines from weeks of manual developer triage down to minutes of autonomous, verified patch generation.
-  3. **Fairwind Gated Distribution Program**:
-     - Restricted access program deployed across 650+ vetted global partners (national cyber authorities, critical infrastructure operators across energy/healthcare/finance, and core open-source foundation maintainers).
-     - Mitigates dual-use weaponization risks by enforcing strict operational boundaries (restricted to incident response, pentest teams, MFA enforcement, and secure cloud runtime sandboxes).
-
-### 5. Generative UI & Visual Artifact Architecture (Google Antigravity)
-- **Source**: https://antigravity.google/blog/visualizing-with-the-help-of-antigravity
-- **Author / Originator**: Google Antigravity Team
-- **Core Thesis**:
-  > *"While text interfaces are great for everyday development, they do not always convey complex architectural relationships or content in ways that are easily digestible. With Generative UI and visual tooling, agents can create, render, and iterate on rich visual components, dynamic dashboards, interactive artifacts, and design mockups in real time."*
-
-- **Key Architectural Principles & Capabilities**:
-  1. **Beyond Text / TUI Limitations**:
-     - Text streams and terminal user interfaces (TUIs) struggle with high-density relational structures (e.g., dependency trees, AST layouts, multi-variable telemetry, spatial coordinate systems).
-     - Generative visual artifacts bridge cognitive gaps, allowing users and agents to inspect and reason about multi-dimensional system states simultaneously.
-  2. **Interactive Visual Artifacts**:
-     - Agents emit fully functional, reactive components (HTML5, SVG, CSS, vanilla JS) rendered directly in the IDE/agent artifact preview panel.
-     - Examples showcased:
-       - **Interactive Quadtree Spatial Partitioning Explorer**: Real-time canvas demonstrating point insertion, adaptive quadrant subdivision (NW/NE/SW/SE) when threshold $k$ is exceeded, and query-area pruning to avoid $O(N)$ brute-force scans.
-       - **Helios Solar Explorer**: Interactive Keplerian orbital mechanics simulation illustrating elliptical orbits, equal-area time sweeps, and orbital period vs. semi-major axis cubic relations ($T^2 \propto a^3$).
-       - **AST & Dependency Graph Visualizers**: Parsing `package-lock.json` and module call graphs into navigable graph layouts.
-  3. **Zero-Dependency & Offline Execution**:
-     - Visualizations are generated self-contained without requiring external NPM/pip package dependencies or remote bundle resolution.
-     - Run client-side in the sandbox, operate fully offline, and support export as portable standalone HTML files via the artifact viewer sidepanel.
-  4. **Eliminating Context Switching**:
-     - In-editor generative UI prevents external dashboard round-trips. Developers inspect runtime telemetry, performance benchmarks, and architecture graphs directly in the agent conversation loop.
-     - Accessible natively via natural language intent or the `/generative_ui` slash command.
-
-### 6. Declarative Attention: Language Models Can Control Their Own Attention
-- **Source**:
-  - X Post: https://x.com/omarsar0/status/2095612805496164801
-  - Paper: arXiv:2609.02737 ("Language Models Can Control Their Own Attention")
-- **Authors / Institutions**: Namgyu Ho, Huzama Ahmad, Woosung Koh, Se-Young Yun (KAIST AI) & Tal Schuster, Cicero Nogueira dos Santos (Google DeepMind) / Curated by Elvis Saravia (@omarsar0)
-- **Core Thesis & Problem Definition**:
-  > *"Standard autoregressive transformers waste immense memory bandwidth brute-force scanning the entire Key-Value (KV) cache for every single token step, even though attention weights are intrinsically sparse. Language models can intrinsically declare and govern their own attention scopes during reasoning."*
-
-- **Mechanics & Protocol (Declarative Attention - DA)**:
-  1. **Self-Directed Attention Scoping**:
-     - Rather than relying on external heuristics, fixed sliding windows, or learned external retrieval routers, the LLM explicitly emits declarative tokens in its Chain-of-Thought (CoT) specifying its attention target before generating text.
-  2. **Three Operational Attention Modes**:
-     - **Global**: Full attention over all past context tokens (activated during initial context grounding, cross-document synthesis, or plan consolidation).
-     - **Focus**: Targeted attention restricted to declared segments, named context spans, or specific tool outputs/code blocks.
-     - **Local**: Sliding-window attention over immediate recent tokens for local syntactic formulation and intermediate deduction.
-  3. **High-Performance Inference Engine Implementation**:
-     - Integrated with **vLLM** and fully compatible with **FlashAttention**.
-     - Employs **block-aligned, in-place KV cache masking**: unselected cache blocks are completely skipped at the GPU memory bus level, converting theoretical attention sparsity into real-world latency and memory bandwidth gains.
-  4. **Empirical Benchmarks & Scaling Behavior**:
-     - Evaluated across 15 long-context benchmark tasks in zero-shot settings:
-       - **Gemma-4-31B**: Attended token count reduced by **52.0%** with a negligible **1.27 percentage point** accuracy delta.
-       - **Qwen-3.6-27B**: Attended token count reduced by **31.1%** with a **2.75 percentage point** accuracy delta.
-     - **Scaling Trend**: The accuracy gap between full attention and Declarative Attention strictly narrows as model scale increases, proving that larger models possess superior metacognitive ability to govern their own attention.
-
-### 7. Declarative Attention (alphaXiv Research Briefing)
-- **Sources**:
-  - X Post: https://x.com/askalphaxiv/status/2095678236722098292
-  - alphaXiv PDF: https://www.alphaxiv.org/pdf/2609.02737
-- **Author / Originator**: alphaXiv (@askalphaxiv)
-- **Core Summary & Key Insights**:
-  - Focuses on the breakthrough *"Language Models Can Control Their Own Attention"*.
-  - **Core Problem**: Long-context LLMs waste massive compute by scanning the entire Key-Value (KV) cache at every single decoding step, even when only a small region is semantically relevant to the next token.
-  - **Declarative Attention Architecture**:
-    - The model explicitly switches between three attention modes during reasoning:
-      1. **Global Attention**: Broad context synthesis across all tokens.
-      2. **Focused Attention**: Targeted retrieval on specific relevant chunks or memory slots.
-      3. **Local Attention**: High-speed narrow context processing.
-    - Allows modern inference engines (e.g., vLLM / FlashAttention) to physically skip reading irrelevant KV cache regions from memory bandwidth.
-  - **Empirical Validation**:
-    - Cuts attended tokens by **52% on Gemma-4-31B** with only $\approx 1.27\,\text{pp}$ accuracy drop.
-    - Cuts attended tokens by **31% on Qwen-3.6-27B** with only $\approx 2.75\,\text{pp}$ accuracy drop.
-
-### 8. Designing Proactive Thought Partners (Google DeepMind Study on Agent Proactivity)
-- **Sources**:
-  - X Post: https://x.com/omarsar0/status/2096780509540139364
-  - Paper: arXiv:2609.01588 ("Designing Proactive Thought Partners for Writing")
-- **Author / Originator**: Google DeepMind / Curated by Elvis Saravia (@omarsar0)
-- **Core Thesis & Research Problem**:
-  - Moves proactive AI assistance beyond low-level token autocompletion towards high-level cognitive thought partnership.
-  - Investigates how autonomous agents can determine when, why, and how to intervene unprompted without disrupting user flow or inducing cognitive overload.
-
-- **Key Insights & Interaction Architecture**:
-  1. **Prospective Scaffolding vs. Reactive Interruption**:
-     - Users configure support agents prospectively (setting roles, expectations, and proactivity thresholds before initiating complex workflows) rather than reacting to mid-flow popups.
-  2. **Dual Function: Idea Generation & Self-Monitoring**:
-     - Beyond content generation and brainstorming, users heavily utilized proactive agent outputs as self-monitoring and pacing anchors—a critical design consideration previously neglected in agent interfaces.
-  3. **Presentation & Rhetorical Framing Governs Perceived Intrusiveness**:
-     - Intrusiveness is dictated more by presentation ergonomics than intervention frequency.
-     - Lightweight visual cues (ambient markers, non-blocking sidebars) combined with non-directive rhetorical phrasing (e.g., posing open questions rather than imperative commands or unsolicited text overwrites) drastically improved user acceptance.
-  4. **Design Dimensions**:
-     - Successful proactive agents balance four core vectors: **Customization** (user-defined agency), **Timing** (event-driven vs. idle-driven pauses), **Engagement** (opt-in review), and **Representation** (ambient vs. focal UI).
-
-### 9. Normalized Low-Rank Adaptation (NoRA)
-- **Sources**:
-  - X Post: https://x.com/omarsar0/status/2096837122892485069
-  - Paper: arXiv:2608.31036 ("Normalized Low-Rank Adaptation (NoRA)")
-- **Author / Originator**: Curated by Elvis Saravia (@omarsar0)
-- **Core Thesis**:
-  > *"A one-line change to LoRA that costs nothing and improves convergence, stability, and forgetting."*
-
-- **Mechanics & Mathematical Motivation**:
-  1. **The LoRA Initialization Asymmetry**:
-     - In standard LoRA, the up-projection matrix $B$ is initialized to zero, while the down-projection matrix $A$ is initialized randomly (e.g. Gaussian).
-     - Consequently, early optimization dynamics and gradient updates are governed almost exclusively by the down-projection matrix $A$.
-  2. **The NoRA Regularization Fix**:
-     - NoRA normalizes the down-projection matrices during training.
-     - **One-Shot Initialization Alternative**: The authors prove that simply normalizing matrix $A$ once at initialization yields substantial gains without needing dynamic normalization during training steps (the cheapest variant).
-  3. **Zero-Cost Architectural Advantage**:
-     - **0 Additional Trainable Parameters**: Uses the identical rank $r$ parameterization as standard LoRA.
-     - **0 Inference Overhead**: Weights fold directly into base model weights via $W = W_0 + \Delta W$ at merge time.
-  4. **Empirical Performance Across Workflows**:
-     - Demonstrates universal improvements across Pretraining, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL).
-     - Accelerates training convergence, yields superior final benchmark accuracy, enforces optimization stability, and significantly mitigates catastrophic forgetting.
-
-### 10. Rethinking Skills and Prompts for Modern Frontier Models (Eric Provencher on GPT-6 Astra)
-- **Source**:
-  - X Article: https://x.com/pvncher/status/2095991462416490862 / https://x.com/i/article/2095989703967125509
-- **Author / Originator**: Eric Provencher (@pvncher)
-- **Core Thesis**:
-  > *"What used to require a lot of handholding and scaffolding no longer does. If you’ve been using agents over the last year, you’ve likely accumulated bloated instructions. With frontier reasoning models like GPT-6 Astra, over-scaffolding actively degrades agent performance."*
-
-- **Key Principles & Operational Guidelines**:
-  1. **Skill System Hygiene & Anti-Patterns**:
-     - **Context Squashing**: Each installed skill loads its name and description into the system prompt. When descriptions are verbose or skills are numerous, the agent environment (Codex/Agy) truncates them to fit context budgets, impairing the agent's ability to discriminate between skills.
-     - **Eliminate "Pick-Me" Energy**: Skill descriptions must be minimal and strictly scoped to exact triggering conditions (e.g. "Run when executing database schema migrations" vs. broad "Run whenever database files are referenced").
-     - **Progressive Disclosure as Router**: The root skill file (`SKILL.md`) should act strictly as a lightweight router pointing to auxiliary documentation and scripts, pulling in instructions JIT rather than bloating context upfront and hastening context window compaction.
-     - **De-emphasize Rigid Recipes**: Overly granular, step-by-step itineraries constrain modern high-reasoning models. Models handle ambiguity gracefully; over-specified instructions create brittle failure modes.
-  2. **AGENTS.md Context Discipline**:
-     - Prune legacy instructions that mandate reading the entire repo map or documentation before performing trivial edits (e.g. fixing typos). This burns tokens and drastically increases latency.
-     - Avoid redundant behavioral nudges (e.g., modern models naturally self-test; nagging prompts induce circular test loops).
-  3. **Permission Scaffolding & Safe Autonomy**:
-     - Frontier models exhibit heightened respect for decision boundaries. Guardrails written to restrain older, errant models cause modern models to freeze or ask for needless confirmation.
-     - Provide explicit, scoped autonomy waivers for safe environments (e.g., local disposable test fixtures: *"Run tests, fix failures caused by the change, and rerun without asking for approval at each step"*).
-  4. **Defining Completion & Persistence**:
-     - Frontier models can be tentative regarding task termination, sometimes pausing after a first-pass draft.
-     - Define completion up-front in the request (e.g. specify that completion requires building, testing, verifying, and fixing until green) rather than allowing implicit early stopping.
-
-### 11. Eliminating Mannered Prose (Anthropic's Style Architecture for Claude Fable 5.1 & GPT-5.6 Sol)
-- **Sources**:
-  - X Post: https://x.com/omarsar0/status/2097059598960132110
-  - DAIR.AI Resource Guide: https://academy.dair.ai/resources/write-better-with-claude-fable-5-1
-  - Anthropic Documentation: *Prompting Claude Fable 5.1: Writing density*
-- **Author / Originator**: Anthropic / Curated & Tested by Elvis Saravia (@omarsar0)
-- **Core Problem Definition**:
-  - Frontier language models (specifically Claude Fable 5.1 and GPT-5.6 Sol) often succumb to "mannered prose"—overloading sentences with decorative metaphors, performative flourishes, and indirect figurative language instead of clear, literal declarations.
-  - Examples of mannered degradation:
-    - *"a dial worth turning"* instead of *"a parameter worth varying"*
-    - *"this point earns its keep"* instead of *"this point still matters"*
-    - *"gives your budget a clearer runway, while manual entry remains a path you can continue to walk"* instead of *"saves you time. You can still enter every expense by hand if you prefer."*
-  - **The Failure of "Be Concise"**: Generic imperatives like "Be concise" merely set an ambiguous goal without giving the model diagnostic criteria for identifying or pruning performative language.
-
-- **The Canonical De-Mannering Prompt Contract**:
-  > *"Mannered prose substitutes metaphor and flourish for direct statement. Instead of 'a parameter worth varying,' the mannered writer produces 'a dial worth turning.' Instead of 'this point still matters,' they write 'this point earns its keep.' The phrases exist to display the writer, not to convey the idea, and readers can tell. That is why mannered prose irritates: it makes the reader work harder so the writer can perform. It is also imprecise. Metaphors drag in connotations the writer did not choose and cannot control. The fix is to say what you mean. When a literal phrase is available, use it."*
-
-- **Key Takeaways & Universal Applicability**:
-  1. **Diagnostic Contrast Mechanism**: The prompt works because it defines the flaw, provides concrete before/after pairs, outlines the cognitive friction imposed on the reader, and supplies a clear operational test ("When a literal phrase is available, use it").
-  2. **Zero-Latency Shorthand**: In compact workflows or system prompt constraints, Anthropic verified that the directive *"Please remove all mannered prose"* reliably triggers this exact behavior without requiring the full descriptive paragraph.
-  3. **Cross-Architecture Generalization**: Evaluated across multiple frontier model families—delivering identical density, clarity, and precision improvements in GPT-5.6 Sol as in Claude Fable 5.1.
-
-### 12. Harness Engineering: Definitive Paper Collection & Evolutionary Taxonomy (YC Paper Club & DAIR.AI)
-- **Sources**:
-  - X Post: https://x.com/omarsar0/status/2097449131648197024
-  - Paper Collection: https://academy.dair.ai/papers/collections/harness-engineering
-- **Curated By**: Elvis Saravia (@omarsar0) / YC Paper Club / DAIR.AI Academy
-- **Core Thesis**:
-  > *"Harness engineering is the single highest-leverage agent skill today. On identical model weights, performance scales from a 30% baseline to 95.5% on ARC-AGI-3 purely by optimizing the execution harness, verifiers, and recursive scaffolding."*
-
-- **The Five Evolutionary Eras of Harness Engineering**:
-  1. **Phase 1: The V0 Harness (The Bare In-Context Sampling Loop)**:
-     - **Bare Loop** (*Radford et al., 2019*): `while-not-EOS` sampling loop with temperature/top-p. Zero external memory, zero tools, zero skills.
-     - **In-Context Exemplars** (*Brown et al., 2020*): Appending solved input/output pairs into prompt context without altering the underlying loop.
-     - **Chain-of-Thought (CoT)** (*Wei et al., 2022*): First output-space intervention—spreading latent computation over sequential explicit tokens instead of forcing single-step answers.
-  2. **Phase 2: Static Harnesses (Expanding the External Action Space)**:
-     - **WebGPT** (*Nakano et al., 2021*): Breaching context boundaries to browse the web with interactive human feedback.
-     - **Toolformer** (*Schick et al., 2023*): Substituting in-weight calculations with emitted API tool-call tokens executed by the harness.
-     - **ReAct** (*Yao et al., 2022*): Interleaving Thought $\rightarrow$ Action $\rightarrow$ Observation cycles—the core operational loop of modern autonomous agents.
-     - **Self-Refine** (*Madaan et al., 2023*): In-context critic loop where the model evaluates and rewrites its own draft without external environment feedback.
-     - **Reflexion** (*Shinn et al., 2023*): Verbal reinforcement learning—translating environmental failure signals into natural language episodic reflection stored in working memory.
-     - **InterCode** (*Yang et al., 2023*): Interactive coding environment turning terminal execution feedback into a standard tool interface.
-     - **Multi-Agent Collaboration** (*Talebirad & Nadiri, 2023*): Spawning persistent, role-specialized peer agents via tool invocations.
-     - **Voyager** (*Wang et al., 2023*): The origin of agent skills—chaining tool sequences, verifying execution against environments (Minecraft), and saving proven routines into a persistent skill library.
-     - **MemGPT** (*Packer et al., 2023*): LLMs as Operating Systems—giving agents explicit CRUD operations over distinct memory tiers (RAM/working context vs. disk/long-term archival memory).
-     - **Recursive Language Models (RLM)** (*Zhang, Kraska, Khattab, 2025*): Embedding LLM calls inside an execution REPL that can spawn recursive LLM calls over large document partitions, eliminating static context limits.
-  3. **Phase 3: Learning Harnesses (Self-Optimizing Scaffolding)**:
-     - **DSPy** (*Khattab et al., 2023*): Compiling declarative LM pipelines by algorithmically searching over prompts and few-shot selectors against objective metrics.
-     - **GEPA** (*Agrawal et al., 2025*): Reflective prompt evolution that inspects natural language traces of failed episodes and mutates prompts to outperform traditional RL.
-     - **Darwin Gödel Machine** (*Zhang et al., 2025*): Open-ended evolutionary agents that sample from ancestor archives, rewrite their own scaffolding code, and benchmark themselves on code tasks.
-     - **Meta-Harness** (*Lee et al., 2026*): A meta-system that writes, tests, and optimizes harnesses, retries, and verification gates end-to-end.
-     - **Continual Harness** (*Karten et al., 2026*): Online adaptation that maintains and mutates history, memory cards, skills, prompts, and sub-agent topologies live during execution.
-  4. **Phase 4: Frontier Deployed Harnesses (2026)**:
-     - **Prime Agent** (*Karten et al., 2026*): Persistent IPython REPL with recursive, addressable sub-agents and verification suites—scaling ARC-AGI-3 scores to **95.5%**.
-     - **OpenJarvis** (*Saad-Falcon et al., 2026*): On-device personal agent decomposing system capabilities into five atomic primitives orchestrated by cloud models while preserving local privacy.
-     - **QM (YC Multiplayer Harness)**: YC's open-source multi-agent collaboration harness for autonomous co-development.
-  5. **Phase 5: Evaluation Horizon Measurement**:
-     - **Measuring AI Ability to Complete Long Software Tasks** (*Kwa et al., 2025*): Redefining agent capability measurement from single-turn snapshot evals to temporal and complexity horizons over extended multi-hour task trajectories.
-
-### 13. Spec-Driven Regeneration & Literate Typed Graphs ("Design Docs Are All You Need" & x0k-folio)
-- **Sources**:
-  - X Post: https://x.com/omarsar0/status/2096983084956852537
-  - Paper: arXiv:2609.05364 (*"Design Docs Are All You Need: An AI-Native Machine Learning Performance Tool"*)
-  - GitHub Repository: https://github.com/0k-dot-computer/x0k-folio
-- **Authors / Institutions**: Google DeepMind, MIT, et al. / Curated by Elvis Saravia (@omarsar0) / 0k.computer
-- **Core Thesis & Paradigm Shift**:
-  > *"When abstractions rot rapidly across hardware and model generations, maintaining code manually is an anti-pattern. The main branch contains almost no hand-written code—only a directed graph of natural language design docs. Coding sub-agents regenerate the entire library from design docs on every update."*
-
-- **System Architecture & Key Innovations**:
-  1. **"Design Docs Are All You Need" (DeepMind / MIT)**:
-     - **Code-Free Repository**: The codebase is maintained purely as natural language architectural specs and step-by-step worked examples.
-     - **Autonomous Sub-Agent Regeneration**: Coding sub-agents compile the design docs into complete runnable software implementations upon every release/version bump.
-     - **Grounding Pillars for Reliability**:
-       - *Step-by-Step Worked Examples*: Serve as in-context demonstrations that bound agent ambiguity and guide generation.
-       - *Minimal Symbolic IR*: Anchored on a recursively defined operator Intermediate Representation (IR) with symbolic cost expressions in SymPy.
-     - **Verifiable Precision**: Regenerated implementations match hand-audited reference performance models down to round-off error (e.g. serving DeepSeek-V3 across TPU pod slices).
-  2. **x0k-folio: AI-Native Literate Programming & Typed Document Graphs**:
-     - **Tangle & Weave for AI Agents**:
-       - `tangle`: Extracts executable source code directly out of markdown design documents for compilers.
-       - `weave`: Renders interactive, hyperlinked documentation where every code reference connects to its ontological definition.
-     - **Typed Document Graph & Ontologies**: Uses RDF/Turtle (`x0k-ontology`) to declare concepts, classes, and affordances (e.g., specifying allowed actors `[human, ai_agent]` and software module dependencies).
-     - **CI Verification**: Continuous integration verifies that committed source files strictly correspond to the code blocks in the design documents, ensuring prose and implementation never drift out of sync.
-     - **Durable Reasoning Recovery**: Gives subsequent human engineers and autonomous agents complete context recovery regarding *why* an architectural decision was made before touching the implementation.
-
-### 14. Agents, Loops, Graphs: The Unified Architecture Framework (Mahaximus)
-- **Sources**:
-  - Notion Document: https://app.notion.com/p/Agents-Loops-Graphs-Everything-You-Need-to-Know-in-One-Place-3b613313097a815a946fcb5d01feee42
-  - X Guide & Video: https://x.com/mahaximus_/status/2085024744387092973 / https://x.com/Mahaximus_/status/2085725676145975422
-- **Author / Originator**: Mahaximus (@mahaximus_)
-- **Core Thesis**:
-  > *"Most people use AI in a linear chat: ask, read, fix, ask again. That is the slowest possible way. Advanced agent architectures break down into three distinct structural components: Agents (autonomous execution), Loops (falsifiable self-correction), and Graphs (parallel multi-agent orchestration)."*
-
-- **The Tripartite Architecture**:
-  1. **Part 1 — Agents (The Anatomy of Autonomous Execution)**:
-     - **Definition**: An agent is not a smarter model; it is a model surrounded by **Tools** (unsupervised search/read/write/run), **Memory** (retention of past decisions and attempts), and a **Loop** (persisting until goal completion rather than emitting a single conversational turn).
-     - **Four Autonomy Levels**:
-       - *Level 1 (Chat)*: Direct human driving.
-       - *Level 2 (Tool-augmented)*: Model autonomously decides when to query tools before replying.
-       - *Level 3 (Multi-step work)*: Model decomposes high-level goals, plans, executes, verifies, and hands off finished deliverables.
-       - *Level 4 (Fully Autonomous)*: Event/schedule-triggered headless execution with zero in-the-loop intervention.
-     - **Triad of Agent Invariants**:
-       - *Research Agent*: Strict relevance filtering, mandatory citations per claim, explicit contradiction flagging.
-       - *Data Agent*: Interpretation over description, outlier detection, single prescriptive decision sentence.
-       - *Code Agent*: Working code over promising code, mandatory mental dry-run trace, single-sentence root-cause explanation for bug fixes.
-     - **Structured Memory Checkpoint Protocol**:
-       - *Mid-task Checkpoint*: <150 words capturing completed sub-tasks, architectural decisions with rationale, pending work, and new-session resumption tokens.
-       - *Long-context Compression*: Re-grounding on original goal, empirical findings, and remaining tasks as a fresh starting point.
-       - *Session Handoff*: Resuming from checkpoint state without repeating work.
-  2. **Part 2 — Loops (Falsifiable Self-Correction & Quality Gates)**:
-     - **The 5-Step Loop**: `PLAN` $\rightarrow$ `EXECUTE` $\rightarrow$ `CHECK` $\rightarrow$ `ITERATE` $\rightarrow$ `STOP`.
-     - **Two Non-Negotiable Invariants**:
-       - *Falsifiable Check*: The check must be capable of failing (a binary pass/fail test or harsh numerical threshold). Soft checks lead to models hallucinating completion.
-       - *Hard Stop Limit*: Bounded iteration count (e.g. max 8 attempts) to prevent infinite loops and runaway compute spend.
-     - **Viability Filter**: Only deploy a loop if (1) task is repeated, (2) output can grade itself objectively, (3) zero babysitting is required, and (4) "done" is a measurable fact rather than subjective taste.
-     - **The Canonical One-Prompt Loop**:
-       `DRAFT` $\rightarrow$ `SCORE` (rate 1–10 harshly against strict measurable criteria) $\rightarrow$ `GAPS` (isolate weakest point) $\rightarrow$ `CALL` (if all criteria $\ge 8$, mark `DONE` and stop; else `NEXT PASS` focusing exclusively on the lowest-scoring gap).
-  3. **Part 3 — Graphs (Parallel Multi-Agent Workflows & The Diamond Pattern)**:
-     - **Definitions**:
-       - *Node*: Atomic job with strict JSON input/output schemas (rejecting and retrying non-conforming structures).
-       - *Edge*: True data dependency (Node B only depends on Node A if B strictly consumes A's payload).
-     - **The Fake Edge Test**: Audit workflow arrows to remove artificial sequential constraints, converting serialized bottlenecks into parallel pipelines.
-     - **The Diamond Orchestration Pattern**:
-       - *Fan Out*: Spawn parallel independent worker agents simultaneously across distinct task dimensions/angles.
-       - *Deterministic Reduce*: Aggregate raw findings via plain code (deduplication/filtering) at zero token cost.
-       - *Independent Skeptic Verification*: Fresh-context evaluator agents attempt to aggressively disprove each survivor (`keep` or `drop`).
-       - *Convergence Synthesis*: Single synthesis agent compiles verified survivors into the final structured report.
-
-### 15. Hermes + Gemini Notebook: Autonomous Multi-Modal Content Operating System (Julian Goldie)
-- **Source**:
-  - X Post & Video Breakdown: https://x.com/JulianGoldieSEO/status/2091963756699930769
-- **Author / Originator**: Julian Goldie (@JulianGoldieSEO)
-- **Core Thesis**:
-  > *"Most people use NotebookLM for research, generate one thing, and abandon it. This architecture converts passive notebook research into an automated production loop and persistent memory engine: Research in $\rightarrow$ Content out $\rightarrow$ Memory saved $\rightarrow$ Next run gets smarter."*
-
-- **Four-Tier Architecture & Flywheel Pipeline**:
-  1. **Tier 1: Multi-Modal Research Brain (Gemini Notebook / NotebookLM)**:
-     - Grounds reasoning in diverse source documents: technical PDFs, web pages, YouTube video transcripts, Google Drive files, Google Docs, and raw audio files.
-     - Serves as the immutable factual substrate, preventing hallucinations.
-  2. **Tier 2: Agentic Orchestration Layer (Hermes + MCP)**:
-     - Hermes connects directly to Gemini Notebooks via the Model Context Protocol (MCP).
-     - Autonomously executes structured queries, extracts evidence cards and citations, and expands a single research query into multi-channel production artifacts.
-     - Concurrently outputs: Video scripts, long-form technical/LinkedIn posts, structured email sequence introductions, and short-form video clip scripts.
-  3. **Tier 3: Programmatic Video & Audio Rendering Engine (Hyperframes)**:
-     - Bridges written agent outputs into rendered multimedia deliverables.
-     - Automates complete MP4 video generation: HTML/CSS programmatic canvas visuals, styled title cards, word-level synchronized subtitles/captions, and naturalistic TTS voice narration.
-  4. **Tier 4: Durable Memory Vault (Obsidian Vault Integration)**:
-     - Automatically logs every generated asset, source citation, content angle, and campaign context into a structured local Obsidian Markdown vault.
-     - Eliminates the multi-session amnesia problem: before drafting new deliverables, Hermes audits previous vault entries to maintain stylistic continuity, brand voice, and avoid duplicate topic coverage.
+> **Based on**: `research.md` (46 milestones, 5 eras) cross-referenced against live system state.  
+> **Written**: 2026-09-10  
+> **Invariants**: All developer commands use native `hermes <cmd>` subcommands or `/cmd` slash commands only — **zero raw python, zero make, zero shell wrappers**.
 
 ---
 
----
+## Audit Summary: What We Have vs What We Should Have
 
-# PART II: Comprehensive System & Codebase Audits
+### System State (as of this writing)
+- **16 plugins active** in `config.yaml`: all registered correctly.
+- **107 synthetic junk files** in `.hermes/knowledge/concepts/` — all `ast_community_*.md`.
+- **`demo_validator` plugin**: stub — `register()` is a no-op `pass`.
+- **`cog_verifier` plugin**: stub — `register()` is a no-op `pass`.
+- **No `lora_adapter` plugin** in `.hermes/plugins/` — only a test file exists.
+- **No `cactus_uncertainty` plugin** in `.hermes/plugins/` — only a test file exists.
+- **No `embedding_gemma` plugin** in `.hermes/plugins/`.
+- **`hypothesis_tree.py` in `bin/`** — standalone script writing to `/dev/shm/`, not wired as a native Hermes hook.
+- **`biome`** is installed at `~/.local/bin/biome` but **not wired** into `demo_validator`.
+- **NeMo Guardrails `colang_version: "1.0"`** — `nemoguardrails==0.24.0` supports Colang 2.0.
+- **`n8n` MCP stub** present in `optional-mcps/` — discard artifact.
+- **`skills/`** has 16 category folders — content untested, no usage monitoring.
+- **NoRA** is documentation only — no online training pipeline wired.
 
-## 1. Structural Layout Audit: The `.hermes/hermes-agent` Anomaly & Workspace Collisions
-### 1. Upstream Layout vs Current Layout
-
-#### The Upstream NousResearch Architecture (How Hermes is designed to work):
-```
-[Engine / Runtime Layer] (Installed package or dev repo)
-├── Installed via: `pip install hermes-agent` OR cloned in `~/Development/hermes-agent`
-├── Entry point: `hermes` CLI (from `hermes_cli.main`)
-├── Bundled Plugins: `plugins/` (browser, kanban, image_gen, platforms, model-providers)
-└── Bundled Skills: `skills/` (builtin community skills)
-
-[User State & Dotfile Layer] (Lives at ~/.hermes/ or $HERMES_HOME)
-├── config.yaml          # Model, provider, tool guardrails, web backend
-├── SOUL.md              # System prompt & behavioral constitution
-├── plugins/             # User-installed plugins (e.g. quorum_audit, gepa_optimizer)
-├── skills/              # User-installed custom skills
-├── memory/              # Durable memory, session cards, state.db
-└── plan.json            # Active session milestone tracking
-```
-
-#### What We Actually Have (The Distorted Nested Layout):
-```
-/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/  ($HOME inside ws-hermes)
-├── .hermes/                                                 (State AND Engine mixed together!)
-│   ├── hermes-agent/                                        <-- FULL UPSTREAM REPO CLONED INSIDE STATE DIR!
-│   │   ├── .git/                                            (Unmanaged git repository inside chezmoi!)
-│   │   ├── hermes_cli/                                      (The actual running CLI)
-│   │   ├── plugins/                                         (Upstream bundled plugins)
-│   │   ├── skills/                                          (Upstream bundled skills)
-│   │   ├── tools/                                           (Upstream tools)
-│   │   └── tests/                                           (13,000+ upstream tests)
-│   ├── plugins/                                             <-- DUPLICATE: User plugins folder
-│   ├── skills/ & private_skills/                            <-- DUPLICATE: User skills folder
-│   ├── tests/                                               <-- DUPLICATE: 25 bespoke unit tests
-│   ├── bin/                                                 <-- DUPLICATE: 15 bespoke python scripts
-│   ├── src/hermes_core/                                     <-- DUPLICATE: 68 bespoke python files mimicking the engine
-│   ├── config.yaml
-│   └── SOUL.md
-├── tests/                                                   <-- TRIPLICATE: Root test contracts
-├── pyproject.toml                                           <-- GHOST PACKAGE: Declares "hermes-harness", not "hermes-agent"
-└── .local/share/chezmoi/                                    (Tracks .hermes/ but CANNOT track .hermes/hermes-agent/)
-```
+### Critical Findings
+| Finding | Severity | Impact |
+|:--------|:--------:|:-------|
+| `demo_validator` is an empty stub | HIGH | HTML artifacts go unvalidated — violates Finish-First |
+| `cog_verifier` is an empty stub | HIGH | Knowledge vault has no verification gate |
+| 107 synthetic junk concept files | HIGH | Corrupts COG second brain; pollutes semantic search |
+| `hypothesis_tree.py` is a standalone bin/ script | HIGH | Two-Strike Tabu not hooked into agent lifecycle |
+| Cactus uncertainty uses mock entropy | MED | Clarification gate fires on fake math, not real logits |
+| EmbeddingGemma has no CPU-only enforcement | MED | Risk of VRAM thrashing alongside Gemma 4B |
+| NoRA has no training pipeline | MED | Weight normalization is theory-only |
+| NeMo Guardrails still on Colang 1.0 | MED | Missing Colang 2.0 `execution_rails` |
+| `n8n` MCP stub still present | LOW | Dead code; cloud dependency violation |
+| Skills folder untested, unmonitored | LOW | Unknown dead skills consuming context budget |
 
 ---
 
-### 2. Six Catastrophic Collisions Caused by This Layout
+## Phase 1 — Purge: Remove What Doesn't Belong
 
-1. **Collision 1: The Git-Inside-Git Chezmoi Blindspot**
-   - `.hermes/` is tracked by chezmoi via `private_dot_hermes/`.
-   - But `.hermes/hermes-agent` contains its own `.git/` folder.
-   - Chezmoi automatically ignores nested git repositories.
-   - **Consequence**: The entire 500MB `hermes-agent` engine is an untracked, unversioned orphan inside the dotfiles repository. Upstream updates cannot be managed cleanly by chezmoi, and dotfile syncs are prone to drift.
+**Goal**: Clean dead weight from the system. No new code until the graveyard is cleared.
 
-2. **Collision 2: The Six Overlapping Folder Names**
-   - Both `.hermes/` and `.hermes/hermes-agent/` contain: `assets/`, `cron/`, `plugins/`, `scripts/`, `skills/`, `tests/`.
-   - When Python or the agent searches for a skill or plugin, path resolution depends on arbitrary `sys.path` order.
-   - To work around this collision, someone invented `private_skills/` and a custom `FourTierSkillRouter` just to avoid collisions with `hermes-agent/skills/`!
+### 1.1 — Delete 107 Synthetic Concept Files
 
-3. **Collision 3: The Ghost Package Conflict (`hermes-agent` vs `hermes-harness`)**
-   - In `.local/lib/python3.13/site-packages`:
-     - `hermes_agent-0.20.6` is installed in editable mode from `.hermes/hermes-agent`
-     - `hermes_harness-1.0.0` is installed in editable mode from `.hermes/src`
-   - `hermes_harness` declares entry points `hermes = "hermes_harness.cli:main"`.
-   - But `hermes_harness.cli` DOES NOT EXIST! (The package in `src` is `hermes_core`, not `hermes_harness`).
-   - The wrapper script `.local/bin/hermes` has to explicitly run `python3.13 -m hermes_cli.main` to avoid hitting the broken entry point.
+**Problem**: `research.md` item #5 — we generated 107 `ast_community_*.md` synthetic mock files with zero real content. They pollute the knowledge vault and corrupt any semantic search over `.hermes/knowledge/concepts/`.
 
-4. **Collision 4: The Triple Test Suite Fragmentation**
-   - Test suite 1: `.hermes/hermes-agent/tests/` (13,000+ upstream test files)
-   - Test suite 2: `.hermes/tests/` (25 white-box unit tests)
-   - Test suite 3: `tests/` at workspace root (43 contract tests + 8 runners)
-   - Running `pytest` from the root discovers inconsistent test fixtures and conflicting `conftest.py` path injections.
+**Action**:
+- Delete all 107 `ast_community_*.md` files from `.hermes/knowledge/concepts/`.
+- Retain any non-synthetic real concept documents (if any exist alongside them).
+- Verify: `hermes exam` must still pass 98/98 after deletion.
 
-5. **Collision 5: The Distrobox `$HOME` Aliasing Confusion**
-   - In the `ws-hermes` container, `$HOME` is configured as `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes`.
-   - This causes user home dotfiles (`.bashrc`, `.ssh/`, `.gitconfig`, `.npm/`, `.cache/`, `.local/`) to live in the root of the project workspace.
-   - Meanwhile, on the host, `$HOME` is `/var/home/imshubhamsocial/`, which contains ANOTHER `.hermes/` directory (`/var/home/imshubhamsocial/.hermes`), causing confusion between host state and container state.
-
-6. **Collision 6: Upstream Update Impasse**
-   - Because custom code was injected directly into `.hermes/` (adjacent to `hermes-agent`) rather than through the standard plugin/skill API, updating `hermes-agent` risks breaking path assumptions, shadowing modules, or creating import loops.
-   - By decoupling `hermes-agent` as an external package and converting all custom code into clean plugins in `~/.hermes/plugins/`, **Hermes can be updated with a simple `pip install --upgrade hermes-agent` or `hermes update`**, receiving all upstream features and bug fixes naturally with zero breakage.
+**Verification**: `hermes exam` → 98/98 PASSED
 
 ---
 
-### 3. The Target Clean Layout (True Plugin Architecture)
+### 1.2 — Delete n8n MCP Stub
+
+**Problem**: `research.md` item #17 — n8n is a cloud webhook automation stack. Its MCP manifest at `.hermes/hermes-agent/optional-mcps/n8n/` is dead code that references cloud endpoints, violating the local-first mandate.
+
+**Action**:
+- Remove `.hermes/hermes-agent/optional-mcps/n8n/` directory entirely.
+
+**Verification**: `hermes exam` → 98/98 PASSED
+
+---
+
+### 1.3 — Audit and Prune Dead Skills
+
+**Problem**: `research.md` item #23 — 16 skill category folders exist with unknown content. Skills like `social-media`, `mlops`, `apple`, `note-taking` have unknown/unmonitored content. No usage tracking exists.
+
+**Action**:
+- Inspect each category in `.hermes/skills/`.
+- Remove skill categories that are: (a) cloud-dependent, (b) social-media related, (c) have zero invocations.
+- Keep: `software-development`, `engineering`, `research`, `devops`, `github`.
+- Discard candidates: `social-media`, `apple` (Apple-specific), `smart-home`, `media`, `creative` (unless content is verifiable and local).
+- After pruning, register a `hermes skills list` subcommand via `openskills` plugin to enumerate active skills by category.
+
+**Verification**: `hermes exam` → 98/98 PASSED
+
+---
+
+## Phase 2 — Fix: Implement What's Broken (Stubs → Real Plugins)
+
+### 2.1 — Implement `demo_validator` Plugin
+
+**Problem**: `research.md` item #20 — `demo_validator` is a complete stub (`register()` → `pass`). HTML artifacts from the generative UI system go unvalidated. This violates the Finish-First invariant.
+
+**What We Missed**: Used naive character-counter regexes in the original implementation. Now we have `biome` at `~/.local/bin/biome` — a Rust-based JS/TS/HTML formatter/linter — and `ast-grep-py` for Tree-sitter HTML AST parsing.
+
+**Action**:
+- Implement `demo_validator/__init__.py`:
+  - `validate_html(html_str: str) -> dict` — uses `biome check --stdin-filepath=artifact.html` for structural validation.
+  - `validate_js(js_str: str) -> dict` — uses `biome check --stdin-filepath=artifact.js`.
+  - Register `hermes validate <file>` CLI subcommand.
+  - Register `/validate <file>` slash command.
+  - Register `pre_verify` hook: auto-validate any `.html`/`.js` artifact modified during a turn before completion.
+- Use `biome` via `subprocess` (it's a native binary at `~/.local/bin/biome`) — NOT as a wrapper/script; `demo_validator` is the native Hermes integration layer.
+
+**Verification**: `hermes validate <demo_file.html>` → `APPROVED ✓` or `REJECTED ✗` with specific error lines.
+
+---
+
+### 2.2 — Implement `cog_verifier` Plugin
+
+**Problem**: `research.md` item #5 — `cog_verifier` is a complete stub. The knowledge vault at `.hermes/knowledge/concepts/` has no verification gate — any markdown file (including synthetic junk) passes through unquestioned.
+
+**What We Missed**: COG verifier should enforce YAML frontmatter schema on each concept file: required fields `title`, `tags`, `source`, `era`, `status`.
+
+**Action**:
+- Implement `cog_verifier/__init__.py`:
+  - `verify_concept(path: str) -> dict` — parses YAML frontmatter, checks required fields, validates `status` is one of `[active, partial, deprecated]`.
+  - `list_concepts() -> list[dict]` — returns all valid concept files with their metadata.
+  - Register `hermes concepts list` CLI subcommand.
+  - Register `hermes concepts verify <file>` CLI subcommand.
+  - Register `/concepts` slash command → calls `list_concepts()`.
+  - Register `on_session_start` hook: scans `.hermes/knowledge/concepts/` on boot, reports count and any schema violations to context.
+- After Phase 1.1 (junk deletion), seed 5–10 real concept files with correct frontmatter covering: `graphiti-core`, `NeMo-guardrails`, `ast-grep-py`, `recirculation-adapter`, `branch-swapper`.
+
+**Verification**: `hermes concepts list` → shows real concept files. `hermes concepts verify <file>` → validates schema.
+
+---
+
+### 2.3 — Wire `hypothesis_tree.py` as a Native Plugin Hook
+
+**Problem**: `research.md` item #19 — `hypothesis_tree.py` is a standalone bin/ script writing to `/dev/shm/hypothesis_tree.json`. It must be manually invoked. This directly violates the Zero-Wrapper mandate.
+
+**What We Missed**: `hypothesis_tree.py` has the full Two-Strike Tabu MCTS implementation — it just isn't registered as a Hermes hook.
+
+**Action**:
+- Extend `branch_swapper/__init__.py` to import `hypothesis_tree` logic directly:
+  - The plugin imports `HypothesisNode`, `HypothesisTree` from the existing `bin/hypothesis_tree.py` (move module to `plugins/branch_swapper/hypothesis_tree.py`).
+  - Register `pre_verify` hook: on each turn, if a test fails, call `HypothesisTree.record_failure(branch_id, error)` and automatically backtrack.
+  - Register `hermes hypothesis status` CLI subcommand → shows current tree state from `/dev/shm/hypothesis_tree.json`.
+  - Register `/hypothesis` slash command → dumps active DAG.
+- Remove `bin/hypothesis_tree.py` after logic is moved to plugin (no orphan bin/ logic).
+
+**Verification**: `hermes hypothesis status` → shows tree. After a failing test, automatic backtrack is triggered via hook without manual invocation.
+
+---
+
+## Phase 3 — Complete: Finish the Partials
+
+### 3.1 — Cactus Uncertainty: Connect to Real Logprobs
+
+**Problem**: `research.md` item #29 — `test_cactus_uncertainty.py` uses synthetic mock entropy math (hardcoded floats). The clarification gate fires based on fake entropy values rather than real logit distributions from `llama-server`.
+
+**What We Missed**: `llama-server` at `http://127.0.0.1:8138` exposes `/completion` with `logprobs: true` parameter. Real token-level probability distributions are available.
+
+**Action**:
+- Create `.hermes/plugins/cactus_uncertainty/__init__.py`:
+  - `extract_logprobs(prompt: str, n_tokens: int = 5) -> list[dict]` — calls `POST /completion` with `{"logprobs": 5, "n_predict": 1}`, extracts top-k token probabilities.
+  - `compute_entropy(logprobs: list[float]) -> float` — real Shannon entropy from actual logit values.
+  - `should_clarify(entropy: float, threshold: float = 1.8) -> bool` — threshold calibrated to real model output.
+  - Register `pre_tool_call` hook: before any high-consequence mutation tool (write_file, run_command with mutations), call `should_clarify()` on the pending action plan.
+  - Register `hermes uncertainty <prompt>` CLI subcommand.
+  - Register `/uncertainty <prompt>` slash command.
+- Update `test_cactus_uncertainty.py` to call the real endpoint (skip if server not running).
+
+**Verification**: `hermes uncertainty "delete all logs"` → entropy above threshold → prints `CLARIFY BEFORE PROCEEDING`.
+
+---
+
+### 3.2 — EmbeddingGemma: CPU-Only Enforcement
+
+**Problem**: `research.md` item #28 — the embedding model risks being loaded onto GPU VRAM simultaneously with Gemma 4B (6GB card). This causes VRAM thrashing and OOM.
+
+**What We Missed**: No explicit CPU-device pinning is configured. The embedding profile exists but has no hard device constraint.
+
+**Action**:
+- Create `.hermes/plugins/embedding_gemma/__init__.py`:
+  - `get_embedder() -> SentenceTransformer` — explicitly sets `device="cpu"` in the constructor; never GPU.
+  - `embed(texts: list[str]) -> list[list[float]]` — returns normalized dense vectors.
+  - `semantic_search(query: str, corpus: list[str], top_k: int = 5) -> list[tuple]` — cosine similarity search.
+  - Register as an LLM-callable tool: `semantic_search` exposed via `ctx.register_tool`.
+  - Config: add `embedding_gemma.device: cpu` to `config.yaml` with a guard that raises if `cuda` is set.
+- Write a contract test: `test_embedding_device.py` — asserts `get_embedder().device == "cpu"`.
+
+**Verification**: `hermes exam` → test_embedding_device passes. VRAM usage unchanged when embedding is used.
+
+---
+
+### 3.3 — SkillEvaluator: Wire to Live Benchmarks
+
+**Problem**: `research.md` item #7 — the SkillEvaluator harness in `test_quorum_and_gepa.py` runs against static synthetic prompts hardcoded in the test file. No live task benchmark exists.
+
+**What We Missed**: A real benchmark should probe the live `llama-server` with before/after skill injection and measure delta task completion.
+
+**Action**:
+- Create `.hermes/benchmarks/skill_lift/` directory with:
+  - `benchmark.yaml` — define 10 canonical task prompts (coding tasks, debugging, refactoring) that represent real developer workflows.
+  - `runner.py` (called only via plugin, never directly) — imports `hermes_cli` API, runs each benchmark prompt with skill disabled then enabled, records token delta, latency, correctness score.
+- Register `hermes benchmark skills` CLI subcommand → runs the live benchmark suite.
+- Update `gepa_optimizer` plugin to consume benchmark results to auto-optimize GEPA prompts.
+
+**Verification**: `hermes benchmark skills` → outputs delta table showing skill lift per skill.
+
+---
+
+### 3.4 — NoRA: Wire Online Adaptation Pipeline (Stage 1)
+
+**Problem**: `research.md` item #38 — NoRA (Normalized Low-Rank Adaptation) is documented in test files and mathematical comments but has no running pipeline. Weight updates don't flow from verified task outcomes back into the model.
+
+**What We Missed**: An online adaptation loop requires: (1) a training signal from verified outcomes, (2) weight update via LoRA, (3) hot-swap of adapter in `llama-server`.
+
+**Action** (Stage 1 — Signal Capture only; Stages 2–4 blocked on llama.cpp API):
+- `reflective_learner_adapter` `on_session_end` hook: capture task outcome (pass/fail) + skill trace → write to `~/.hermes/training_buffer/` as JSONL.
+- Register `hermes nora status` CLI subcommand → shows buffer size, pending updates, and last verified outcome.
+- Create `.hermes/knowledge/concepts/nora-pipeline.md` — documents all 4 stages and the Stage 2–4 blocker (llama.cpp lacks public LoRA hot-swap API).
+
+**Verification**: `hermes nora status` → shows training buffer state after a session ends.
+
+---
+
+### 3.5 — Declarative Attention: Document the Ceiling
+
+**Problem**: `research.md` item #36 — the context compactor emulates attention mask control via prompt trimming. Real attention mask editing requires PyTorch/vLLM internal hooks that llama.cpp doesn't expose.
+
+**Action**:
+- Create `.hermes/knowledge/concepts/declarative-attention.md` with YAML frontmatter `status: partial`.
+- Content: "True attention mask editing requires vLLM or PyTorch model access. Current implementation uses context compaction (slot pruning) as an approximation via `recirculation_adapter`. This is an architectural ceiling until llama.cpp exposes internal layer attention APIs."
+- Add a note in `SOUL.md` system capabilities section.
+
+**Verification**: `hermes concepts verify declarative-attention.md` → schema valid.
+
+---
+
+## Phase 4 — Upgrade: Modernize What's Outdated
+
+### 4.1 — NeMo Guardrails: Migrate to Colang 2.0
+
+**Problem**: `research.md` item #45 — `nemoguardrails==0.24.0` supports Colang 2.0 with `execution_rails` (event-driven reactive flows), but `guardrails/config.yml` is pinned to `colang_version: "1.0"`.
+
+**What We Gain**: Colang 2.0 introduces `flow` definitions, `activate` statements, and event-driven rail triggers — significantly more expressive than Colang 1.0 pattern matching.
+
+**Action**:
+- Read NeMo Guardrails 0.24.0 migration guide for Colang 2.0 syntax differences.
+- Migrate `.hermes/guardrails/`:
+  - `config.yml`: change `colang_version: "1.0"` → `colang_version: "2.x"`.
+  - `input_rails.co` → rewrite blocked patterns using Colang 2.0 `flow` syntax.
+  - `dialog_rails.co` → rewrite role checks using Colang 2.0 `activation` patterns.
+  - `output_rails.co` → migrate secret redaction patterns.
+  - `loop_rails.co` → rewrite loop ceiling using Colang 2.0 event triggers.
+- Run full contract test suite after migration: `hermes exam` → 98/98 PASSED.
+- Update `nemo_guardrails/__init__.py` `HermesGuardrailsEngine` if method signatures changed in 0.24.0.
+
+**Verification**: `hermes exam` → 98/98 PASSED with Colang 2.0 active.
+
+---
+
+## Phase 5 — Seed: Real Knowledge Vault Content
+
+**Problem**: After deleting 107 synthetic junk files (Phase 1.1), the knowledge vault will be empty. It needs real, high-signal concept documents representing the actual research ingested into Hermes.
+
+**Action**:
+- Create 10 canonical concept files with correct YAML frontmatter (`title`, `tags`, `source`, `era`, `status`):
+
+| File | Concept |
+|:-----|:--------|
+| `graphiti-core.md` | Temporal knowledge graph and episodic memory |
+| `nemo-guardrails.md` | Colang rail system for input/dialog/output/loop safety |
+| `ast-grep-py.md` | Tree-sitter structural AST search and syntax validation |
+| `recirculation-adapter.md` | System-2 prefill loops and Lyapunov convergence proxy |
+| `branch-swapper.md` | Two-Strike Tabu MCTS hypothesis tree and rollback |
+| `adk-orchestrator.md` | Google ADK 2.8.0 SequentialAgent/LoopAgent/RouterAgent topologies |
+| `observer-gate.md` | Pre-verify ruff + ast-grep-py audit gate |
+| `lora-adapter-manager.md` | Dynamic LoRA hot-swap under 6GB VRAM envelope |
+| `cactus-uncertainty.md` | Real logprob entropy gate for clarification triggering |
+| `declarative-attention.md` | Context compaction ceiling + true attention mask blocker |
+
+- Each file must pass `hermes concepts verify <file>`.
+
+**Verification**: `hermes concepts list` → 10 entries, all schema-valid.
+
+---
+
+## Completion Criteria
+
+All phases are done when:
+
+1. `hermes exam` → **98/98 PASSED** (or higher, if new tests are added).
+2. `hermes concepts list` → shows **10 real concept files**, zero `ast_community_*` entries.
+3. `hermes validate <html_file>` → returns APPROVED/REJECTED (not stub).
+4. `hermes concepts verify <file>` → validates frontmatter schema (not stub).
+5. `hermes hypothesis status` → shows live hypothesis tree (not bin/ script).
+6. `hermes uncertainty "..."` → uses real llama-server logprobs (not mock math).
+7. `hermes benchmark skills` → outputs real skill lift delta table.
+8. `hermes nora status` → shows training buffer state.
+9. `hermes exam` → Colang 2.0 rails active, all safety tests passing.
+10. `.hermes/hermes-agent/optional-mcps/n8n/` → deleted.
+
+---
+
+## Execution Order
 
 ```
-[Installed Engine] (Installed via pip/uv into python site-packages)
-  hermes-agent (version >= 0.20.6)
-  ├── Provides: `hermes` CLI, core loop, gateway, bundled tools, TUI
-  └── Updatable via: `pip install --upgrade hermes-agent` or `hermes update`
+Phase 1 (Purge)           Phase 2 (Fix Stubs)          Phase 3 (Complete Partials)
+  1.1 Delete junk    →      2.1 demo_validator     →      3.1 Cactus live logprobs
+  1.2 Remove n8n            2.2 cog_verifier               3.2 EmbeddingGemma CPU-only
+  1.3 Prune skills          2.3 hypothesis_tree hook        3.3 SkillEvaluator benchmarks
+                                                             3.4 NoRA pipeline Stage 1
+                                                             3.5 Document attention ceiling
 
-[Dotfiles & Agent State] (~/.hermes/ — Tracked cleanly by Chezmoi)
-  ~/.hermes/
-  ├── config.yaml          # Clean config (model, loop guardrails, providers)
-  ├── SOUL.md              # System prompt & operational laws
-  ├── hermes-pack.yaml     # Declarative plugin pack definition
-  ├── plugins/             # ONLY custom plugins (each with plugin.yaml + __init__.py)
-  │   ├── quorum_audit/    # Quorum consensus & AST pre-commit gate (uses ast-grep-py)
-  │   ├── gepa_optimizer/  # Reflective prompt evolution (uses dspy MIPROv2)
-  │   ├── mcp_tools/       # FastMCP tools (uses crawl4ai + fastembed + ast-grep-py)
-  │   ├── graphiti_memory/ # Temporal episodic memory (uses graphiti-core)
-  │   └── nemo_guard/      # NeMo guardrails bridge (Colang policies)
-  ├── skills/              # Custom skills (all 91 skills consolidated here!)
-  │   └── */SKILL.md       # Progressive disclosure L0/L1/L2
-  └── memory/              # state.db, plan.json, knowledge cards
+Phase 4 (Upgrade)         Phase 5 (Seed Content)
+  4.1 Colang 2.0     →      5.x 10 real concept files
 ```
 
----
-
----
-
-## 2. High-Level Subsystem Inventory & Current State Audit
-### Architecture Overview
-
-Hermes is a fully self-contained, chezmoi-managed personal AI agent harness running inside the `ws-hermes` Distrobox container. Core components:
-
-| Layer | Path | Description |
-|:------|:-----|:------------|
-| **Inference** | `llama-server` at `:8138` | llama.cpp server, Gemma-4-4B, 65536 ctx |
-| **Agent Engine** | `.hermes/hermes-agent/` | The upstream Hermes agent runtime (CLI, conversation loop, tools, plugins, TUI gateway, web server) |
-| **Core Library** | `.hermes/src/hermes_core/` | ~60 Python modules: agent_os, GEPA, quorum, skill routing, embeddings, context sieve, task graph, trajectory, etc. |
-| **Config** | `.hermes/config.yaml` | Model, terminal, browser, web backend, tool-loop guardrails, plugin registry |
-| **System Prompt** | `.hermes/SOUL.md` | 19-rule behavioral constitution (the agent's character and operating law) |
-| **Agent Instruction** | `.hermes_AGENTS.md` (root) & `AGENTS.md` | Constraint tables, 8 laws, 6-phase lifecycle, verification commands |
-| **Skills** | `.hermes/private_skills/` | 91 SKILL.md files across: software-dev, research, creative, GitHub, productivity, MLOps, media, devops, email, smart-home, social-media |
-| **Profiles** | `.hermes/profiles/` | architect, coder, debugger, tester, researcher + lever-compound, lever-mcp, lever-memory, frontier variants |
-| **Plugins** | `.hermes/plugins/` | quorum_audit, gepa_optimizer, observer_gate, cog_verifier, agent_os, symbol_index, recirculation_adapter, reflective_learner_adapter, synergy_bus_adapter |
-| **Rules** | `.hermes/rules/project.md` | Project-specific architectural constraints |
-| **Memory** | `.hermes/memory/experiential.jsonl` | Episodic memory store |
-| **Knowledge** | `.hermes/knowledge/` | blueprints, concepts, evals, evidence, signal_digest |
-| **Bin Scripts** | `.hermes/bin/` | 15 Python utility scripts (observer_gate, skill_retriever, verify_harness_integrity, ingest_document, etc.) |
-| **Tests** | `tests/` + `.hermes/tests/` | Black-box harness contracts + white-box component tests |
-| **Chezmoi** | `.local/share/chezmoi/` | Dotfile manager syncing entire `.hermes/` to the container |
-
-### What Already Exists (Do Not Rebuild)
-
-| Item | Already Present As |
-|:-----|:------------------|
-| **Plan→Execute→Verify→Ship loop** (Item 1) | 6-Phase Protocol in AGENTS.md + `.hermes/plan.json` + tabu branch pruner |
-| **Multi-session amnesia / durable handoffs** (Item 2) | `.hermes/memory/experiential.jsonl` + chezmoi-tracked state + session persistence in `hermes_core/session_persistence.py` |
-| **Maker/Verifier separation** (Item 2) | `quorum_audit` plugin (edit→audit→agree→retro→commit) + separate `@tester`/`@coder` profiles |
-| **Progressive disclosure for skills** (Items 2, 10) | 91 skills loaded JIT via `skill_router.py` + `skill_retriever.py` + Tier 1/2 system prompt sieve |
-| **Spec-first planning** (Items 1, 13) | `.hermes/plan.json` contract + Phase 1 in SOUL.md + spec_first_planner.py |
-| **Observer Gate** (Items 1, 12) | `observer_gate` plugin + `bin/observer_gate.py` (475 lines) — AST syntax, brace balance, oracle checks |
-| **GEPA reflective evolution** (Item 12) | `gepa_optimizer` plugin + `hermes_core/gepa_optimizer.py` + `hermes_core/evolution.py` |
-| **Quorum consensus / Maker≠Auditor** (Item 12) | `quorum_audit` plugin + `hermes_core/cog_verifier.py` |
-| **Context sieve / token budget** (Items 2, 10) | `hermes_core/context_sieve.py` + `context_window_guard.py` + `token_engine.py` |
-| **Grep over vectors** (Item 2) | AGENTS.md Law §9 + `symbol_graph.py` (Tree-Sitter AST search) — already preferring grep/glob |
-| **Generative UI artifacts** (Item 5) | `software-development/generative-ui-artifact/SKILL.md` already exists |
-| **Web grounding** (Items 2, 4) | `hermes_core/web_grounding.py` + `bin/web_grounding.py` + `ddgs` backend in config |
-| **Task graph / dependency ordering** (Items 1, 14) | `hermes_core/task_graph.py` |
-| **Experience / episodic memory** (Item 12) | `hermes_core/experience_store.py` + `memory/experiential.jsonl` |
-| **Subagent delegation / multi-agent** (Items 2, 14) | SOUL.md §13 + `hermes_core/domain_fleet.py` + `swarm_engine.py` |
-| **Chezmoi sync** (all items) | Full chezmoi pipeline already operational, 39 commits ahead |
-| **Obsidian vault** (Item 15) | `private_skills/note-taking/obsidian/SKILL.md` |
-| **ArXiv research** (Items 6, 7, 8, 9) | `private_skills/research/arxiv/SKILL.md` |
-| **Harness integrity verification** (Item 12) | `bin/verify_harness_integrity.py` (761 lines) |
-
-### What Can Be Replaced / Simplified
-
-| Custom Python File | Current Role | Replace With |
-|:-------------------|:-------------|:-------------|
-| `bin/skill_router.py` (41 lines) | Keyword-based skill dispatch | Native Hermes skill description routing — config-only, no Python needed |
-| `bin/skill_retriever.py` (144 lines) | FastEmbed cosine similarity skill lookup | Native `skills_catalog.py` already in `hermes_core`; deduplicate |
-| `bin/web_grounding.py` (42 lines) | DuckDuckGo search wrapper | Native `web` tool in config (`web.backend: ddgs`) — this script is redundant |
-| `bin/extract_web_content.py` (94 lines) | URL content extraction | Hermes native browser+web tools already handle this |
-| `bin/extract_code_mode.py` (103 lines) | Code block extraction | `hermes_core/context_sieve.py` already does this |
-| `bin/harness_architectural_evolution.py` (72 lines) | Ad-hoc evolution trigger | `gepa_optimizer` plugin's `on_session_end` hook replaces this |
-| `bin/hub_cli.py` (152 lines) | Hub state management | `.hermes/hub/state.json` + native plugin state — can be config only |
-| `bin/ingest_document.py` (144 lines) | Document ingestion | Hermes native file+browser tools; `index_docs.py` overlaps |
-| `bin/container_cmd.py` (50 lines) | Distrobox command wrapper | Native `terminal` tool in config already handles this |
-
-### What Can Be Added (New — Not Yet Present)
-
-| Item | Capability | Hermes Addition Required |
-|:-----|:-----------|:------------------------|
-| **Item 2 — Dreaming logs** | Offline batch: session logs → memory cards | New `on_session_end` hook in `reflective_learner_adapter` plugin (config-only, ~20 lines) |
-| **Item 8 — Proactive Thought Partners** | Agent-initiated ambient suggestions | New `proactive` rule in `rules/` + lightweight ambient skill (no Python) |
-| **Item 10 — Skill description hygiene** | All 91 skill descriptions ≤60 chars, router-only | Audit pass on all `SKILL.md` frontmatter `description` fields |
-| **Item 10 — Completion definition** | Explicit done-criteria in every SOUL.md task pattern | Edit SOUL.md §11 to add explicit completion contract |
-| **Item 11 — Mannered prose elimination** | Anti-mannered-prose directive baked into SOUL.md | 3-line addition to SOUL.md: the Anthropic diagnostic contract |
-| **Item 13 — Spec-Driven Regeneration** | Design-doc-first pattern: tangle code from docs | New skill `software-development/spec-driven-regen/SKILL.md` (no Python) |
-| **Item 14 — Diamond orchestration pattern** | Explicit fan-out→reduce→verify→converge multi-agent template | New skill `software-development/diamond-orchestration/SKILL.md` |
-| **Item 14 — Hard stop limit in loops** | Bounded iteration count enforcement | Edit `tool_loop_guardrails.hard_stop_enabled: true` in `config.yaml` |
-| **Item 15 — NotebookLM MCP bridge** | MCP server connecting Hermes → Gemini Notebook | New MCP config entry (config-only, no Python) |
-
-### What Can Be Removed
-
-| File / Component | Reason |
-|:-----------------|:-------|
-| `bin/container_cmd.py` | Redundant — native terminal tool covers this |
-| `bin/web_grounding.py` | Redundant — native `web.backend: ddgs` in config |
-| `bin/harness_architectural_evolution.py` | Superseded by `gepa_optimizer` plugin hook |
-| `bin/extract_web_content.py` | Redundant — native browser/web tools |
-| `bin/skill_router.py` | Superseded by native skill routing + descriptions |
-| `dot_hermes_AGENTS.md` (from `.hermes_AGENTS.md`) | Merge into AGENTS.md — two copies of agent instructions is a maintenance hazard |
-
----
-
----
-
-## 3. Deep Python File Audit: Every .hermes Module vs Upstream Packages
-### Audit Legend
-- 🔴 **DELETE** — Pure redundant wrapper; upstream package does this natively. Zero custom logic worth keeping.
-- 🟡 **THIN SHIM** — Keep but reduce to ≤30 lines that call upstream directly (no reimplementation).
-- 🟢 **KEEP** — Genuinely custom logic with no upstream equivalent, or the glue that binds Hermes identity.
-- 🔵 **REPLACE** — Custom reimplementation of something an upstream package does better; swap import.
-
----
-
-### Category 1: Web Grounding & Document Extraction
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `bin/web_grounding.py` | 42 | DuckDuckGo search wrapper | `ddgs` via native `web.backend: ddgs` in config.yaml | 🔴 DELETE |
-| `bin/extract_web_content.py` | 94 | URL → markdown extraction | **crawl4ai** `AsyncWebCrawler` — already installed | 🔴 DELETE |
-| `hermes_core/web_grounding.py` | ~60 | DDGS search + content fetch | **crawl4ai** + native web tool | 🔴 DELETE |
-| `hermes_core/fast_research.py` | ~80 | Token-budgeted web lookup | **crawl4ai** `word_count_threshold` param | 🔴 DELETE |
-| `bin/ingest_document.py` | 144 | File → markdown ingest | **crawl4ai** `AsyncWebCrawler` for local files | 🔴 DELETE |
-| `bin/index_docs.py` | 108 | Document → FastEmbed index | **crawl4ai** + **fastembed** + **graphiti** | 🔴 DELETE |
-
-**Why**: `crawl4ai` (`pip install crawl4ai`) handles async extraction, JS rendering, LLM-ready markdown, BFS crawling. Every update to crawl4ai (adaptive crawling, better markdown, etc.) flows in for free.
-
----
-
-### Category 2: Embeddings & Semantic Search
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/embeddings.py` | ~70 | FastEmbed TextEmbedding wrapper + cosine sim | **fastembed** `TextEmbedding` directly — `from fastembed import TextEmbedding` | 🔴 DELETE |
-
-**Why**: `fastembed` is already installed. It returns numpy arrays. Cosine sim is `np.dot(a, b)`. No wrapper class needed.
-
----
-
-### Category 3: Skill Management & Routing
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `bin/skill_router.py` | 41 | Keyword → SKILL.md dispatch | Native Hermes JIT skill loading | 🔴 DELETE |
-| `bin/skill_retriever.py` | 144 | FastEmbed cosine skill lookup | Native `openskills_manager` + `fastembed` | 🔴 DELETE |
-| `hermes_core/skill_router.py` | ~60 | Regex/keyword skill routing | Native Hermes profile + skill description system | 🔴 DELETE |
-| `hermes_core/skills_catalog.py` | ~90 | SKILL.md YAML catalog builder | Already done by `openskills_manager.py` | 🔴 DELETE |
-| `hermes_core/skills_registry.py` | ~80 | Skill registration + lookup | Already done by `openskills_manager.py` | 🔴 DELETE |
-| `hermes_core/openskills_manager.py` | ~120 | SKILL.md L0/L1/L2 discovery | This IS the native Hermes skill system | 🟢 KEEP |
-| `hermes_core/skill_evaluator.py` | ~150 | A/B trajectory lift evaluation | **dspy** `dspy.Evaluate` + `MIPROv2` | 🔵 REPLACE |
-| `hermes_core/skill_evolution.py` | ~100 | Auto-draft + promote new skills | **dspy** `BootstrapFewShotWithRandomSearch` | 🔵 REPLACE |
-
----
-
-### Category 4: Memory, Knowledge & Persistence
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/knowledge_graph.py` | ~100 | Python AST → CodeNode graph | **ast-grep-py** `SgRoot` polyglot | 🔵 REPLACE |
-| `hermes_core/symbol_graph.py` | ~200 | Tree-Sitter polyglot symbol DB | **ast-grep-py** + graphify skill | 🔵 REPLACE |
-| `hermes_core/symbol_indexer.py` | ~80 | Python/JS AST symbol extractor | **ast-grep-py** multi-language | 🔵 REPLACE |
-| `hermes_core/graph_engine.py` | ~120 | DAG topology sort + JSON schema validate | **networkx** `DiGraph` + **jsonschema** | 🔵 REPLACE |
-| `hermes_core/experience_store.py` | ~150 | Episodic memory JSONL + SQLModel | **sqlmodel** directly — 10-line schema | 🟡 THIN SHIM |
-| `hermes_core/second_brain.py` | ~120 | Markdown knowledge vault CRUD | **python-frontmatter** + native filesystem | 🟡 THIN SHIM |
-| `hermes_core/working_memory.py` | ~80 | RAM-backed context anchors | **graphiti** (`getzep/graphiti`) temporal episodic graph | 🔵 REPLACE |
-| `hermes_core/session_persistence.py` | ~130 | Session state JSON/SQLite save | **sqlmodel** + native plan.json | 🟡 THIN SHIM |
-| `hermes_core/database.py` | ~80 | SQLite WAL connection factory | **sqlmodel** `create_engine(url, connect_args={"check_same_thread": False})` | 🔴 DELETE |
-| `hermes_core/cog_vault.py` | ~60 | Knowledge vault CRUD | **python-frontmatter** + native filesystem | 🔵 REPLACE |
-| `hermes_core/opencode_mem.py` | ~60 | OpenCode memory engine | Duplicate of `working_memory` / graphiti | 🔴 DELETE |
-
-**Why graphiti**: `getzep/graphiti` provides bi-temporal knowledge graphs, hybrid retrieval (BM25 + embeddings + graph traversal), incremental real-time updates, and an MCP server out of the box. Replaces 3 custom memory files with `from graphiti_core import Graphiti`.
-
----
-
-### Category 5: Verification, Audit & Loop Control
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `bin/observer_gate.py` | 475 | HTML/JS syntax + brace balance + oracle | **ast-grep-py** for code; stdlib html.parser for HTML | 🟡 THIN SHIM (~50 lines) |
-| `hermes_core/draft_detective.py` | ~150 | Adversarial fact-check + APS | ast-grep-py + stdlib ast | 🟡 THIN SHIM |
-| `hermes_core/quorum_gate.py` | ~120 | Blast radius + audit receipt | Delegates AST work to ast-grep-py | 🟡 THIN SHIM |
-| `hermes_core/cog_verifier.py` | ~150 | Worker/Verifier dual-agent loop | **nemoguardrails** dialog rails OR `quorum_audit` plugin | 🔵 REPLACE via plugin |
-| `hermes_core/verification_matrix.py` | ~100 | Multi-tier pre-commit gate | `observer_gate` plugin hook already covers this | 🔴 DELETE |
-| `hermes_core/loop_contracts.py` | ~80 | Max-iter + VRAM + tabu stop | `config.yaml` `tool_loop_guardrails` (already exists) | 🔴 DELETE |
-| `hermes_core/branch_swapper.py` | ~150 | 2-strike tabu branch swap | `quorum_audit` plugin `pre_commit` hook config | 🔵 REPLACE via plugin |
-| `hermes_core/hypothesis_tree.py` | ~100 | MCTS-style branching | Git branching + JSON state file | 🟡 THIN SHIM |
-| `hermes_core/lineage.py` | ~130 | AVO lineage tree + supervisor | **gitpython** `Repo.git.log()` ancestry | 🔵 REPLACE with gitpython |
-| `bin/verify_harness_integrity.py` | 761 | 30-point capability audit | Thin pytest runner wrapper | 🟡 THIN SHIM (~30 lines) |
-| `bin/verify_skills_config.py` | 122 | Skill YAML frontmatter validation | **pydantic** schema + `openskills_manager` | 🔴 DELETE |
-| `bin/verify_transcript.py` | 97 | JSONL hash-chain audit | **openlit** spans + stdlib JSONL | 🔴 DELETE |
-
----
-
-### Category 6: GEPA, Evolution & Self-Optimization
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/gepa_optimizer.py` | ~100 | Reflective Pareto prompt evolution | **dspy** `MIPROv2` teleprompter | 🔵 REPLACE |
-| `hermes_core/evolution.py` | ~90 | Genetic variation + Pareto frontier | **dspy** `BootstrapFewShotWithRandomSearch` | 🔵 REPLACE |
-| `hermes_core/harness_evolution.py` | ~72 | Full harness self-mutation | **dspy** + git branching | 🔵 REPLACE |
-| `hermes_core/reflective_learner.py` | ~100 | Correction event → memory card | `reflective_learner_adapter` plugin hook + **graphiti** | 🔵 REPLACE via plugin |
-| `hermes_core/recirculation.py` | ~80 | Session log → memory recirculation | `reflective_learner_adapter` plugin `on_session_end` hook | 🔵 REPLACE via plugin |
-| `bin/harness_architectural_evolution.py` | 72 | Ad-hoc evolution trigger | `gepa_optimizer` plugin hook | 🔴 DELETE |
-
-**Why DSPy**: `stanfordnlp/dspy` provides `MIPROv2` (same Pareto multi-objective optimization as GEPA), `BootstrapFewShotWithRandomSearch` (same A/B lift evaluation), and it improves with every Stanford/MLCommons release. GEPA custom code becomes a ~20-line DSPy config.
-
----
-
-### Category 7: MCP, Tooling & Formatting
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/fastmcp.py` | ~80 | FastMCP server wrapper | **fastmcp** upstream `pip install fastmcp` — `from fastmcp import FastMCP` | 🔴 DELETE |
-| `hermes_core/formatter_pipeline.py` | ~60 | ruff/biome/rustfmt/gofmt dispatch | Shell commands via `subprocess.run(["ruff", "format", ...])` — no class | 🔴 DELETE |
-| `hermes_core/tools.py` | ~100 | Tool schema definitions | **fastmcp** `@mcp.tool` auto-generates JSON schemas | 🔴 DELETE |
-| `hermes_core/middleware.py` | ~60 | Prompt sanitization layer | **nemoguardrails** Colang input rails | 🔵 REPLACE |
-| `hermes_core/hook_router.py` | ~50 | Plugin hook dispatch | Native Hermes `plugin_loader.py` | 🔴 DELETE |
-| `hermes_core/hooks.py` | ~60 | Hook registration + fire | Native Hermes plugin system | 🔴 DELETE |
-| `bin/hub_cli.py` | 152 | Hub state JSON management | `.hermes/hub/state.json` + native config | 🔴 DELETE |
-| `bin/cache_ui_assets.py` | 54 | UI asset caching | Native terminal tool + shell | 🔴 DELETE |
-| `bin/container_cmd.py` | 50 | Distrobox wrapper | Native `terminal` tool in config | 🔴 DELETE |
-| `hermes_core/codebase_memory_mcp.py` | ~60 | Codebase MCP server | **fastmcp** `@mcp.tool` + ast-grep-py | 🔵 REPLACE |
-
----
-
-### Category 8: Agent Orchestration & Multi-Agent
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/adk_custom_agent.py` | ~80 | Google ADK BaseAgent bridge | **google-adk** upstream — this IS the thin bridge | 🟢 KEEP |
-| `hermes_core/google_agentic_substrate.py` | ~200 | Tool schema registry (deprecated) | File says "Superseded by adk_custom_agent" | 🔴 DELETE |
-| `hermes_core/domain_fleet.py` | ~100 | Domain fleet manager | **google-adk** `Runner` + config | 🟡 THIN SHIM |
-| `hermes_core/swarm_engine.py` | ~150 | HermesOrchestrator multi-bot | **google-adk** orchestration | 🟡 THIN SHIM |
-| `hermes_core/swarm_system.py` | ~100 | Role capability masks | **google-adk** agent capabilities config | 🟡 THIN SHIM |
-| `hermes_core/multi_bot_delegation.py` | ~80 | Multi-bot task dispatch | **google-adk** `Runner` + `SessionService` | 🔴 DELETE |
-| `hermes_core/task_graph.py` | ~150 | TaskDAG + dependency ordering | **networkx** `DiGraph` + `topological_sort` | 🔵 REPLACE |
-| `hermes_core/intent_router.py` | ~80 | Prompt → bot profile routing | Native Hermes profile system + YAML | 🔴 DELETE |
-| `hermes_core/agent_os.py` | ~120 | AgentOSDaemon lifecycle | **google-adk** `Runner` + native plan.json | 🟡 THIN SHIM |
-| `hermes_core/agent_os_standards.py` | ~80 | Two-tier rules loader | Native `rules/` directory + `plugin_loader.py` | 🔴 DELETE |
-| `hermes_core/antigravity_skills.py` | ~60 | AGY skill definitions | Native AGY skill system | 🔴 DELETE |
-| `hermes_core/capability_masks.py` | ~60 | Role capability tables | **google-adk** agent config YAML | 🔴 DELETE |
-
----
-
-### Category 9: Guardrails & Safety
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/nemo_guardrails_bridge.py` | ~80 | NeMo Guardrails wrapper | **nemoguardrails** `LLMRails(config, llm=...)` directly | 🟡 THIN SHIM (≤15 lines) |
-| `hermes_core/sandbox.py` | ~80 | Bubblewrap bwrap subprocess | `bwrap` CLI via `subprocess.run(["bwrap", ...])` — no class | 🔴 DELETE |
-| `hermes_core/hitl_gateway.py` | ~150 | HITL risk gate + diff display | **nemoguardrails** dialog rails + Colang | 🔵 REPLACE via NeMo |
-| `hermes_core/security_ctf.py` | ~100 | ELF binary analysis + capstone | **capstone** + **pwntools** + native objdump CLI | 🔴 DELETE |
-
----
-
-### Category 10: Inference & Performance
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/speculative_executor.py` | ~100 | Speculative decoding orchestration | llama-server `--speculative` + `--draft-model` flags | 🔴 DELETE |
-| `hermes_core/prime_kernel.py` | ~80 | IPython REPL + sub-agent kernel | **ipykernel** + native subprocess | 🔵 REPLACE |
-| `hermes_core/cactus.py` | ~70 | Uncertainty estimation (CACTUS) | MC dropout via **transformers** or conformal prediction | 🔵 REPLACE |
-| `hermes_core/test_time_sampler.py` | ~60 | Test-time compute sampling | llama-server `temperature`/`top_k` params | 🔴 DELETE |
-| `hermes_core/qwen_mm_core.py` | ~50 | Qwen multimodal core | Handled by llama-server GGUF natively | 🔴 DELETE |
-| `hermes_core/prefix_cache.py` | ~80 | KV prefix cache alignment | llama-server `--cache-reuse` + static SOUL.md ordering | 🔴 DELETE |
-| `hermes_core/token_engine.py` | ~80 | Token counting + context pruning | **tiktoken** (`len(enc.encode(text))`) | 🔵 REPLACE |
-| `hermes_core/flatbuffers_state.py` | ~60 | FlatBuffers binary state serialization | **flatbuffers** (`pip install flatbuffers`) directly | 🔴 DELETE |
-| `hermes_core/ring_buffer.py` | ~60 | Ring buffer abstract base class | `collections.deque(maxlen=N)` stdlib | 🔴 DELETE |
-| `hermes_core/thread_safe_ringbuffer.py` | ~30 | Thread-safe ring buffer | `collections.deque` + `threading.Lock()` — 5 lines inline | 🔴 DELETE |
-
----
-
-### Category 11: Observability & Trajectory
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/trajectory.py` | ~120 | Hash-chained event log + OpenLIT | **openlit** `openlit.init()` one line + stdlib JSONL append | 🟡 THIN SHIM (~20 lines) |
-
-**Why**: The hash-chain logic in `trajectory.py` reinvents OpenTelemetry trace IDs. `openlit.init()` provides GPU health, LLM latency, token usage, hallucination eval — all for free with one line.
-
----
-
-### Category 12: Code Utilities & Misc
-
-| File | Lines | What It Does | Upstream Replacement | Verdict |
-|:-----|:------|:-------------|:---------------------|:--------|
-| `hermes_core/extract_code_mode.py` | 103 | Markdown fence stripper | stdlib `re` — 5 lines inline, or native Hermes parsing | 🔴 DELETE |
-| `hermes_core/humanizer.py` | ~70 | Robotic filler stripper | SOUL.md Rule 0 (mannered prose) — no Python needed | 🔴 DELETE |
-| `hermes_core/schema_anchors.py` | ~50 | Pydantic schema definitions | **pydantic** `BaseModel` directly | 🔴 DELETE |
-| `hermes_core/ide_substrate.py` | ~60 | IDE event bridge | Native desktop plugin system | 🔴 DELETE |
-| `hermes_core/lsp_bridge.py` | ~80 | LSP client bridge | **pylsp** / **pyright** via CLI subprocess | 🔴 DELETE |
-| `hermes_core/openviking_vfs.py` | ~60 | OpenViking VFS layer | Native filesystem + chezmoi | 🔴 DELETE |
-| `hermes_core/vfs.py` | ~60 | Virtual filesystem abstraction | Native filesystem | 🔴 DELETE |
-| `hermes_core/repo_onboard.py` | ~80 | GitHub repo ingestion + stack detect | **ast-grep-py** + native `git clone` + shell | 🔵 REPLACE |
-| `hermes_core/spec_first_planner.py` | ~100 | plan.json management | Native plan.json + **pydantic** schema | 🟡 THIN SHIM |
-| `hermes_core/prompt_slotting.py` | ~100 | 4-slot system prompt builder | SOUL.md already defines slots in text; no Python needed | 🔴 DELETE |
-| `hermes_core/process_guard.py` | ~60 | POSIX process group teardown | `subprocess.Popen(start_new_session=True)` + `os.killpg` — 10 lines inline | 🔴 DELETE |
-| `hermes_core/plugin_manifest.py` | ~50 | Plugin YAML schema | `pydantic` + `yaml.safe_load` | 🟡 THIN SHIM |
-| `hermes_core/plugin_loader.py` | ~50 | Plugin discovery + JIT load | This IS the native Hermes system | 🟢 KEEP |
-| `hermes_core/presets.py` | ~40 | Token estimate + prompt presets | **tiktoken** | 🔴 DELETE |
-| `hermes_core/lora_adapter.py` | ~80 | LoRA weight loading | **peft** `PeftModel.from_pretrained()` | 🔴 DELETE |
-| `hermes_core/lora_adapter_manager.py` | ~80 | Multi-adapter hot-swap | **peft** `model.add_adapter()` + `model.set_adapter()` | 🔴 DELETE |
-| `hermes_core/runner.py` | ~80 | Hermes CLI subprocess SDK | Native terminal tool + stdlib subprocess | 🔴 DELETE |
-| `hermes_core/sdk.py` | ~60 | 5-method code mode SDK | Native Hermes terminal tool + shell commands | 🔴 DELETE |
-| `hermes_core/visual_arbiter.py` | ~80 | Playwright headless HTML checker | **playwright** `async_playwright()` directly (2 lines) | 🔴 DELETE |
-| `hermes_core/codebase_memory_mcp.py` | ~60 | Codebase MCP server | **fastmcp** `@mcp.tool` + **ast-grep-py** | 🔵 REPLACE |
-| `types/templates/playwright_tdd_spec.py` | template | Playwright TDD boilerplate | Static template — not logic | 🟢 KEEP as template |
-| `types/templates/posix_worker_pool.py` | template | Worker pool boilerplate | Static template | 🟢 KEEP as template |
-
----
-
-### Upstream Package → Hermes Plugin Map
-
-Every upstream package becomes a thin **FastMCP tool** or **Hermes plugin** — not a custom wrapper class.
-
-| Upstream Package | GitHub | pip install | Replaces Custom Files |
-|:-----------------|:-------|:------------|:----------------------|
-| **fastmcp** | `jlowin/fastmcp` | `fastmcp` | `fastmcp.py`, `tools.py`, `hook_router.py`, `hooks.py`, `codebase_memory_mcp.py` |
-| **crawl4ai** | `unclecode/crawl4ai` | `crawl4ai` | `web_grounding.py` (×2), `fast_research.py`, `extract_web_content.py`, `ingest_document.py`, `index_docs.py` |
-| **fastembed** | `qdrant/fastembed` | `fastembed` | `embeddings.py`, `skill_retriever.py` |
-| **dspy** | `stanfordnlp/dspy` | `dspy` | `gepa_optimizer.py`, `evolution.py`, `harness_evolution.py`, `skill_evaluator.py`, `skill_evolution.py`, `reflective_learner.py` |
-| **ast-grep-py** | `ast-grep/ast-grep` | `ast-grep-py` | `symbol_graph.py`, `symbol_indexer.py`, `knowledge_graph.py`, `repo_onboard.py`, observer_gate AST portion |
-| **graphiti-core** | `getzep/graphiti` | `graphiti-core` | `working_memory.py`, `experience_store.py` (semantic), `second_brain.py`, `cog_vault.py` |
-| **openlit** | `openlit/openlit` | `openlit` | `trajectory.py` (full), `verify_transcript.py` |
-| **nemoguardrails** | `NVIDIA/NeMo-Guardrails` | `nemoguardrails` | `nemo_guardrails_bridge.py`, `hitl_gateway.py`, `middleware.py`, `cog_verifier.py` |
-| **sqlmodel** | `tiangolo/sqlmodel` | `sqlmodel` | `database.py`, `session_persistence.py`, experience_store SQL layer |
-| **networkx** | `networkx/networkx` | `networkx` | `task_graph.py`, `graph_engine.py` |
-| **tiktoken** | `openai/tiktoken` | `tiktoken` | `token_engine.py`, `presets.py` |
-| **peft** | `huggingface/peft` | `peft` | `lora_adapter.py`, `lora_adapter_manager.py` |
-| **gitpython** | `gitpython-developers/GitPython` | `gitpython` | `lineage.py` |
-| **python-frontmatter** | `eyeseast/python-frontmatter` | `python-frontmatter` | `second_brain.py`, `cog_vault.py` |
-| **google-adk** | `google/adk-python` | `google-adk` | `agent_os.py`, `domain_fleet.py`, `swarm_engine.py`, `multi_bot_delegation.py`, `google_agentic_substrate.py` |
-| **playwright** | `microsoft/playwright-python` | `playwright` | `visual_arbiter.py` |
-
----
-
-### Final Python File Count
-
-| Layer | Before | After | Net Delta |
-|:------|:-------|:------|:----------|
-| `hermes_core/` modules | ~68 files | ~12 genuine shims | **–56** |
-| `bin/` scripts | 15 files | 2 (observer_gate + verify_harness thinned) | **–13** |
-| **Total custom Python** | **~83** | **~14** | **–69 files** |
-
-### The 14 Surviving Python Files (Irreplaceable)
-
-| File | Why It Stays |
-|:-----|:-------------|
-| `hermes_core/openskills_manager.py` | SKILL.md L0/L1/L2 loader — IS the Hermes skill engine |
-| `hermes_core/adk_custom_agent.py` | ADK `BaseAgent` bridge — thin shim ~40 lines |
-| `hermes_core/domain_fleet.py` | Domain fleet thin shim ~30 lines |
-| `hermes_core/swarm_engine.py` | HermesOrchestrator thin shim ~30 lines |
-| `hermes_core/plugin_loader.py` | Plugin JIT discovery — IS the native system |
-| `hermes_core/plugin_manifest.py` | Plugin YAML schema — thin shim ~20 lines |
-| `hermes_core/agent_os.py` | AgentOS lifecycle thin shim ~20 lines |
-| `hermes_core/spec_first_planner.py` | plan.json manager thin shim ~30 lines |
-| `hermes_core/nemo_guardrails_bridge.py` | NeMo init thin shim ~15 lines |
-| `hermes_core/hypothesis_tree.py` | MCTS node tracker thin shim ~40 lines |
-| `hermes_core/trajectory.py` | `openlit.init()` + JSONL append ~20 lines |
-| `hermes_core/experience_store.py` | SQLModel episode schema ~30 lines |
-| `bin/observer_gate.py` | Pre-commit gate runner ~50 lines (calls ast-grep-py) |
-| `bin/verify_harness_integrity.py` | Pytest capability runner ~30 lines (calls pytest) |
-
----
-
----
-
-## 4. Deep Audit: `.hermes/src` Structure, Types, Templates & Packaging
-### 1. Structure of `.hermes/src`
-```
-.hermes/src/
-├── hermes_core/               # ~68 custom Python modules (audited above)
-│   ├── types/
-│   │   ├── nodejs/nodejs_types.types          # Static TypeScript/Node.js definitions
-│   │   ├── posix/posix_types.types            # Static POSIX C/Rust type definitions
-│   │   ├── threejs/threejs_types.types        # Static Three.js WebGL definitions
-│   │   └── templates/
-│   │       ├── playwright_tdd_spec.py         # Static Playwright test template
-│   │       ├── posix_worker_pool.py           # Static POSIX multiprocessing template
-│   │       └── webgl_canvas_boilerplate.html  # Static WebGL canvas HTML template
-│   └── templates/                             # Empty directory
-└── hermes_harness.egg-info/                   # Setuptools metadata generated by editable pip install
-```
-
-### 2. Audit Findings for `.hermes/src` Assets
-
-| Asset / Directory | Type | What It Does | Upstream / Native Replacement | Verdict |
-|:------------------|:-----|:-------------|:------------------------------|:--------|
-| `types/nodejs/nodejs_types.types` | Static text | Static Node.js type definitions injected into model prompts | Move to skill: `private_skills/software-development/node-inspect-debugger/` as a resource | 🔄 **RELOCATE TO SKILL** |
-| `types/posix/posix_types.types` | Static text | Static POSIX type definitions | Move to skill: `private_skills/devops/` as a resource | 🔄 **RELOCATE TO SKILL** |
-| `types/threejs/threejs_types.types` | Static text | Static Three.js WebGL type definitions | Move to skill: `private_skills/software-development/generative-ui-artifact/` | 🔄 **RELOCATE TO SKILL** |
-| `types/templates/playwright_tdd_spec.py` | Python template | Boilerplate fixture for Playwright TDD runs | Move to `private_skills/software-development/test-driven-development/resources/` | 🔄 **RELOCATE TO SKILL** |
-| `types/templates/posix_worker_pool.py` | Python template | Boilerplate code for multiprocessing pools | Move to `private_skills/devops/` | 🔄 **RELOCATE TO SKILL** |
-| `types/templates/webgl_canvas_boilerplate.html` | HTML template | HTML5 WebGL canvas boilerplate | Move to `private_skills/software-development/generative-ui-artifact/resources/` | 🔄 **RELOCATE TO SKILL** |
-| `hermes_core/templates/` | Directory | Empty directory leftover from legacy template loader | Remove empty directory | 🔴 **DELETE** |
-| `hermes_harness.egg-info/` | Package build | Build artifacts generated by `pip install -e .` | Add to `.gitignore`, do not track in chezmoi | 🔴 **UNTRACK** |
-| `pyproject.toml` | Build config | Defines harness dependencies (`google-adk`, `nemoguardrails`, `fastmcp`, `crawl4ai`, `openlit`, `sqlmodel`, etc.) | **KEEP & CLEAN**: pyproject.toml already declares the upstream packages. Update entry points and remove stale package globs (`hermes_sdk*`) | 🟢 **KEEP & CLEAN** |
-
-**Key Architectural Principle**: Code templates and type-definition lookup files are **skill resources**, not Python package source code. Moving them into their respective `SKILL.md/resources/` folders eliminates the artificial `types/` sub-tree inside `src/` and lets them be loaded JIT via OpenSkills progressive disclosure rather than baking them into the Python runtime.
-
----
-
----
-
-## 5. Deep Audit: All 'bin' and 'scripts' Directories in the Workspace
-### 1. Complete Inventory of All Executable / Script Folders
-
-```
-Workspace Root (/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/)
-├── .hermes/bin/                # 15 bespoke Python utility scripts (~2,459 lines)
-├── .hermes/scripts/            # 5 ad-hoc operational scripts (benchmarks, training, daemons)
-├── tests/runners/              # 8 benchmark & evaluation runner scripts (~700 lines)
-├── .local/bin/                 # 86 CLI entry points (pip-generated binaries + 4 bash wrappers)
-└── .local/share/chezmoi/
-    ├── dot_local/bin/          # 4 tracked bash wrappers (executable_hermes, executable_llama-server, etc.)
-    └── private_dot_hermes/bin/ # Chezmoi mirror of .hermes/bin/
-```
-
----
-
-### 2. Audit: `.hermes/bin/` (15 Files, ~2,459 Lines)
-
-| Script | Lines | Current Function | Structural Defect / Finding | Native Hermes / Upstream Replacement | Verdict |
-|:-------|:------|:-----------------|:----------------------------|:--------------------------------------|:--------|
-| `observer_gate.py` | 475 | Pre-commit 6-point AST gate | **Corrupted Shebang**: Line 1 has `import shutil` placed *before* `#!/usr/bin/env python3`, breaking shebang parsing! | Convert to standard `observer_gate` plugin `pre_commit` hook using `ast-grep-py` (~50 lines). | 🟡 **THIN TO HOOK** |
-| `verify_harness_integrity.py` | 761 | Master 30-point audit probe | Giant monolithic test script recreating pytest test runner | Replace with standard `pytest tests/harness_contracts/` invocation. | 🔴 **DELETE (USE PYTEST)** |
-| `skill_retriever.py` | 144 | FastEmbed cosine skill lookup | Re-invents skill semantic search | Native `hermes skills` discovery + `fastembed` | 🔴 **DELETE** |
-| `ingest_document.py` | 144 | Markdown/doc ingestion | Duplicates Trafilatura/Crawl4AI | **crawl4ai** FastMCP tool (`@mcp.tool`) | 🔴 **DELETE** |
-| `hub_cli.py` | 152 | Hub state JSON CLI | Re-invents plugin/pack state management | Native `hermes plugins pack` CLI | 🔴 **DELETE** |
-| `verify_skills_config.py` | 122 | Frontmatter YAML validator | Custom regex/yaml parser | Native `pydantic` validation in `openskills_manager` | 🔴 **DELETE** |
-| `index_docs.py` | 108 | Doc indexer to FastEmbed | Custom embedding script | **graphiti** / **crawl4ai** MCP tool | 🔴 **DELETE** |
-| `extract_code_mode.py` | 103 | Strip markdown fences from code | Regex fence cleaner | stdlib `re` inline or native Hermes response parsing | 🔴 **DELETE** |
-| `verify_transcript.py` | 97 | Hash-chain transcript audit | Custom audit for bespoke hash-chain | Native **openlit** span validation | 🔴 **DELETE** |
-| `extract_web_content.py` | 94 | Web URL extraction | Regex/requests wrapper | **crawl4ai** `AsyncWebCrawler` | 🔴 **DELETE** |
-| `harness_architectural_evolution.py` | 72 | Ad-hoc evolution trigger | Stub script invoking evolution | `gepa_optimizer` plugin `on_session_end` hook | 🔴 **DELETE** |
-| `cache_ui_assets.py` | 54 | Downloads & caches UI assets | Ad-hoc curl/request script | Simple curl in Makefile or generative-ui skill resource | 🔴 **DELETE** |
-| `container_cmd.py` | 50 | Distrobox wrapper script | Calls `distrobox-enter` | Native Hermes `terminal` tool | 🔴 **DELETE** |
-| `web_grounding.py` | 42 | DuckDuckGo search wrapper | Wrapper around `duckduckgo_search` | Native Hermes `web.backend: ddgs` in `config.yaml` | 🔴 **DELETE** |
-| `skill_router.py` | 41 | Keyword regex dispatcher | Custom routing logic | Native Hermes profile & skill description system | 🔴 **DELETE** |
-
-**Verdict for `.hermes/bin/`**: **14 out of 15 files completely deleted**. The only remaining logic (`observer_gate.py`) is shrunk from 475 lines to a ~50-line plugin hook inside `.hermes/plugins/observer_gate/`. The `.hermes/bin/` folder is eliminated entirely.
-
----
-
-### 3. Audit: `.hermes/scripts/` (5 Files)
-
-| Script | Lines | What It Does | Upstream / Native Alignment | Verdict |
-|:-------|:------|:-------------|:----------------------------|:--------|
-| `benchmark_embeddings.py` | 12.8 KB | Benchmarks FastEmbed CPU vs GPU latency | Move to `tests/benchmarks/` or execute via `fastembed` directly | 🔄 **MOVE TO TESTS** |
-| `build_codebase_graph.py` | 6.0 KB | Custom AST graph builder saving to SQLite | Superseded by **ast-grep-py** / **graphify** skill | 🔴 **DELETE** |
-| `train_qlora_adapter.py` | 7.7 KB | QLoRA fine-tuning training loop | Move to `private_skills/mlops/models/gemma-trainer/resources/` | 🔄 **MOVE TO SKILL RESOURCE** |
-| `start_server_daemon.sh` | 1.1 KB | Starts llama.cpp server in background | Keep as convenience runner or systemd service | 🟢 **KEEP AS OPERATIONAL SCRIPT** |
-| `start_server_swarm.sh` | 0.6 KB | Starts multi-model inference ports | Keep as convenience runner | 🟢 **KEEP AS OPERATIONAL SCRIPT** |
-
----
-
-### 4. Audit: `tests/runners/` (8 Files)
-
-| Script | Purpose | Finding | Verdict |
-|:-------|:--------|:--------|:--------|
-| `run_final_integration_exam.py` | Master 80-milestone integration runner | Dispatches test subprocesses and calculates score | 🟢 **KEEP**: Core test harness runner |
-| `test_hermes_autonomous_suite.py` | End-to-end multi-turn autonomous evaluation | Comprehensive agent evaluation | 🟢 **KEEP**: Core agent benchmark |
-| `run_hard_repo_benchmark.py` | Benchmark against complex codebases | Evaluation runner | 🟢 **KEEP**: Benchmark |
-| `benchmark_qwen_vs_gemma.py` | Comparative model evaluation | Benchmark runner | 🟢 **KEEP**: Benchmark |
-| `eval_thinking_and_code.py` | Evaluates CoT reasoning vs output | Evaluation runner | 🟢 **KEEP**: Benchmark |
-| `run_phase1_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
-| `run_phase2_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
-| `run_phase3_live_validation.py` | Legacy milestone live validator | Obsolete incremental check | 🔴 **DELETE (CONSOLIDATE INTO EXAM)** |
-
----
-
-### 5. Audit: `.local/bin/` & Chezmoi `dot_local/bin/`
-
-- **`executable_hermes`**:
-  ```bash
-  #!/usr/bin/env bash
-  unset PYTHONPATH
-  unset PYTHONHOME
-  export PATH="$HOME/.local/bin:$PATH"
-  exec python3.13 -m hermes_cli.main "$@"
-  ```
-  - **Critical Finding**: This wrapper invokes `hermes_cli.main` — which is the **upstream NousResearch `hermes-agent` entry point**. It completely bypasses the custom `pyproject.toml` console script (`hermes_harness.cli:main`). This proves that the actual running agent is upstream `hermes-agent`, while `hermes_harness` was an unused competing stub!
-- **`executable_llama-server`**:
-  - Wrapper that launches the native `llama-server` with `--port 8138`, flash attention, and context ceiling. 🟢 **KEEP**.
-- **`executable_tirith`**:
-  - Binary security validator. 🟢 **KEEP**.
-
----
-
----
-
-## 6. Deep Audit: `.hermes/tests/` (All 25 Files, 4,722 Lines)
-### Audit Legend
-- 🔴 **DELETE TEST** — Tests a deleted/redundant custom implementation. The upstream package has its own extensive test suite. Zero value in keeping bespoke tests.
-- 🟡 **REFOUND AS CONTRACT TEST** — Rewrite into a thin (≤25 lines) test verifying the integration contract between Hermes and the upstream package/plugin.
-- 🟢 **KEEP AS INVARIANT TEST** — Tests a critical local hardware/safety invariant (e.g. VRAM ceiling, zero-sorry output, token budget bounds).
-
----
-
-### Category 1: Agent & Orchestration Tests (`tests/agent/` — 5 files, 1,242 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/agent/test_task_graph.py` | 526 | Custom DAG resolution, cycle detection, self-loops, diamond dependencies, task retry counts, SQLite WAL state | `hermes_core/task_graph.py` | **networkx** (`DiGraph`, `simple_cycles`, `topological_sort`) | 🟡 **REFOUND** (~30 lines): Test that task lists convert to `networkx.DiGraph` and reject cycles. Delete 496 lines of custom DAG traversal tests. |
-| `tests/agent/test_branch_swapper.py` | 292 | Custom SQLite branch swap logic, 2-strike consecutive failure counters, tabu pattern injection | `hermes_core/branch_swapper.py` | `quorum_audit` plugin `pre_commit` hook | 🟡 **REFOUND** (~25 lines): Test that plugin pre-commit hook aborts turn on 2 consecutive test failures. Delete custom DB tests. |
-| `tests/agent/test_adk_orchestrator.py` | 273 | ADK CustomAgent bridge, Event streaming, transfer_to_agent transitions, InMemorySessionService | `hermes_core/adk_custom_agent.py` | **google-adk** upstream | 🟢 **KEEP AS INVARIANT** (~60 lines): Verify `HermesADKCustomAgent` satisfies ADK `BaseAgent` protocol and preserves tool state across transfers. |
-| `tests/agent/test_domain_fleet_adk.py` | 83 | DomainFleetManager team dictionary, sub-agent spawning, pipeline composition | `hermes_core/domain_fleet.py` | **google-adk** `Runner` | 🟡 **REFOUND** (~20 lines): Verify fleet registry produces valid ADK agent configurations. |
-| `tests/agent/test_agent_os.py` | 68 | AgentOSDaemon lifecycle, SQLite queue table, daemon background loops | `hermes_core/agent_os.py` | **google-adk** + plan.json | 🔴 **DELETE**: AgentOS daemon loop is replaced by ADK runner; no custom daemon process. |
-
----
-
-### Category 2: Core Subsystem Tests (`tests/core/` — 11 files, 1,607 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/core/test_cli.py` | 357 | Custom CLI flags, capability selectors (plan/execute/verify phases), progress reporting, token savings | `hermes_core/cli.py` | Upstream Hermes CLI + Click/Typer | 🟡 **REFOUND** (~40 lines): Test Hermes CLI invokes correct profile and respects `--yolo` / `--in`. |
-| `tests/core/test_cactus_uncertainty.py` | 180 | Verbal hedging regex, action risk scoring, streak weighting, autonomous halt | `hermes_core/cactus.py` + `loop_contracts.py` | `config.yaml` guardrails + NeMo dialog rails | 🔴 **DELETE**: Replaced by config-level guardrails (`tool_loop_guardrails.hard_stop_enabled`) and NeMo rails. |
-| `tests/core/test_lora_adapter_manager.py` | 164 | Custom LoRA manager, VRAM rejection limits, single active adapter hot-swapping | `hermes_core/lora_adapter_manager.py` | **peft** (`add_adapter`, `set_adapter`) | 🟡 **REFOUND** (~25 lines): Verify `peft` adapter switching doesn't exceed VRAM limits. |
-| `tests/core/test_graphify_bridge.py` | 137 | Knowledge card Markdown frontmatter persistence, SecondBrain vault CRUD, graphify skill discovery | `hermes_core/second_brain.py` + `skill_router.py` | **python-frontmatter** + graphify skill | 🟡 **REFOUND** (~20 lines): Verify graphify Markdown cards have valid YAML frontmatter. |
-| `tests/core/test_vision_token_budget.py` | 137 | Image downsampling math, Gemma vision token formula, optimal patch grid calculation | `hermes_core/visual_arbiter.py` | Pillow `Image.resize` directly | 🟢 **KEEP AS INVARIANT** (~40 lines): Enforce local vision token budget formula (max 1024 tokens/image on 6GB GPU). |
-| `tests/core/test_draft_detective_aps.py` | 128 | Gemma-APS proposition segmentation, AST verification of claims, hallucination detection in summaries | `hermes_core/draft_detective.py` | **ast-grep-py** AST matching | 🟡 **REFOUND** (~30 lines): Verify AST verification catches non-existent function calls in generated patches. |
-| `tests/core/test_quorum_and_gepa.py` | 120 | Quorum audit gate separation, blast radius calculation, GEPALiteOptimizer Pareto candidates | `hermes_core/quorum_gate.py` + `gepa_optimizer.py` | **dspy** `MIPROv2` + `quorum_audit` plugin | 🟡 **REFOUND** (~25 lines): Verify quorum audit gate returns REJECT when blast radius exceeds threshold. |
-| `tests/core/test_gemma_skills.py` | 109 | SKILL.md L0 discovery tokens (<50 tok), L1 dynamic loading, L2 eviction, asset syntax | `hermes_core/openskills_manager.py` | `openskills_manager.py` (kept) | 🟢 **KEEP AS INVARIANT** (109 lines): Enforces critical token budget invariant (<50 tokens/skill discovery line). |
-| `tests/core/test_experience_store.py` | 99 | Episodic memory JSONL + SQLModel saving, compute waste detection, negative constraint generation | `hermes_core/experience_store.py` | **sqlmodel** directly | 🟡 **REFOUND** (~20 lines): Verify SQLModel episode insertion and query. |
-| `tests/core/test_persistence.py` | 86 | SQLite connection factory WAL mode pragmas, FlatBuffers binary serialization speed (<100μs) | `hermes_core/database.py` + `flatbuffers_state.py` | **sqlmodel** + stdlib | 🔴 **DELETE**: SQLModel handles connections; FlatBuffers custom serialization is eliminated. |
-| `tests/core/test_security_delegation.py` | 62 | Trinity isolation, read-only capability masks, HITL risk assessment, test-time compute scoring | `hermes_core/capability_masks.py` | ADK agent capability config | 🟡 **REFOUND** (~20 lines): Verify read-only agent roles cannot call file-write tools. |
-
----
-
-### Category 3: Monitoring & Safety Tests (`tests/monitoring/` & `tests/safety/` — 5 files, 965 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/safety/test_sandbox.py` | 325 | Bubblewrap CLI flag assembly, read-only `/usr` binds, writable `/dev/shm`, setsid process groups | `hermes_core/sandbox.py` + `process_guard.py` | Direct `bwrap` execution | 🟢 **KEEP AS INVARIANT** (~40 lines): Verify untrusted command execution cannot write outside designated workspace. |
-| `tests/monitoring/test_trajectory_openlit.py` | 216 | OpenTelemetry custom span creation, hash-chain immutability, gate rejection span error status | `hermes_core/trajectory.py` | **openlit** (`openlit.init()`) | 🟡 **REFOUND** (~30 lines): Verify `openlit` emits spans to local collector on LLM turn. Delete bespoke hash-chain tests. |
-| `tests/safety/test_nemo_guardrails.py` | 200 | NeMo Colang 1.0 config discovery, input rails blocking `rm -rf`, output rails redacting API keys | `hermes_core/nemo_guardrails_bridge.py` | **nemoguardrails** directly | 🟢 **KEEP AS INVARIANT** (~50 lines): Verify destructive command patterns and secret leak patterns are blocked. |
-| `tests/safety/test_security_ctf.py` | 126 | ELF binary header parsing, mitigation checks (NX, PIE, Canary), ASCII/Unicode string extraction | `hermes_core/security_ctf.py` | **pwntools** / **capstone** | 🔴 **DELETE**: Custom ELF parser is deleted in favor of CLI tools; no custom Python to test. |
-| `tests/safety/test_hitl_gateway.py` | 98 | Risk classification (LOW..CRITICAL), visual DAG ASCII dashboard, auto-approval vs interactive block | `hermes_core/hitl_gateway.py` | NeMo dialog rails + `--yolo` flag | 🔴 **DELETE**: Custom ASCII dashboard and gateway are replaced by NeMo rails + native CLI. |
-
----
-
-### Category 4: Tools & Transports Tests (`tests/tools/` — 3 files, 908 lines)
-
-| Test File | Lines | What It Currently Tests | Underlying Module | Upstream Replacement | Verdict & Action |
-|:----------|:------|:------------------------|:------------------|:---------------------|:-----------------|
-| `tests/tools/test_symbol_graph.py` | 637 | Custom polyglot Tree-Sitter symbol extraction, call hierarchy, reverse callers, incremental mtime cache, SQLite WAL tables | `hermes_core/symbol_graph.py` | **ast-grep-py** (`SgRoot`) + **graphify** | 🔴 **DELETE** (637 lines!): Testing our bespoke Tree-Sitter AST extractor is completely obsolete when using `ast-grep-py` / `graphify`. Replace with a 15-line test in contracts. |
-| `tests/tools/test_fast_research.py` | 195 | Custom regex HTML cleaner, malformed HTML handling, token bounding (<400 tok), query deduplication | `hermes_core/fast_research.py` | **crawl4ai** `AsyncWebCrawler` | 🔴 **DELETE**: Crawl4AI handles HTML→Markdown, deduplication, and word thresholds natively with its own test suite. |
-| `tests/tools/test_fastmcp_transport.py` | 96 | In-memory FastMCP tool dispatch latency (<5ms), multi-hop proxying, schema generation | `hermes_core/fastmcp.py` | **fastmcp** upstream | 🟡 **REFOUND** (~20 lines): Verify FastMCP server exposes registered tools and dispatches calls correctly. |
-
----
-
-### Test Suite Comparison: Before vs After
-
-| Test Directory | Current Files | Current Lines | Post-Refactor Files | Target Lines | Net Reduction |
-|:---------------|:--------------|:--------------|:-------------------|:-------------|:--------------|
-| `tests/agent/` | 5 | 1,242 | 3 | ~135 | **–1,107 lines (–89%)** |
-| `tests/core/` | 11 | 1,607 | 7 | ~220 | **–1,387 lines (–86%)** |
-| `tests/monitoring/` | 1 | 216 | 1 | ~30 | **–186 lines (–86%)** |
-| `tests/safety/` | 4 | 749 | 2 | ~90 | **–659 lines (–88%)** |
-| `tests/tools/` | 3 | 908 | 1 | ~20 | **–888 lines (–98%)** |
-| `conftest.py` | 1 | 8 | 1 | 8 | 0 |
-| **Total `.hermes/tests/`** | **25 files** | **4,722 lines** | **15 files** | **~503 lines** | **–4,219 lines (–89%)** |
-
-### What Replaces the 4,219 Lines of Deleted Tests?
-1. **Upstream Package CI**: `ast-grep`, `networkx`, `crawl4ai`, `dspy`, `fastmcp`, `nemoguardrails`, `sqlmodel`, and `openlit` maintain thousands of unit tests upstream. We stop maintaining duplicate unit tests for their functionality.
-2. **Lean Contract Tests**: The ~503 lines that remain focus exclusively on **Hermes integration invariants**:
-   - Hardware constraints: VRAM budget ≤ 4,812 MiB, image vision tokens ≤ 1,024
-   - Safety constraints: Bubblewrap isolation, NeMo prompt injection / destructive command blocks
-   - Agent standards: SKILL.md discovery budget ≤ 50 tokens/skill, ADK agent transfer integrity
-   - Plugin verification: Quorum gate pre-commit rejection on high blast radius
-
----
-
----
-
-# PART III: Unified Master Implementation Roadmap (Phases 0 through 6)
-
-> **Core Constraint**: Reduce custom Python files as low as possible. Zero new bespoke wrapper files. Prefer standard upstream packages, native Hermes config, declarative plugin hooks, and skills.
->
-> **Execution Order Principle**: Lowest risk and immediate value first. Pure config and context discipline (Phase 0) precedes plugin conversion and wrapper purging (Phase 1), loop architecture (Phase 2), memory/observability (Phase 3), skills (Phase 4), multi-agent (Phase 5), and self-optimization (Phase 6).
-
----
-
-### Phase 0 — Foundation & Environment Hygiene
-*Zero new code. Zero file deletions. Immediate impact on every single session from turn 1.*
-
-**0.1 — Enable Hard Stop on Tool Loop** *(Item 14)*
-- Edit `.hermes/config.yaml`: set `tool_loop_guardrails.hard_stop_enabled: true`.
-- Enforces the falsifiable loop invariant from Mahaximus: bounded iterations, machine-checkable stop conditions, and zero runaway token burn on failing loops.
-- **Delta**: 1-line config edit in `config.yaml`.
-
-**0.2 — Mannered Prose Elimination in SOUL.md** *(Item 11)*
-- Prepend Anthropic's diagnostic contract to `.hermes/SOUL.md` as Rule 0 (highest precedence):
-  ```markdown
-  Rule 0 (Mannered Prose Elimination):
-  Eliminate all conversational filler, apologetic throat-clearing ("Certainly!", "I would be happy to help", "I understand that..."), and sycophantic reassurance. Deliver dense, factual, professional engineering prose immediately. Code blocks, command outputs, and diffs must be emitted directly without preamble. Shorthand fallback: "Please remove all mannered prose" acts as an immediate override.
-  ```
-- Instantly cuts 30–40% verbose filler from model turns.
-- **Delta**: ~8 lines added to `SOUL.md`.
-
-**0.3 — Fix Corrupted Shebang in `observer_gate.py`**
-- Fix line 1 of `.hermes/bin/observer_gate.py`: move `import shutil` below `#!/usr/bin/env python3` so standard POSIX shebang execution succeeds without syntax or mime-type parsing errors.
-- **Delta**: 1-line fix.
-
-**0.4 — Clean Up Ghost Packaging in `pyproject.toml`**
-- In root `pyproject.toml`, remove stale entry points:
-  `hermes = "hermes_harness.cli:main"` (package `hermes_harness` does not exist; actual CLI is `hermes_cli.main`).
-- Uninstall the broken editable package: `pip uninstall -y hermes-harness`.
-- Keep `pyproject.toml` strictly as the harness dependency lock manifest.
-- **Delta**: Config edit + pip uninstall.
-
-**0.5 — Decouple `.hermes/hermes-agent` Git Repository**
-- Decouple the nested 500MB `hermes-agent` git repository from the chezmoi-managed `.hermes/` dotfiles directory.
-- Install `hermes-agent` as a clean Python package (or place the dev clone in a dedicated `~/Development/hermes-agent` path).
-- Chezmoi now cleanly tracks ONLY dotfiles, configuration, skills, and plugins — zero nested `.git` blobs.
-- **Delta**: Git repository un-nesting.
-
-**0.6 — `AGENTS.md` Pruning & Duplicate Removal** *(Item 10)*
-- Remove legacy instructions that mandate reading entire repo maps for trivial tasks.
-- Remove redundant behavioral nudges (self-testing nagging, over-specified step recipes).
-- Merge `.hermes_AGENTS.md` into `AGENTS.md` — eliminate the duplicate maintenance hazard.
-- **Delta**: Text deletion & file consolidation.
-
----
-
-### Phase 1 — Upstream Plugin Substrate, Wrapper Purge & Test Modernization
-*Transitions to battle-tested upstream packages, slashes 69 custom Python wrapper files, and purges 4.2k lines of obsolete mock tests.*
-
-**1.1 — Install 16 Upstream Packages**
-```bash
-pip install fastmcp crawl4ai fastembed "dspy-ai" ast-grep-py graphiti-core openlit \
-            nemoguardrails sqlmodel networkx tiktoken peft gitpython \
-            python-frontmatter google-adk playwright
-```
-- **Dependencies resolved**: Every capability (AST parsing, temporal graph memory, prompt optimization, guardrails, web extraction, tracing) is now backed by a dedicated upstream package.
-
-**1.2 — Build Single Unified FastMCP Tool Server**
-Create `.hermes/plugins/mcp_tools/__init__.py` (~60 lines total):
-```python
-from fastmcp import FastMCP
-from crawl4ai import AsyncWebCrawler
-from ast_grep_py import SgRoot
-
-mcp = FastMCP("hermes-tools")
-
-@mcp.tool
-async def web_extract(url: str, word_limit: int = 500) -> str:
-    """Extract LLM-ready markdown from any URL via Crawl4AI."""
-    async with AsyncWebCrawler() as c:
-        r = await c.arun(url=url, word_count_threshold=word_limit)
-        return r.markdown
-
-@mcp.tool
-def ast_search(pattern: str, code: str, lang: str = "python") -> list[dict]:
-    """Search structural code patterns across files via ast-grep Tree-sitter."""
-    root = SgRoot(code, lang)
-    return [{"text": n.text(), "range": str(n.range())} for n in root.root().find_all(pattern)]
-```
-- **Replaces**: `web_grounding.py`, `fast_research.py`, `extract_web_content.py`, `tools.py`, `codebase_memory_mcp.py`, and `fastmcp.py`.
-
-**1.3 — Declarative Plugin Pack Configuration**
-- Ensure all 5 active plugins in `.hermes/plugins/` have valid `plugin.yaml` manifests adhering to upstream specs.
-- Register them in `hermes-pack.yaml`:
-  `quorum_audit`, `gepa_optimizer`, `observer_gate`, `mcp_tools`, `reflective_learner_adapter`.
-- Validate with: `hermes plugins doctor`.
-- **Delta**: YAML plugin configurations.
-
-**1.4 — Delete Pure Wrapper Files in `hermes_core/` (~55 files)**
-- Delete all 🔴 **DELETE** files audited in Part II, Category 1 through 12:
-  `database.py`, `embeddings.py`, `fast_research.py`, `flatbuffers_state.py`, `formatter_pipeline.py`, `google_agentic_substrate.py`, `hook_router.py`, `hooks.py`, `humanizer.py`, `intent_router.py`, `loop_contracts.py`, `lora_adapter.py`, `lora_adapter_manager.py`, `lsp_bridge.py`, `middleware.py`, `multi_bot_delegation.py`, `opencode_mem.py`, `openviking_vfs.py`, `prefix_cache.py`, `presets.py`, `process_guard.py`, `prompt_slotting.py`, `qwen_mm_core.py`, `ring_buffer.py`, `runner.py`, `sandbox.py`, `schema_anchors.py`, `sdk.py`, `security_ctf.py`, `skill_router.py`, `skills_catalog.py`, `skills_registry.py`, `speculative_executor.py`, `symbol_graph.py`, `symbol_indexer.py`, `test_time_sampler.py`, `thread_safe_ringbuffer.py`, `tools.py`, `verification_matrix.py`, `vfs.py`, `visual_arbiter.py`, `web_grounding.py`.
-- Pre-deletion check: `grep -rn "from hermes_core.<name>" .hermes/` to confirm zero remaining internal imports.
-
-**1.5 — Delete 14 Redundant Scripts in `.hermes/bin/`**
-- Delete: `bin/cache_ui_assets.py`, `bin/container_cmd.py`, `bin/extract_code_mode.py`, `bin/extract_web_content.py`, `bin/harness_architectural_evolution.py`, `bin/hub_cli.py`, `bin/index_docs.py`, `bin/ingest_document.py`, `bin/skill_retriever.py`, `bin/skill_router.py`, `bin/verify_harness_integrity.py`, `bin/verify_skills_config.py`, `bin/verify_transcript.py`, `bin/web_grounding.py`.
-- Convert surviving `observer_gate.py` to a ~50-line pre-commit hook in `plugins/observer_gate/`.
-- Remove `.hermes/bin/` entirely.
-
-**1.6 — Thin-Shim Surviving Modules (12 files, each ≤30 lines)**
-- Keep only thin pass-through adapters: `adk_custom_agent.py`, `domain_fleet.py`, `swarm_engine.py`, `swarm_system.py`, `agent_os.py`, `spec_first_planner.py`, `nemo_guardrails_bridge.py`, `hypothesis_tree.py`, `trajectory.py`, `experience_store.py`, `plugin_manifest.py`, `openskills_manager.py`.
-
-**1.7 — Purge Obsolete White-Box Tests (7 files, 1,777 lines)**
-```bash
-rm .hermes/tests/tools/test_symbol_graph.py       # 637L: custom Tree-Sitter SQLite indexer
-rm .hermes/tests/tools/test_fast_research.py      # 195L: custom HTML cleaner
-rm .hermes/tests/core/test_persistence.py         # 86L: custom FlatBuffers & DB factory
-rm .hermes/tests/core/test_cactus_uncertainty.py  # 180L: custom hedging regex
-rm .hermes/tests/safety/test_security_ctf.py      # 126L: custom ELF parser
-rm .hermes/tests/safety/test_hitl_gateway.py      # 98L: custom ASCII DAG dashboard
-rm .hermes/tests/agent/test_agent_os.py           # 68L: custom daemon loops
-```
-
-**1.8 — Refactor Remaining 15 Test Files to Lean Invariant Contracts**
-- Refactor remaining 15 test files to test behavioral contracts against upstream packages (`networkx`, `fastmcp`, `openlit`, `sqlmodel`, `dspy`, `nemoguardrails`).
-- Retain vital hardware/safety invariant tests:
-  - VRAM budget ceiling (≤4,812 MiB)
-  - Image vision token budget (≤1,024 tokens)
-  - OpenSkills L0 discovery budget (≤50 tokens/skill)
-  - Bubblewrap filesystem isolation & setsid process teardown
-  - NeMo guardrails injection & command blocking
-- **Total test code drops from 4,722 lines to ~503 lines (–89% reduction)**.
-- Harmonize discovery with root `tests/harness_contracts/` under `make test-contracts`.
-
----
-
-### Phase 2 — Loop Architecture & Finish-First Contract
-*Formalizes the 4-phase lifecycle and ensures the agent never stops at a first-pass draft.*
-
-**2.1 — Explicit Completion Contract in SOUL.md** *(Items 1, 10)*
-- Add to `SOUL.md` §11 (Session Lifecycle): unambiguous completion definition pattern.
-- *"Completion requires: build → test → verify → fix until green. Never stop at first-pass draft. A task is complete only when verified by an executable tool check."*
-- **Delta**: ~5 lines in `SOUL.md`.
-
-**2.2 — Evidence-Grounded Progress Audit Rule** *(Item 2)*
-- Add to `rules/project.md`: Anthropic's evidence-audit contract.
-- *"Before reporting task progress or milestone completion, audit each claim against a concrete tool output from the current session. Speculative claims are strictly forbidden."*
-- **Delta**: ~6 lines in `rules/project.md`.
-
-**2.3 — Diamond Orchestration Pattern Skill** *(Item 14)*
-- Create `skills/software-development/diamond-orchestration/SKILL.md`.
-- Encodes the fan-out → deterministic-reduce → skeptic-verify → converge multi-agent template for complex multi-file refactors.
-- **Delta**: New SKILL.md (no Python).
-
----
-
-### Phase 3 — Memory, Dreaming & Observability
-*Turns passive session logs into durable persistent memory cards and activates automated observability.*
-
-**3.1 — Dreaming Hook in `reflective_learner_adapter`** *(Item 2)*
-- Edit `plugins/reflective_learner_adapter/plugin.yaml` to add `on_session_end` hook.
-- Summarizes `.hermes/logs/` into `memory/experiential.jsonl` memory cards with scannable one-line titles.
-- **Delta**: Plugin YAML hook.
-
-**3.2 — Wire Graphiti for Temporal Working Memory** *(Item 15)*
-- In `plugins/reflective_learner_adapter/hooks/on_session_end.py` (~20 lines):
-  ```python
-  from graphiti_core import Graphiti
-  # Ingest session transcript into local temporal graph memory
-  ```
-- Replaces custom working memory with bi-temporal entity resolution.
-
-**3.3 — Wire OpenLIT for Observability** *(Item 12)*
-- In `hermes_core/trajectory.py` (shrunk to ~20 lines):
-  ```python
-  import openlit
-  openlit.init(otlp_endpoint="http://localhost:4318", application_name="hermes")
-  ```
-- Full GPU health, latency, token spend, and hallucination metrics out of the box.
-
-**3.4 — Session Handoff Checkpoint Skill** *(Items 2, 14)*
-- Extend `skills/software-development/plan/SKILL.md` to mandate <150-word checkpoint cards:
-  Completed sub-tasks, decisions-with-rationale, pending work, resumption tokens.
-- **Delta**: Edit existing SKILL.md.
-
-**3.5 — Obsidian Vault Memory Integration** *(Item 15)*
-- Edit `skills/note-taking/obsidian/SKILL.md` to add the autonomous content-OS workflow:
-  Log every generated asset, source citation, and angle into a structured Obsidian vault.
-- **Delta**: Edit existing SKILL.md.
-
----
-
-### Phase 4 — Skills & Proactive Thought Partnership
-*Consolidates skill trees, enforces progressive disclosure token budgets, and adds proactive scaffolding.*
-
-**4.1 — Consolidate Skills Directory (`private_skills/` → `skills/`)**
-- Move all 91 skills from `.hermes/private_skills/` into `.hermes/skills/` (the standard upstream location).
-- Remove the redundant `private_skills/` directory and update any references.
-- **Delta**: Directory move.
-
-**4.2 — Relocate Static Assets & Templates to Skill Resources**
-- Move `.types` and code templates from `src/hermes_core/types/` to their respective `skills/*/resources/` directories:
-  - `nodejs_types.types` → `skills/software-development/node-inspect-debugger/resources/`
-  - `posix_types.types` → `skills/devops/resources/`
-  - `threejs_types.types` & `webgl_canvas_boilerplate.html` → `skills/software-development/generative-ui-artifact/resources/`
-  - `playwright_tdd_spec.py` → `skills/software-development/test-driven-development/resources/`
-- Delete the `types/` sub-tree from `src/hermes_core/`.
-- **Delta**: File relocations.
-
-**4.3 — Skill Description Hygiene Audit** *(Item 10)*
-- Audit all 91 `SKILL.md` frontmatter `description` fields.
-- Enforce ≤60 chars, router-only, exact trigger condition language (no "Pick-Me" energy).
-- Prevents L0 progressive disclosure from exceeding discovery token budgets.
-- **Delta**: Config/text edits only, no Python.
-
-**4.4 — Proactive Thought Partner Directive in SOUL.md** *(Item 8)*
-- Add proactive behavior guidelines to `SOUL.md`:
-  *"When a task has clear second-order consequences, offer 1–2 actionable next steps or alternative hypotheses. Do NOT proactively ask open-ended questions or nag. Scaffolding must be non-directive and immediately useful."*
-- **Delta**: ~5 lines in `SOUL.md`.
-
-**4.5 — Spec-Driven Regeneration Skill** *(Item 13)*
-- Create `skills/software-development/spec-driven-regen/SKILL.md` ("Design Docs Are All You Need").
-- Encodes the literate typed graph approach: write typed spec first, derive code deterministically, regenerate from spec on drift.
-- **Delta**: 1 new `SKILL.md`.
-
----
-
-### Phase 5 — Multi-Agent & Maker/Verifier Gate
-*Hardens asymmetric agent roles and connects external research substrates.*
-
-**5.1 — Strengthen Maker/Verifier Separation** *(Items 1, 2, 12)*
-- Review `quorum_audit` plugin hooks: strictly enforce `Author != Auditor` on all mutating operations.
-- Ensure `@tester` profile has no file-write tools; `@coder` profile cannot sign off on its own post-commit audit.
-- **Delta**: Plugin YAML and profile capability mask edits.
-
-**5.2 — Gemini NotebookLM MCP Bridge** *(Item 15)*
-- Add MCP server configuration entry to `config.yaml` for Gemini Notebook.
-- Enables Hermes to query multi-modal research notebooks (PDFs, YouTube transcripts, audio) via standard MCP tool calls.
-- **Delta**: Config entry only.
-
-**5.3 — Conservative Multi-Agent Budget Rule** *(Item 2)*
-- Add token economics directive to `SOUL.md`:
-  *"Single-agent turns cost 4×; multi-agent fan-out costs 15×. Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration."*
-- **Delta**: ~4 lines in `SOUL.md`.
-
----
-
-### Phase 6 — Harness Self-Optimization & Model Infrastructure
-*Wires DSPy for continuous prompt compilation and provides forward-looking local inference guides.*
-
-**6.1 — Wire DSPy MIPROv2 Teleprompter to GEPA Plugin** *(Items 12, 3)*
-- In `plugins/gepa_optimizer/hooks/on_session_end.py` (~25 lines):
-  ```python
-  import dspy
-  from dspy.teleprompt import MIPROv2
-  # Use failed turns as training set; auto-optimize SOUL.md prompt rules
-  ```
-- Self-optimizing prompts backed by Stanford's DSPy compiler.
-
-**6.2 — Declarative Attention (vLLM Upgrade Path)** *(Items 6, 7)*
-- When upgrading inference servers: document vLLM block-masking configuration in `skills/mlops/inference/serving-llms-vllm/SKILL.md`.
-- **Delta**: Skill documentation.
-
-**6.3 — NoRA Fine-Tuning Guide** *(Item 9)*
-- Document normalized down-projection matrix A initialization in `skills/mlops/models/gemma-trainer/SKILL.md`.
-- **Delta**: Skill documentation.
-
-**6.4 — CodeMender-Style Vulnerability Harness Pattern** *(Item 4)*
-- Document the find → validate → patch → regression-test workflow in `skills/devops/sdlc-review/SKILL.md`.
-- **Delta**: Skill documentation.
-
----
-
-### Master Roadmap Execution Summary Table
-
-| Phase | Focus | Core Deliverables | Approach | Custom Python Delta |
-|:---|:---|:---|:---|:---|
-| **0** | Foundation & Environment Hygiene | Hard-stop enabled, mannered prose eliminated, `observer_gate` shebang fixed, `pyproject.toml` cleaned, `hermes-agent` un-nested, `AGENTS.md` pruned | `config.yaml` + `SOUL.md` edits + git moves | 0 added, 0 removed |
-| **1** | Plugin Substrate & Wrapper Purge | Install 16 upstream packages, create 60L FastMCP tool server (`mcp_tools`), delete 55 `hermes_core` wrappers, delete 14 `bin` scripts, purge 4.2k test lines | `pip install` + FastMCP + file deletions | **+1 thin file added, –69 custom files removed, –4,219 test lines** |
-| **2** | Loop Architecture | Completion contract in `SOUL.md`, evidence audit rule, diamond orchestration skill | `SOUL.md` + 1 new `SKILL.md` | 0 added, 0 removed |
-| **3** | Memory & Observability | Dreaming hook in `reflective_learner_adapter`, wire Graphiti temporal memory, wire OpenLIT spans, checkpoint skill, Obsidian vault integration | 2 small plugin hooks (~40L) + skill edits | 0 added, 0 removed |
-| **4** | Skills & Proactive Partnership | Consolidate 91 skills to `skills/`, relocate `.types`/templates to resources, audit descriptions (≤60 chars), proactive partner directive, spec-driven regen skill | File moves + rule text + 1 new `SKILL.md` | 0 added, 0 removed |
-| **5** | Multi-Agent & Maker/Verifier | Harden Maker/Verifier separation in `quorum_audit`, Gemini NotebookLM MCP bridge, conservative token budget rule | `config.yaml` + `SOUL.md` | 0 added, 0 removed |
-| **6** | Self-Optimization & Model Infra | Wire DSPy `MIPROv2` teleprompter hook (~25L), document Declarative Attention / vLLM, NoRA fine-tuning, CodeMender vulnerability harness | 1 small plugin hook (~25L) + skill docs | 0 added, 0 removed |
-| **TOTAL** | | **Comprehensive Harness Evolution End-to-End** | **True Plugin Architecture** | **Net: –68 custom Python files, –4,219 test lines, 0 bespoke wrappers** |
+> **Rule**: Never proceed to the next phase item until `hermes exam` passes after the current item. The Finish-First invariant applies to the Plan itself.

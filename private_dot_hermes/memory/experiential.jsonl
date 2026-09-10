@@ -1,2 +1,0 @@
-{"timestamp": "2026-08-30T12:00:00Z", "task_domain": "systems_concurrency", "skill_used": "software-development/test-driven-development", "outcome": "PASS", "heuristic": "Always lock state before reading thread ringbuffer"}
-{"timestamp": "2026-08-30T12:15:00Z", "task_domain": "webgl_kinematics", "skill_used": "creative/p5js", "outcome": "PASS", "heuristic": "Initialize DOM canvas in requestAnimationFrame lifecycle before rendering"}

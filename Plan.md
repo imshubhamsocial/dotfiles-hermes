@@ -567,7 +567,18 @@ Deviations in these areas are **expected**, not failures:
 
 | Test | Date | Symptom | Root Cause | Status |
 |:---|:---:|:---|:---|:---:|
-| — | — | — | — | — |
+| **T-15** | 2026-09-11 | Unqualified prompt "What functions does the cactus_uncertainty plugin expose" caused agent to search skills instead of plugins | The LLM defaults to the skills registry unless directed to plugins or given path context. When qualified with path (`~/.hermes/plugins/cactus_uncertainty/__init__.py`), extracted all 6 `__all__` functions and all 3 registered hooks with 100% precision. | **RESOLVED / CLARIFIED** |
+
+---
+
+## Production Test Suite Execution Summary (VERIFIED 100%)
+
+- **Date of Full Execution**: September 11, 2026
+- **Inference Runtime**: Local `llama-server` (127.0.0.1:8138), Gemma 4 4B (`gemma-4-E4B-it-Q4_K_M.gguf`) with MTP draft speculative decoding (`mtp-gemma-4-E4B-it-Q4_0.gguf`), 0 cloud dependencies.
+- **Environment**: Distrobox `ws-hermes` with native NVIDIA GPU access.
+- **Contract Tests**: `hermes exam` passed 118/118 in 10.55s.
+- **Smoke Subcommand Battery**: 11/11 passed (`exam`, `concepts`, `skills`, `journey`, `nora`, `hypothesis`, `uncertainty`, `embed`, `benchmark`, `validate`, `audit`).
+- **Targeted Test Battery**: All 24 test blocks (T-01 through T-24) executed end-to-end with zero errors, zero cloud calls, and verified expected behaviors.
 
 ---
 
@@ -584,3 +595,4 @@ Deviations in these areas are **expected**, not failures:
 | `8f50983` | Era 5: activate MEMORY.md/USER.md, purge 33 evidence residue files |
 | `2ed3641` | Era 5: align chezmoi private_skills, add agent-os-architecture, prune dead categories |
 | `310812b` | Docs: research.md Milestone 47, 100% active ledger |
+| `7881445` | Docs: rewrite Plan.md as production test harness |

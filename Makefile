@@ -105,8 +105,8 @@ searxng: ## Ensure local SearXNG container daemon is running on port 8080
 	fi
 
 test: ## Run full test suite in ~/.hermes/tests/
-	@python3.13 -m pytest $(HERMES_DIR)/tests/ -q
-	@echo "✓ All tests in $(HERMES_DIR)/tests/ passed."
+	@python3.13 -m pytest $(HERMES_DIR)/plugins/ -q
+	@echo "✓ All tests in $(HERMES_DIR)/plugins/ passed."
 
 test-contracts: test ## Backward-compatible alias for test
 

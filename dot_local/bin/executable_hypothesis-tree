@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.13
 """
 Branching & Hypothesis Tree Search Engine (SWE-Search / Arbor / MCTS Style)
 ==========================================================================

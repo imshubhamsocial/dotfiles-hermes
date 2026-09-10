@@ -11,7 +11,7 @@ Run the Observer Gate before committing or claiming verification to ensure zero 
 
 1. **Run Full Observer Gate on File**:
 ```bash
-python3 ~/.hermes/bin/observer_gate.py <filepath>
+observer-gate <filepath>
 ```
 
 2. **Run Ultra-Fast Rust Biome Formatting (<5ms)**:

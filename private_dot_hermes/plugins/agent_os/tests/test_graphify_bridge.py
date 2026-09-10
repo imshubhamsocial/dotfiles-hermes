@@ -25,7 +25,7 @@ from plugins.openskills import (
 
 @pytest.fixture
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path.home()
 
 
 @pytest.fixture

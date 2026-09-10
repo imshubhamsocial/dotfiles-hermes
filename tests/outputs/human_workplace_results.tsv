@@ -1,9 +1,0 @@
-cluster_key	title	builder_model	planner_model	hwus_score	accuracy_pct	adherence_pct	repeatability_consistency_pct	variation_robustness_pct	persona_balance_pct	linter_pass_pct	throughput_tok_s	ttft_ms	latency_s	peak_vram_mb	vram_headroom_mb
-05-gemma-4-e2b-e4b-ple-qat	Gemma 4 E2B/E4B Instruct INT4 QAT (PLE Low-Latency)	gemma4-qat-builder.gguf	gemma4-e4b-tuned:latest	30.0	0.0	100.0	0.0	0.0	0.0	8.0	62.3	56.7	104.64	2301	3843
-01-gemma-4-base-qat-hyper-opt	Gemma 4 Base QAT INT4 (Stack Hyper-Opt + Python LoRA)	gemma4-qat-builder.gguf	gemma4-e4b-tuned:latest	29.7	0.0	100.0	0.0	0.0	0.0	4.0	62.4	55.2	106.17	2301	3843
-07-qwen-2.5-coder-3b-low-engine-tax	Qwen 2.5-Coder 3B Instruct Q4_K_M (Low Engine Tax)	qwen2.5-coder-3b-instruct-q4_k_m.gguf	qwen2.5-coder-3b-instruct:latest	26.4	0.0	52.0	0.0	0.0	0.0	12.0	73.9	22.6	89.86	2653	3491
-02-qwen-2.5-coder-3b-spec-task-graph	Qwen 2.5-Coder 3B Instruct Q4_K_M (Spec Task-Graph)	qwen2.5-coder-3b-instruct-q4_k_m.gguf	qwen2.5-coder-3b-instruct:latest	24.0	0.0	44.0	0.0	0.0	0.0	8.0	72.0	23.2	89.41	2387	3757
-03-qwen-2.5-coder-3b-baremetal-mcts	Qwen 2.5-Coder 3B Instruct Q4_K_M (Bare-Metal MCTS)	qwen2.5-coder-3b-instruct-q4_k_m.gguf	qwen2.5-coder-3b-instruct:latest	22.5	0.0	36.0	0.0	0.0	0.0	4.0	73.3	22.1	87.4	2653	3491
-06-qwen-2.5-coder-3b-w4a16-q8-0	Qwen 2.5-Coder 3B Instruct W4A16 Q8_0 (Q8_0 KV Cache)	qwen2.5-coder-3b-instruct-q8_0.gguf	qwen2.5-coder-3b-instruct:latest	20.4	0.0	52.0	0.0	0.0	0.0	0.0	45.3	30.6	139.84	4001	2143
-04-qwen-3.6-4b-gdn-linear	Qwen 3.6 4B Instruct Q4_K_M (GDN Linear + Q8_0 KV)	qwen3.6-4b-instruct-q4_k_m.gguf	qwen3.6-4b-instruct:latest	10.7	0.0	20.0	0.0	0.0	0.0	0.0	48.4	94.4	144.61	3117	3027
-08-qwen-3.6-4b-dense-yarn	Qwen 3.6 4B Instruct Q4_K_M (Dense YaRN 32K-256K)	qwen3.6-4b-instruct-q4_k_m.gguf	qwen3.6-4b-instruct:latest	9.2	0.0	12.0	0.0	0.0	0.0	0.0	48.8	87.9	140.35	3469	2675

@@ -1,2 +1,0 @@
-cluster_key	ollama_model	plan_model	build_model	title	base_file	hwus_score	accuracy_pct	adherence_pct	repeatability_consistency_pct	variation_robustness_pct	persona_balance_pct	linter_pass_pct	throughput_tok_s	ttft_ms	latency_s	peak_vram_mb	vram_headroom_mb
-combo-gemma4-qat-builder_latest--qwen2.5-coder_3b	gemma4-qat-builder:latest → qwen2.5-coder:3b	gemma4-qat-builder:latest	qwen2.5-coder:3b	Plan: Gemma 4 Base QAT INT4 → Build: Qwen 2.5-Coder 3B Instruct Q4_K_M	qwen2.5-coder-3b-instruct-q4_k_m.gguf	25.0	0.0	40.0	0.0	0.0	0.0	20.0	5.2	585.8	13.05	2282	3862

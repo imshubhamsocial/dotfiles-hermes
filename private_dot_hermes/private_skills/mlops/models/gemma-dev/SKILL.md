@@ -61,7 +61,6 @@ Map the user's deployment goals to the correct tooling stack and best practices.
 
 - Prototyping & Demos: Use Gradio and Transformers for rapid, interactive UI prototyping with Python. Follow the `[assets/gradio-app.py]` best practice.
 - Web & Client Applications: Use `transformers.js` to run inference directly on-device or entirely in the browser. Follow the `[assets/transformers-js-app.js]` best practice. **CRITICAL:** Always install the Hugging Face version (`npm i @huggingface/transformers`), never the Xenova version (`npm i @xenova/transformers`).
-- Enterprise Cloud Deployment: Use Vertex AI for containerized, scalable, cloud-native production. Follow the `[assets/vertex-ai-app.py]` best practice. This requires setting the environment variables `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (e.g., `us-central1`), and `GOOGLE_CLOUD_ENDPOINT_ID`.
 - Apple Silicon (MLX): Recommend MLX when the user is on Mac Apple Silicon hardware. These configurations are optimized primarily for **Text** workflows.
   - Easy Path: Use [Ollama](https://ollama.com/library/gemma4/tags) with model tags like `gemma4:26b` or `gemma4:31b`.
   - Advanced Path: Use the `mlx-lm` package (`pip install mlx-lm`) for direct control, custom quantization, and fine-tuning (LoRA/QLoRA) via `mlx_lm.lora`.

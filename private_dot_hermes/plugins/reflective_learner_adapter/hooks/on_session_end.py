@@ -1,9 +1,11 @@
 """
-Hermes Dreaming & Temporal Working Memory Hook (Phase 3)
-=========================================================
+Hermes Dreaming & Temporal Working Memory Hook (Phase 3 & NoRA Stage 1)
+========================================================================
 1. Dreaming: Summarizes recent session logs into memories/experiential.jsonl
    with scannable one-line titles for zero-token-overhead discovery.
 2. Temporal Memory: Wires Graphiti for bi-temporal entity resolution.
+3. NoRA Stage 1: Captures verified execution traces and task outcomes into
+   training_buffer/samples.jsonl for online weight adaptation.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ import os
 import time
 from pathlib import Path
 from typing import Any
+
+from hermes_constants import get_hermes_home
 
 logger = logging.getLogger("hermes.plugins.reflective_learner.dreaming")
 
@@ -38,7 +42,7 @@ def extract_scannable_summary(messages: list[dict[str, Any]] | None) -> tuple[st
 
 def append_experiential_card(title: str, summary: str, session_id: str, memory_dir: Path | None = None) -> Path:
     """Appends an experiential memory card to memories/experiential.jsonl."""
-    target_dir = memory_dir or (Path.home() / ".hermes" / "memories")
+    target_dir = memory_dir or (get_hermes_home() / "memories")
     target_dir.mkdir(parents=True, exist_ok=True)
     card_file = target_dir / "experiential.jsonl"
 
@@ -54,6 +58,35 @@ def append_experiential_card(title: str, summary: str, session_id: str, memory_d
         f.write(json.dumps(entry) + "\n")
 
     return card_file
+
+
+def append_nora_training_sample(
+    session_id: str,
+    title: str,
+    summary: str,
+    completed: bool,
+    messages: list[dict[str, Any]] | None = None,
+    buffer_dir: Path | None = None,
+) -> Path:
+    """Appends verified task trajectory sample to NoRA training buffer."""
+    target_dir = buffer_dir or (get_hermes_home() / "training_buffer")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    buf_file = target_dir / "samples.jsonl"
+
+    sample = {
+        "session_id": session_id,
+        "title": title,
+        "summary": summary,
+        "verified": completed,
+        "timestamp": time.time(),
+        "turns_count": len(messages or []),
+        "status": "READY_FOR_ADAPTATION" if completed else "FAILED_DISCARD",
+    }
+
+    with open(buf_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(sample) + "\n")
+
+    return buf_file
 
 
 def ingest_temporal_graphiti(session_id: str, summary: str, uri: str | None = None) -> bool:
@@ -80,10 +113,11 @@ def on_session_end(
     completed: bool = True,
     **_: Any,
 ) -> None:
-    """Session end hook: generates dreaming memory card and triggers temporal ingest."""
+    """Session end hook: generates dreaming memory card, NoRA sample, and triggers temporal ingest."""
     try:
         title, summary = extract_scannable_summary(messages)
         append_experiential_card(title, summary, session_id)
+        append_nora_training_sample(session_id, title, summary, completed, messages)
         ingest_temporal_graphiti(session_id, summary)
     except Exception as e:
         logger.warning("Dreaming hook encountered non-fatal error: %s", e)

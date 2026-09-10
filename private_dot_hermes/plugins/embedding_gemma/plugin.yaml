@@ -1,0 +1,7 @@
+name: embedding_gemma
+version: "1.0.0"
+description: "On-Device Lightweight Semantic Retrieval with Strict CPU-Only Enforcement"
+author: hermes
+tags: [embeddings, semantic-search, cpu, fastembed]
+enabled: true
+mcp_servers: []

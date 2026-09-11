@@ -1,0 +1,9 @@
+name: cua_bridge
+version: "1.0.0"
+description: "Cross-platform Computer-Use Automation Driver (CUA) Bridge for desktop and GUI automation"
+author: "Hermes Agent OS Team"
+enabled: true
+entry_point: "cua_bridge"
+dependencies:
+  - capability_guard
+  - observer_gate

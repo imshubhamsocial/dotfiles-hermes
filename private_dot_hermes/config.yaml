@@ -5,6 +5,11 @@ model:
   context_length: 65536
 database:
   journal_mode: wal
+telemetry:
+  enabled: true
+  provider: openlit
+  otlp_endpoint: http://127.0.0.1:4318
+  export_spans: true
 terminal:
   backend: local
   cwd: .
@@ -36,6 +41,9 @@ plugins:
   - symbol_index
   - synergy_bus_adapter
   - trajectory_recorder
+  - antigravity_bridge
+  - cua_bridge
+  - vision_sidecar
   disabled: []
   entries:
     adk_orchestrator:

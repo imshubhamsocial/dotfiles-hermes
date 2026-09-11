@@ -1,0 +1,9 @@
+name: vision_sidecar
+version: "1.0.0"
+description: "Local Multimodal Vision Sidecar (Moondream/LLaVA) on port 8139 for image inspection and UI understanding"
+author: "Hermes Agent OS Team"
+enabled: true
+entry_point: "vision_sidecar"
+dependencies:
+  - capability_guard
+  - observer_gate

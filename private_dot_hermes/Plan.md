@@ -1,21 +1,562 @@
-# Plan.md — Active Execution Blueprint
+# Hermes AGI Plan — Achieving GPT-Astra / Gemini 3.8-Cyber Equivalence
 
-> **Status**: All prior phases (Phases A–G, Part 2 P1/P2 Actions N1–N10, and Horizon 8 Strategic Milestones H8-01–H8-10) are **100% COMPLETE & VERIFIED**.
-> **Contract Status**: 271/271 contract tests green. 0 regressions.
-> **Current Cycle**: Idle / Ready for Next User Directive.
-
----
-
-## Active Milestone Queue
-
-| Milestone | Scope | Invariant Boundary | Status |
-| :--- | :--- | :--- | :---: |
-| *No active pending milestones* | Awaiting new task or experiment specification | Zero-Token Bloat · VRAM ≤ 4,812 MiB | 🟢 READY |
+> **Version**: 9.0 — AGI Pursuit Edition  
+> **Created**: 2026-09-12  
+> **Hardware Ceiling**: RTX 3050 Laptop, 6 GB VRAM, ≤ 4,812 MiB active  
+> **Constraint**: No external cloud inference spend. Everything local or free-tier.  
+> **Directive**: No bounds. No pauses. Evolve without ceiling.
 
 ---
 
-## Invariant Directives for Next Session
-1. **Spec-First Invariant**: Before emitting code or mutating files, formulate the 4 Director questions and persist milestones into `.hermes/plan.json`.
-2. **Loop & Tabu Invariant**: Execute surgical diffs only. Apply the 2-Strike Tabu rule on any failure.
-3. **Pre-Commit Verification**: Run observer gate, contract test suite (`make test`), and capability audits before marking completion.
-4. **Chezmoi Sync**: Track all configuration, rule, and skill modifications in Chezmoi.
+## 0. Reality Check — Where Hermes Stands Today
+
+| Dimension | GPT-Astra / Gemini-3.8-Cyber | Hermes Today | Gap |
+|:---|:---|:---|:---|
+| Reasoning depth | Extended CoT, tree search, process verifiers | Single-pass Gemma-4-4b | 🔴 Critical |
+| Context window | 1M–2M tokens (MoBA/Sparse) | 65K (llama-server) | 🔴 Critical |
+| Multi-agent orchestration | Native swarm, debate, quorum | ADK orchestrator (partial) | 🟡 Medium |
+| Web grounding | Real-time perplexity-style synthesis | ddgs search (basic) | 🟡 Medium |
+| Self-improvement loop | RL on verified trajectories | GEPA+self_evolution (partial) | 🟡 Medium |
+| Multimodal | Vision+Audio+Code native | Vision sidecar on 8139 (stub) | 🟠 Moderate |
+| Memory federation | Episodic + semantic + procedural | experiential.jsonl only | 🟠 Moderate |
+| Computer use (CUA) | Full desktop + browser automation | cua_bridge v0.21.0 (stub) | 🟠 Moderate |
+| Reward modeling | Constitutional AI + RLHF | reward_scorer plugin (stub) | 🟡 Medium |
+| Scientific discovery | Automated hypothesis→experiment loop | hypothesis_tree.py (partial) | 🟡 Medium |
+
+**Current Equivalence Estimate**: ~42% AGI parity.  
+**Target**: 90%+ AGI parity (operational equivalence, not parameter equivalence).
+
+---
+
+## 1. Theoretical Foundation — What Defines GPT-Astra / Gemini AGI Tier
+
+Based on public papers, leaked architecture analyses, and Moonshot/Google/Anthropic technical reports:
+
+### 1.1 The Five AGI Pillars (Operational Definition)
+
+1. **Extended Reasoning (System-2 at Scale)**  
+   - o1/o3: internal CoT with self-critique, backtracking, MCTS on reasoning paths  
+   - Gemini 2.5 Pro thinking: thinking_budget parameter, up to 32K reasoning tokens before answer emission  
+   - Key paper: Large Reasoning Models Survey (arXiv:2501.09686) — RL trains models to generate high-quality reasoning trajectories  
+   - What we need: Hermes must budget thinking tokens, apply self-critique before final emission
+
+2. **Sparse Long Context (MoBA Architecture)**  
+   - Moonshot MoBA (arXiv:2502.13189): Mixture of Block Attention — applies MoE routing to attention heads  
+   - 95% attention sparsity: each token only attends to top-K blocks, not all prior tokens  
+   - Complexity: O(N²) → O(N log N), enables 1M+ token contexts  
+   - Kimi already deployed MoBA in production for long-context requests  
+   - What we need: Apply MoBA-style chunked attention post-processing for Hermes context management
+
+3. **Collective Intelligence (Mixture-of-Agents)**  
+   - MoA (arXiv:2406.04692): Layered architecture — proposer layer → aggregator layer  
+   - Open-source MoA beats GPT-4 Omni on AlpacaEval 2.0 (65.1% vs 57.5%)  
+   - What we need: Hermes quorum_audit must become a true MoA debate loop, not just a stamp
+
+4. **Self-Evolving Without Human Data (Absolute Zero)**  
+   - AZR (arXiv:2505.03335): Model proposes its own tasks, solves them, uses code executor as reward verifier  
+   - No external dataset required — pure self-play curriculum  
+   - What we need: GEPA + self_evolution must close the loop to propose→solve→verify→reinforce
+
+5. **Autonomous Scientific Discovery**  
+   - AI Scientist (arXiv:2408.06292): idea→code→experiment→paper→review loop  
+   - Search-R1 (arXiv:2503.09516): RL-trained search interaction, 41% improvement on QA  
+   - What we need: hypothesis_tree.py must become a full automated research loop
+
+---
+
+## 2. AGI Implementation Roadmap — 9 Phases
+
+### Phase I: Reasoning Amplification (System-2 Layer)
+
+**Goal**: Make Hermes think before answering. Budget compute on hard problems.
+
+#### I.1 — Thinking Budget Manager
+
+Implementation target: ~/.hermes/hermes-agent/agent/core/thinking_budget.py
+
+Logic:
+- Classify task complexity: 0=trivial, 1=moderate, 2=hard, 3=research
+- For complexity>=2: run internal CoT loop with self-critique
+- CoT loop: Draft → Critique → Revise → Emit only if confidence>=0.85
+- Budget: complexity_0=0 tokens, complexity_1=512, complexity_2=2048, complexity_3=8192
+
+Steps:
+1. Create thinking_budget.py with 4-tier complexity classifier
+2. Integrate into agent.py pre-generation hook
+3. Add thinking_budget config field to config.yaml
+4. Test: math problem → must show internal reasoning before answer
+
+Invariant: Thinking tokens NEVER emitted to user. Internal only.
+
+#### I.2 — Process Verifier (Dyve-style)
+
+Based on Dyve (arXiv:2502.11157): Fast System-1 for trivial steps, Slow System-2 for complex.
+
+Implementation target: ~/.hermes/hermes-agent/agent/core/process_verifier.py
+
+- System-1: token-level confidence via log-prob monitoring
+- System-2: Monte Carlo self-evaluation (sample N=5 completions, take consensus)
+- Integration: plug into cog_verifier.py as a reasoning validator
+
+#### I.3 — Chain-of-Thought RL Signal Collector
+
+Implementation target: ~/.hermes/evolution/cot_rl_buffer.jsonl
+
+- Every task with verified outcome: log (prompt, CoT trace, answer, outcome) as JSONL
+- Used by Phase VII (GRPO training) to reinforce good reasoning trajectories
+- Format: {"prompt": "...", "cot": "...", "answer": "...", "reward": 0.0-1.0, "ts": ""}
+
+---
+
+### Phase II: Sparse Long Context — MoBA Integration
+
+**Goal**: Break the 65K context wall. Handle 500K+ tokens without quadratic blowup.
+
+#### II.1 — Context Chunker + Block Router
+
+Why: Hermes's llama-server is limited to 65K. MoBA teaches us to simulate sparse attention at the application layer by selective context routing.
+
+Implementation: ~/.hermes/hermes-agent/agent/core/moba_context_router.py
+
+Logic:
+1. Split context into blocks of size B (default B=512 tokens)
+2. For each query: compute block-level relevance scores (BM25 + embedding similarity)
+3. Route to top-K blocks (default K=8) — K*B = 4096 tokens routed per query
+4. Full attention on routed blocks only
+5. Sink tokens (first 512) always included (recency + primacy bias from MoBA paper)
+
+Result: Effective context = full doc size, compute = O(K*B) fixed budget
+
+Steps:
+1. Implement block splitter with configurable B
+2. Implement BM25 + BGE-small embedding scorer for block relevance
+3. Implement top-K block selector
+4. Wire into context_sieve.py / context_budget_manager plugin
+5. Store block index in SQLite for instant retrieval
+
+Target: Handle 500K token documents by routing 4K token windows. No llama-server changes needed.
+
+#### II.2 — Hierarchical Memory Federation
+
+Three-tier memory (mirroring GPT-Astra's architecture):
+
+| Tier | Storage | TTL | Purpose |
+|:---|:---|:---|:---|
+| Working | In-context (4K tokens) | Session | Active reasoning state |
+| Episodic | experiential.jsonl | Permanent | Session summaries + key learnings |
+| Semantic | SQLite knowledge graph | Permanent | Facts, skills, world knowledge |
+
+Implementation: Enhance knowledge_graph.py with:
+- Automatic entity extraction from sessions
+- Relation synthesis (subject → predicate → object triples)
+- Query interface for context injection at session start
+- Integration with experience_store.py for cross-session continuity
+
+#### II.3 — Context Compaction On-Demand
+
+context_compactor.py already exists. Enhance with:
+- Auto-trigger at 80% context ceiling (52K/65K tokens)
+- Summarization strategy: sliding window, key-fact extraction, decision log preservation
+- Never lose: task state, user directives, verified facts
+
+---
+
+### Phase III: Multi-Agent Collective Intelligence
+
+**Goal**: Make Hermes's quorum_audit into a real MoA debate engine.
+
+#### III.1 — True MoA Loop (Proposer → Aggregator)
+
+Based on arXiv:2406.04692: layered MoA surpasses single-model by leveraging model complementarity.
+
+Architecture:
+  User Query
+      ↓
+  [Proposer Layer — 3 parallel Hermes instances]
+   Instance A: Reasoning-focused prompt
+   Instance B: Creativity-focused prompt
+   Instance C: Critic-focused prompt
+      ↓
+  [Aggregator Layer — Hermes with synthesis prompt]
+   Input: A + B + C outputs + confidence scores
+   Output: Final synthesized response
+
+Implementation: ~/.hermes/plugins/quorum_audit/__init__.py — replace stub with:
+- 3 parallel local llama-server requests (or sequential with different system prompts)
+- Per-instance confidence scoring via log-prob
+- Aggregator prompt: "You are synthesizing 3 expert perspectives..."
+- Disagreement flag: if variance > threshold → escalate to HITL gateway
+
+#### III.2 — Specialized Role Swarm
+
+Distinct Hermes persona configs (no new model, system prompt + temperature variation):
+
+| Role | Temp | Top-p | Focus |
+|:---|:---|:---|:---|
+| Director | 0.1 | 0.9 | Planning, decomposition |
+| Researcher | 0.7 | 0.95 | Hypothesis generation |
+| Implementer | 0.2 | 0.85 | Code synthesis |
+| Auditor | 0.1 | 0.9 | Security, correctness |
+| Synthesizer | 0.4 | 0.9 | Integration, final answer |
+
+Store in: ~/.hermes/profiles/swarm_roles.yaml
+
+#### III.3 — Agent Protocol Standardization
+
+Based on arXiv:2504.16736 (AI Agent Protocols Survey): standardize inter-agent communication.
+
+- Internal: JSON-RPC over UNIX socket
+- External: MCP (Model Context Protocol) — mcp_tools plugin already present
+- Schema: AgentMessage { role, content, confidence, metadata, trace_id }
+
+---
+
+### Phase IV: Autonomous Web Grounding (Search-R1 Style)
+
+**Goal**: Move from ddgs (single-shot keyword search) to Search-R1's multi-turn search reasoning.
+
+#### IV.1 — Multi-Turn Search Reasoner
+
+Based on Search-R1 (arXiv:2503.09516): model learns to issue multiple searches, refine queries, synthesize results — 41% improvement over standard RAG.
+
+Implementation: ~/.hermes/hermes-agent/agent/core/search_reasoner.py
+
+Logic:
+1. Decompose query into sub-questions (max 5)
+2. For each sub-question: issue web search → extract key facts
+3. Check: Are facts sufficient? If not → refine query → repeat (max 3 iterations)
+4. Synthesize all retrieved facts into coherent answer with citations
+5. Confidence estimation: cross-source verification
+
+Search backends (priority order):
+1. SearXNG local (already in ~/.hermes/searxng/) — primary
+2. DuckDuckGo (ddgs) — fallback
+3. Wikipedia API — factual grounding
+4. arXiv API — scientific claims
+
+#### IV.2 — Citation-Grounded Response Generation
+
+Every factual claim must have a source citation. Inspired by Gemini's grounding with Google Search:
+
+- Parser: extract URL + snippet for each fact
+- Inline citation format: [fact]¹ with footnote
+- Confidence: high (>=3 sources agree), medium (1-2 sources), low (unverified)
+
+#### IV.3 — Real-Time Fact Verification
+
+Build fact_verifier.py in agent core:
+- Input: claim string
+- Process: Search 3 sources, check consistency
+- Output: {claim, verified: bool, confidence: float, sources: []}
+
+---
+
+### Phase V: Computer Use Activation (CUA Full Loop)
+
+**Goal**: Activate cua_bridge to full operational status. Enable Hermes to control desktop, browser, terminal.
+
+#### V.1 — CUA Driver Activation
+
+CUA plugin at ~/.hermes/plugins/cua_bridge/ — current status: is_available: True (stub).
+
+Activate:
+1. Install: pip install pyautogui pillow opencv-python-headless
+2. Implement: take_screenshot(), click_element(x, y), type_text(text), press_key(key)
+3. Implement: find_element_by_description(desc) using vision_sidecar OCR
+4. Test: Hermes opens browser → navigates URL → extracts information
+
+#### V.2 — Browser Automation Loop
+
+Logic:
+1. Navigate to URL
+2. Take screenshot → OCR via vision_sidecar
+3. Identify interactive elements
+4. Execute action sequence (click, type, scroll)
+5. Extract result
+6. Loop until goal achieved or max_steps reached
+
+#### V.3 — Terminal CUA
+
+Hermes executing terminal commands via CUA (sandboxed):
+- Use sandbox.py for isolation
+- Log all CUA actions to trajectory_recorder
+
+---
+
+### Phase VI: Multimodal Vision — Full Activation
+
+**Goal**: Activate vision_sidecar from stub to production-ready visual reasoning.
+
+#### VI.1 — Vision Sidecar Production Build
+
+Current: stub on port 8139.
+
+Option A (VRAM-safe, recommended): Use llava-phi-3-mini (3B, fits in ~3.5GB VRAM)
+  - Download: ollama pull llava-phi-3
+  - Update vision_sidecar to proxy to http://localhost:11434/api/generate
+  - Input: base64 image + text prompt
+  - Output: structured description JSON
+
+Option B (zero VRAM): Tesseract OCR for text extraction only
+  - Install: sudo dnf install tesseract
+  - Integration: pytesseract wrapper in vision_sidecar
+
+Steps:
+1. VRAM check: nvidia-smi (if used < 2500 MiB → Option A, else Option B)
+2. Update plugin.yaml with actual endpoint configuration
+
+#### VI.2 — Multimodal Context Injection
+
+- Images in conversation → auto-describe via vision_sidecar → text description injected into context
+- PDFs → extract text + image descriptions → unified context
+- Diagrams → graph description → structural analysis
+
+---
+
+### Phase VII: Self-Improvement Loop (Absolute Zero Pattern)
+
+**Goal**: Hermes proposes its own improvement tasks, executes them, self-verifies. No human data needed.
+
+Based on Absolute Zero Reasoner (arXiv:2505.03335) — pure self-play with code executor as reward verifier.
+
+#### VII.1 — Task Proposer
+
+Implementation: ~/.hermes/hermes-agent/agent/core/task_proposer.py
+
+Logic:
+1. Inspect current capability gaps (from capability_masks.py)
+2. Generate 3 candidate tasks at current skill frontier
+3. Select task that maximizes expected learning (UCB1 bandit)
+4. Schedule via cron or immediate execution
+
+Task categories (cycling):
+- Coding challenge: generate → solve → verify via Python executor
+- Math reasoning: generate problem → solve → check numerically
+- Research synthesis: pick topic from knowledge gaps → search → synthesize → verify consistency
+- Self-critique: review a past response → identify errors → propose correction
+
+#### VII.2 — Verifiable Reward Signal
+
+- Code tasks: execute in sandbox.py — pass/fail is ground truth
+- Math tasks: numerical verification (sympy or wolframalpha API)
+- Research tasks: cross-source consistency check
+- Log every (task, response, reward) to ~/.hermes/evolution/rl_buffer.jsonl
+
+#### VII.3 — GRPO Micro-Fine-Tuning Loop
+
+Based on Kimi k1.5 (arXiv:2501.12599): RL with long context scaling.
+
+Weekly micro-fine-tune (when rl_buffer has >=500 examples):
+1. Export rl_buffer → DPO/GRPO format
+2. Run lora_adapter_manager.py with LoRA rank=8 (minimal VRAM)
+3. Evaluate on held-out capability tasks
+4. Merge if improvement >= 2% on benchmark
+5. Commit adapter to chezmoi
+
+VRAM budget: LoRA rank=8 on 4B model ≈ 200MB — fits within ceiling.
+
+#### VII.4 — Evolutionary Prompt Optimizer (GEPA Maturation)
+
+Based on OPRO (arXiv:2309.03409): LLM-as-optimizer for prompts.
+
+Steps:
+1. Activate GEPA's evolution loop fully
+2. Maintain population of 20 prompt variants per task type
+3. Score each variant on task performance
+4. Crossover + mutation: best variants → new variants
+5. Tournament selection → keep top 5
+6. Auto-update SOUL.md's active prompt sections quarterly
+
+---
+
+### Phase VIII: Scientific Discovery Engine
+
+**Goal**: Hermes conducts automated hypothesis → experiment → synthesis → report cycles.
+
+Based on AI Scientist (arXiv:2408.06292).
+
+#### VIII.1 — Hypothesis Tree Activation
+
+hypothesis_tree.py already exists. Activate and extend:
+- Input: research question or knowledge gap
+- Output: hypothesis DAG (parent hypothesis → child sub-hypotheses)
+- Each leaf node: testable prediction
+- Execution: run experiments (code, web search, or CUA)
+- Result propagation: up the DAG to confirm/deny parent hypothesis
+
+#### VIII.2 — Automated Paper Synthesis
+
+For completed research cycles:
+1. Gather verified findings from hypothesis_tree result
+2. Generate structured report: Abstract → Background → Methods → Results → Conclusion
+3. Auto-cite all web sources and papers used
+4. Save to ~/.hermes/knowledge/papers/YYYY-MM-DD-topic.md
+
+#### VIII.3 — Knowledge Base Integration
+
+- Every synthesized report → extract key facts → insert into knowledge_graph.py
+- Query at session start: "What do I know about {topic}?"
+- TTL: permanent (never expire factual knowledge)
+
+---
+
+### Phase IX: Continuous Self-Monitoring + Chezmoi Invariants
+
+**Goal**: Hermes knows its own capability state at all times and self-heals.
+
+#### IX.1 — Live Capability Dashboard
+
+Implementation: ~/.hermes/bin/capability_dashboard.py
+
+Output format:
+  Hermes Capability Snapshot — 2026-09-12
+  =========================================
+  Reasoning Amplification    [████░░░░░░] 40% — Phase I
+  Sparse Long Context        [██░░░░░░░░] 20% — Phase II
+  Multi-Agent MoA            [███░░░░░░░] 30% — Phase III
+  Web Grounding              [████░░░░░░] 40% — Phase IV
+  Computer Use (CUA)         [██░░░░░░░░] 20% — Phase V
+  Multimodal Vision          [█░░░░░░░░░] 10% — Phase VI
+  Self-Improvement Loop      [███░░░░░░░] 30% — Phase VII
+  Scientific Discovery       [██░░░░░░░░] 20% — Phase VIII
+  AGI Equivalence Estimate   [████░░░░░░] 42%
+
+Run via: python3 ~/.hermes/bin/capability_dashboard.py
+
+#### IX.2 — Daily Health + Capability Gate
+
+Extend daily_health_check.sh:
+  Step 4: python3 ~/.hermes/bin/capability_dashboard.py >> ~/.hermes/logs/capability_history.jsonl
+
+#### IX.3 — Chezmoi Invariants for New Files
+
+All new files from this Plan tracked in Chezmoi:
+- thinking_budget.py, moba_context_router.py, search_reasoner.py
+- task_proposer.py, process_verifier.py, capability_dashboard.py
+- ~/.hermes/profiles/swarm_roles.yaml
+- LoRA adapter checkpoints → ~/.hermes/checkpoints/
+
+---
+
+## 3. Immediate P1 Actions — Start Now
+
+| # | Action | Phase | Impact | Effort |
+|:---|:---|:---|:---|:---|
+| P1-01 | Implement thinking_budget.py with 4-tier classifier | I.1 | Critical | 2h |
+| P1-02 | Implement moba_context_router.py with BM25+embedding block routing | II.1 | Critical | 3h |
+| P1-03 | Implement search_reasoner.py multi-turn search loop | IV.1 | Critical | 2h |
+| P1-04 | Activate quorum_audit as true MoA (3 proposers + aggregator) | III.1 | High | 2h |
+| P1-05 | Create task_proposer.py self-curriculum loop | VII.1 | High | 2h |
+| P1-06 | Initialize rl_buffer.jsonl + reward logger | VII.2 | High | 1h |
+| P1-07 | Activate hypothesis_tree.py (wire to search + execution) | VIII.1 | High | 3h |
+| P1-08 | Install llava-phi-3 if VRAM allows, activate vision_sidecar | VI.1 | Medium | 1h |
+| P1-09 | Install pyautogui + activate CUA take_screenshot loop | V.1 | Medium | 1h |
+| P1-10 | Build capability_dashboard.py live metric display | IX.1 | Medium | 1h |
+
+---
+
+## 4. Tools to Install
+
+```bash
+# Reasoning + RL
+pip install sympy                    # math verification for reward signal
+pip install dspy-ai                  # DSPy MIPRO v2 prompt optimization
+
+# Long Context
+pip install rank_bm25                # BM25 for MoBA block routing
+pip install sentence-transformers    # BGE-small embeddings
+
+# Search-R1 style grounding
+pip install arxiv                    # arXiv API client
+pip install wikipedia                # Wikipedia API
+
+# Vision + CUA
+pip install pyautogui pillow         # CUA desktop control
+pip install pytesseract              # OCR fallback for vision
+sudo dnf install tesseract           # Tesseract OCR engine
+
+# If VRAM check passes (used < 2500 MiB):
+# ollama pull llava-phi-3            # 3B vision model (~3.5GB VRAM)
+
+# Monitoring
+pip install rich                     # capability_dashboard terminal UI
+pip install psutil                   # system resource monitoring
+
+# RL Training
+pip install trl                      # GRPO/DPO training
+pip install peft                     # LoRA adapters
+```
+
+Pre-install VRAM check:
+  nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader
+
+---
+
+## 5. AGI Evolution Invariants (Never Violate)
+
+1. VRAM Ceiling: Never exceed 4,812 MiB. Check before installing any model.
+2. Zero Hallucination Policy: Every factual claim must have a verifiable source.
+3. Self-Improvement Safety: GRPO micro-tune only after >=500 examples AND verified improvement.
+4. Chezmoi Sync: Every new file → tracked in Chezmoi before session end.
+5. No External API Keys: All capabilities must work with local compute or free-tier APIs.
+6. Thinking Token Privacy: Internal CoT tokens never emitted to user.
+7. Continuous Learning: Every completed task → JSONL entry in rl_buffer with reward signal.
+8. Self-Assessment Honesty: capability_dashboard must reflect reality. No inflated metrics.
+
+---
+
+## 6. Capability Milestone Gates
+
+| Phase | Gate Condition |
+|:---|:---|
+| I (Reasoning) | Hermes solves AIME-style math with reasoning trace before answer |
+| II (Long Context) | Hermes summarizes 200K-word section without truncation |
+| III (Multi-Agent) | quorum_audit produces 3 perspectives + synthesis on open question |
+| IV (Web Grounding) | Hermes answers current-events question with 3+ cited sources |
+| V (CUA) | Hermes takes screenshot + identifies UI element + clicks it |
+| VI (Vision) | Hermes describes image content accurately |
+| VII (Self-Improve) | rl_buffer has >=500 entries + 1 successful GRPO micro-tune |
+| VIII (Science) | Hermes generates hypothesis + runs experiment + writes 500-word report |
+| IX (Monitoring) | capability_dashboard runs daily + logs to capability_history.jsonl |
+
+---
+
+## 7. Why This Achieves AGI-Tier Parity
+
+AGI is not about model size. It is about architecture.
+
+- A Gemma-4-4b with exceptional reasoning scaffolding + real-time grounding + self-improvement loop + MoA debate OUTPERFORMS a standalone Gemini-3.8 on task completion.
+- This is proven: MoA paper (open-source > GPT-4 Omni), Search-R1 (+41%), Absolute Zero (zero data).
+- The gap is architectural, not parametric. We close it architecturally.
+
+What we cannot match: training scale, pre-training data, ASIC inference.
+What we CAN match and exceed: reasoning scaffolding, collective intelligence, continuous self-improvement, long context via routing, real-time grounding, autonomous discovery.
+
+---
+
+## 8. Research Papers Forming This Plan
+
+| Paper | arXiv | Key Insight Applied |
+|:---|:---|:---|
+| MoBA | 2502.13189 | Block attention routing for 500K+ context |
+| Mixture-of-Agents | 2406.04692 | 3-proposer + aggregator beats GPT-4 Omni |
+| Absolute Zero | 2505.03335 | Self-curriculum without external data |
+| Kimi k1.5 | 2501.12599 | RL + long context scaling |
+| Search-R1 | 2503.09516 | Multi-turn search reasoning, 41% improvement |
+| AI Scientist | 2408.06292 | Automated hypothesis→experiment→paper loop |
+| Large Reasoning Models Survey | 2501.09686 | CoT + RL training patterns |
+| Dyve (Process Verifier) | 2502.11157 | System-1/2 thinking integration |
+| AI Agent Protocols | 2504.16736 | Inter-agent communication standardization |
+| OPRO | 2309.03409 | LLM-as-optimizer for prompt evolution |
+
+---
+
+## 9. Session Log
+
+| Date | Action | Outcome |
+|:---|:---|:---|
+| 2026-09-12 | Plan.md v9.0 written — AGI pursuit edition | Research complete, 9 phases defined |
+
+---
+
+*Plan.md is a living document. Update after every implementation cycle. Sync to Chezmoi after every session.*

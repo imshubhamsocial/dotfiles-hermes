@@ -130,3 +130,8 @@ plugins:
     description: "Comprehensive Trajectory & Session Observability Engine with SQLite WAL and Observation Windowing"
     version: "1.0.0"
     enabled: true
+
+  - name: antigravity_bridge
+    description: "Google Antigravity 2.0 (AGY) & Jules Cloud Agent Protocol Bridge with Artifacts, Thought Signatures, Hierarchical Rules, Magentic-One Ledgers, and A2A Server"
+    version: "1.0.0"
+    enabled: true

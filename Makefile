@@ -67,7 +67,7 @@ apply-chezmoi: ## Apply dotfiles and sync to ~/.hermes
 	@chezmoi apply --force
 	@python3.13 -m pip install --break-system-packages "$(CHEZMOI_DIR)"
 
-PLUGINS := adk_orchestrator agent_os agentshield bpe_workspace branch_swapper cactus_uncertainty capability_guard cog_verifier context_budget_manager demo_validator embedding_gemma gepa_optimizer mcp_tools nemo_guardrails observer_gate openskills quorum_audit recirculation_adapter reflective_learner_adapter reward_scorer self_evolution skill_intelligence symbol_index synergy_bus_adapter trajectory_recorder
+PLUGINS := adk_orchestrator agent_os agentshield bpe_workspace branch_swapper cactus_uncertainty capability_guard cog_verifier context_budget_manager demo_validator embedding_gemma gepa_optimizer mcp_tools nemo_guardrails observer_gate openskills quorum_audit recirculation_adapter reflective_learner_adapter reward_scorer self_evolution skill_intelligence symbol_index synergy_bus_adapter trajectory_recorder antigravity_bridge
 
 plugins-sync: apply-chezmoi ## Synchronize all plugins declared in hermes-pack.yaml
 	@echo "==> Syncing plugins from hermes-pack.yaml..."

@@ -86,4 +86,8 @@ plugins:
       allow_tool_override: false
     self_evolution:
       allow_tool_override: false
-_config_version: 42
+    trajectory_recorder:
+      allow_tool_override: false
+    antigravity_bridge:
+      allow_tool_override: false
+_config_version: 43

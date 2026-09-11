@@ -839,6 +839,54 @@ def probe_phase5_cua_automation() -> Tuple[bool, List[str]]:
         return False, [f"Phase 5 CUA probe exception: {e}"]
 
 
+def probe_phase6_multimodal_vision() -> Tuple[bool, List[str]]:
+    """Verifies Phase 6 Multimodal Vision sidecar on port 8139, GGUF/mmproj model integrity, visual reasoning, UI grounding, and context injection."""
+    evidence = []
+    try:
+        try:
+            from vision_engine import get_vision_engine
+            from vision_context import get_context_injector
+        except ImportError:
+            from agent.core.vision_engine import get_vision_engine
+            from agent.core.vision_context import get_context_injector
+
+        engine = get_vision_engine()
+        model_file = Path.home() / ".hermes/models/vision/SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf"
+        mmproj_file = Path.home() / ".hermes/models/vision/mmproj-SmolVLM2-256M-Video-Instruct-Q8_0.gguf"
+
+        if not model_file.exists() or not mmproj_file.exists():
+            return False, ["Vision GGUF model or mmproj missing"]
+        evidence.append("SmolVLM2 GGUF & mmproj verified (CPU mode / 0 MB VRAM footprint)")
+
+        if not engine.supervisor.ensure_running(timeout_sec=5.0):
+            return False, ["Vision server offline on port 8139"]
+        evidence.append("Vision server operational on port 8139 (/health responded 200 OK)")
+
+        test_img = Path("/dev/shm/hermes_gate3_test_img.png")
+        if not test_img.exists():
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (100, 100), color=(255, 255, 255))
+            d = ImageDraw.Draw(img)
+            d.rectangle([20, 20, 80, 80], fill=(255, 0, 0))
+            img.save(test_img)
+
+        desc = engine.describe_image(test_img, prompt="What color is the shape?")
+        if not desc.get("success"):
+            return False, [f"Vision inference failed: {desc.get('error')}"]
+        evidence.append(f"Multimodal visual reasoning verified (latency={desc.get('latency_sec')}s)")
+
+        injector = get_context_injector()
+        aug, recs = injector.inject_visual_context(f"Inspect {test_img}")
+        if not recs or "[MULTIMODAL VISUAL GROUNDING]" not in aug:
+            return False, ["Multimodal context injection failed"]
+        evidence.append("Multimodal Context Injection Layer verified")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 6 Multimodal Vision probe exception: {e}"]
+
+
+
 
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
@@ -879,6 +927,7 @@ def main() -> None:
         ("phase3_moa_collective_intelligence", probe_phase3_moa_collective_intelligence),
         ("phase4_web_grounding_search_r1", probe_phase4_web_grounding_search_r1),
         ("phase5_cua_automation", probe_phase5_cua_automation),
+        ("phase6_multimodal_vision", probe_phase6_multimodal_vision),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

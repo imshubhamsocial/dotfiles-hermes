@@ -179,4 +179,16 @@ from .cua_controller import (
     get_cua_controller,
 )
 
+# Phase VI: Multimodal Visual Reasoning & Context Injection
+from .vision_engine import (
+    VisionEngine,
+    VisionServerSupervisor,
+    get_vision_engine,
+)
+from .vision_context import (
+    MultimodalContextInjector,
+    get_context_injector,
+)
+
+
 

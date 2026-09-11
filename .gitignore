@@ -4,3 +4,4 @@ __pycache__/
 **/*.egg-info/
 .hermes/skills/.usage.json
 .pytest_cache/
+*.gguf

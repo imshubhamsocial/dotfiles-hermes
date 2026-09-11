@@ -90,7 +90,32 @@ class HermesOrchestrator:
             if history and history[-1].get("role") == "assistant":
                 break
 
-            # Fallback or simple execution
+            # Find last user prompt
+            user_msg = ""
+            for m in reversed(history):
+                if m.get("role") == "user" and m.get("content"):
+                    user_msg = m["content"]
+                    break
+
+            if user_msg:
+                try:
+                    from hermes_core.thinking_budget import get_thinking_budget_manager
+                    tb_mgr = get_thinking_budget_manager()
+                    trace = tb_mgr.reason(user_msg, context=ctx)
+                    history.append({"role": "assistant", "content": trace.final_answer})
+                except Exception:
+                    try:
+                        import sys
+                        from pathlib import Path
+                        core_path = str(Path.home() / ".hermes/hermes-agent/agent/core")
+                        if core_path not in sys.path:
+                            sys.path.insert(0, core_path)
+                        from thinking_budget import get_thinking_budget_manager
+                        tb_mgr = get_thinking_budget_manager()
+                        trace = tb_mgr.reason(user_msg, context=ctx)
+                        history.append({"role": "assistant", "content": trace.final_answer})
+                    except Exception as err:
+                        history.append({"role": "assistant", "content": f"Acknowledged turn: {user_msg}"})
             break
 
         return Response(

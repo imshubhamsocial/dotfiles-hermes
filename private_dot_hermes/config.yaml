@@ -14,6 +14,18 @@ terminal:
   backend: local
   cwd: .
   timeout: 180
+thinking_budget:
+  enabled: true
+  default_budget: 2048
+  complexity_budgets:
+    0: 0
+    1: 512
+    2: 2048
+    3: 8192
+  min_confidence: 0.85
+  max_critique_rounds: 3
+  hide_thinking_tokens: true
+  cot_buffer_path: /var/home/imshubhamsocial/.hermes/evolution/cot_rl_buffer.jsonl
 plugins:
   enabled:
   - adk_orchestrator

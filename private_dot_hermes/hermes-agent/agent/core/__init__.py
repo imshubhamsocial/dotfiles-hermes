@@ -6,6 +6,16 @@ Incorporating:
   - Claude Code Ephemeral Scratchpads & Non-Regression Invariant Gates
   - DeepSeek Deterministic AST Extraction & Sliced Non-Destructive Patching
 """
+import sys
+import types
+from pathlib import Path
+
+# Register virtual hermes_core package mapping to hermes-agent/agent/core
+if "hermes_core" not in sys.modules:
+    core_dir = Path(__file__).resolve().parent
+    core_pkg = types.ModuleType("hermes_core")
+    core_pkg.__path__ = [str(core_dir)]
+    sys.modules["hermes_core"] = core_pkg
 
 from .agent import Agent, Response, Result, AgentFunction
 from .swarm_engine import HermesOrchestrator
@@ -160,4 +170,13 @@ from .web_grounding import (
     WebGroundingEngine,
     get_grounding_engine,
 )
+
+# Phase V: Computer Use Activation (CUA Full Loop)
+from .cua_controller import (
+    CUAController,
+    BrowserAutomationLoop,
+    TerminalCUA,
+    get_cua_controller,
+)
+
 

@@ -784,6 +784,62 @@ def probe_phase4_web_grounding_search_r1() -> Tuple[bool, List[str]]:
         return False, [f"Phase 4 Web Grounding probe exception: {e}"]
 
 
+def probe_phase5_cua_automation() -> Tuple[bool, List[str]]:
+    """Verifies Phase 5 Computer-Use Automation (CUA) controller, display capture, AT-SPI tree, input dispatch, and sandboxed terminal."""
+    evidence = []
+    try:
+        try:
+            from cua_controller import (
+                CUAController,
+                BrowserAutomationLoop,
+                TerminalCUA,
+                get_cua_controller,
+            )
+        except ImportError:
+            from agent.core.cua_controller import (
+                CUAController,
+                BrowserAutomationLoop,
+                TerminalCUA,
+                get_cua_controller,
+            )
+
+        controller = get_cua_controller()
+        if not controller.is_driver_available():
+            return False, ["cua-driver binary not found"]
+        evidence.append("CUA driver binary available and verified")
+
+        w, h = controller.get_screen_size()
+        if w < 640 or h < 480:
+            return False, [f"Invalid screen size: {w}x{h}"]
+        evidence.append(f"Screen geometry operational: {w}x{h}")
+
+        shot = controller.take_screenshot()
+        if not shot.get("success"):
+            return False, ["Desktop pixel capture failed"]
+        evidence.append(f"PIL ImageGrab full-resolution capture operational ({shot['width']}x{shot['height']})")
+
+        term = TerminalCUA()
+        res = term.execute("echo 'HERMES_CUA_PROBE'")
+        if res.get("returncode") != 0 or "HERMES_CUA_PROBE" not in res.get("output", ""):
+            return False, ["Sandboxed Terminal CUA execution failed"]
+        evidence.append("Sandboxed Terminal CUA execution verified inside Bubblewrap jail")
+
+        loop = BrowserAutomationLoop(controller)
+        loop_res = loop.run_navigation_task(
+            "https://hermes.local/health",
+            [{"action": "wait", "seconds": 0.05}],
+            capture_screenshots=False,
+        )
+        if not loop_res.get("success"):
+            return False, ["BrowserAutomationLoop execution failed"]
+        evidence.append("BrowserAutomationLoop multi-step workflow operational")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 5 CUA probe exception: {e}"]
+
+
+
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
     ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
@@ -822,6 +878,7 @@ def main() -> None:
         ("phase2_moba_sparse_context", probe_phase2_moba_sparse_context),
         ("phase3_moa_collective_intelligence", probe_phase3_moa_collective_intelligence),
         ("phase4_web_grounding_search_r1", probe_phase4_web_grounding_search_r1),
+        ("phase5_cua_automation", probe_phase5_cua_automation),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

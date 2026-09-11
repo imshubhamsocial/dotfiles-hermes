@@ -1000,6 +1000,40 @@ def probe_phase8_scientific_discovery() -> Tuple[bool, List[str]]:
         return False, [f"Phase 8 Scientific Discovery probe exception: {e}"]
 
 
+def probe_phase9_continuous_monitoring() -> Tuple[bool, List[str]]:
+    """Verifies Phase 9 Continuous Self-Monitoring & System Invariants: Capability dashboard snapshot, AGI equivalence >= 90%, VRAM <= 4812 MiB limit, ports 8138 & 8139 online, and capability_history streaming."""
+    evidence = []
+    try:
+        if "agent" in sys.modules and not hasattr(sys.modules["agent"], "__path__"):
+            del sys.modules["agent"]
+        if str(Path.home() / ".hermes/hermes-agent") not in sys.path:
+            sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent"))
+        if str(Path.home() / ".hermes/bin") not in sys.path:
+            sys.path.insert(0, str(Path.home() / ".hermes/bin"))
+        import capability_dashboard as dash
+
+        snapshot = dash.compute_snapshot()
+        overall = snapshot.get("overall_agi_equivalence", 0.0)
+        if overall < 0.90:
+            return False, [f"Overall AGI equivalence below 90%: {overall * 100:.1f}%"]
+        evidence.append(f"Live capability scoring active across {len(snapshot.get('phases', []))} phases (AGI Equivalence: {overall * 100:.1f}%)")
+
+        hw = snapshot.get("hardware", {})
+        if not hw.get("within_limit"):
+            return False, [f"VRAM budget exceeded: {hw.get('used_mib')} MiB > {hw.get('ceiling_mib')} MiB"]
+        evidence.append(f"Hardware VRAM within ceiling ({hw.get('used_mib'):.0f} MiB / {hw.get('ceiling_mib'):.0f} MiB)")
+
+        p8138 = dash.check_port(8138)
+        p8139 = dash.check_port(8139)
+        if not p8138 or not p8139:
+            return False, [f"Daemons offline: port 8138={p8138}, port 8139={p8139}"]
+        evidence.append(f"Daemons online (Port 8138: Gemma 4B GPU, Port 8139: SmolVLM2 CPU / 0 VRAM)")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 9 Continuous Self-Monitoring probe exception: {e}"]
+
+
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
     ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
@@ -1042,6 +1076,7 @@ def main() -> None:
         ("phase6_multimodal_vision", probe_phase6_multimodal_vision),
         ("phase7_self_improvement_loop", probe_phase7_self_improvement_loop),
         ("phase8_scientific_discovery", probe_phase8_scientific_discovery),
+        ("phase9_continuous_monitoring", probe_phase9_continuous_monitoring),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

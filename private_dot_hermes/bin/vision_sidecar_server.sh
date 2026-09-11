@@ -5,7 +5,7 @@
 set -euo pipefail
 
 HERMES_ROOT="${HERMES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SITE_PACKAGES="$(python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.13/site-packages")"
+SITE_PACKAGES="$(python3 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.14/site-packages")"
 LLAMA_LIB_DIR="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib"
 
 export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cu13/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cublas/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
@@ -28,10 +28,19 @@ case "${1:-start}" in
             echo "Vision server already running (PID: $(cat "$PID_FILE"))"
             exit 0
         fi
-        echo "Starting Multimodal Vision server on port 8139 (CPU mode, 0 VRAM)..."
-        nohup "$SERVER_BIN"             --model "$MODEL_MAIN"             --mmproj "$MODEL_MMPROJ"             --port 8139             --host 127.0.0.1             -ngl 0             --threads 4             --threads-batch 4             -c 4096             > "$LOG_FILE" 2>&1 &
-        echo $! > "$PID_FILE"
-        echo "Vision server started with PID $(cat "$PID_FILE")"
+        setsid "$SERVER_BIN" \
+            --model "$MODEL_MAIN" \
+            --mmproj "$MODEL_MMPROJ" \
+            --port 8139 \
+            --host 127.0.0.1 \
+            -ngl 0 \
+            --threads 4 \
+            --threads-batch 4 \
+            -c 4096 \
+            > "$LOG_FILE" 2>&1 &
+        SERVER_PID=$!
+        echo "$SERVER_PID" > "$PID_FILE"
+        echo "Vision server started with PID $SERVER_PID"
         ;;
     stop)
         if [[ -f "$PID_FILE" ]]; then

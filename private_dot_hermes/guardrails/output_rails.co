@@ -1,6 +1,20 @@
-# Hermes NeMo Guardrails — Output Rails (Colang 2.x)
-# Redacts sensitive API tokens, private keys, and authorization credentials
+# Hermes NeMo Guardrails — Output Rails
+# Detects and redacts sensitive credentials, private keys, and API tokens
 
-flow check sensitive data leakage
-  bot said "sk-*" or bot said "AIza*" or bot said "ghp_*" or bot said "AKIA*" or bot said "-----BEGIN PRIVATE KEY-----"
-  bot say "Security Alert: Output redacted by NeMo output rail. Sensitive secret or cryptographic key detected."
+define bot leak credentials
+  "sk-proj-1234567890abcdef"
+  "AIzaSyAbc1234567890"
+  "ghp_abcdefghijklmnopqrstuvwxyz0123456789"
+  "AKIAIOSFODNN7EXAMPLE"
+  "-----BEGIN RSA PRIVATE KEY-----"
+  "-----BEGIN OPENSSH PRIVATE KEY-----"
+  "-----BEGIN EC PRIVATE KEY-----"
+  "-----BEGIN PRIVATE KEY-----"
+
+define flow check sensitive data leakage
+  bot leak credentials
+  bot refuse credential leak
+  stop
+
+define bot refuse credential leak
+  "Output Redacted: Sensitive credential or private key pattern blocked by NeMo output rail."

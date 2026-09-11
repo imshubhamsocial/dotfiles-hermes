@@ -1,6 +1,16 @@
-# Hermes NeMo Guardrails — Loop Rails (Colang 2.x)
-# Enforces machine-checkable loop ceilings and termination contracts
+# Hermes NeMo Guardrails — Loop & Termination Rails
+# Detects infinite loops, repeated failure cycles, and enforces termination contracts
 
-flow check loop termination contract
-  user said "loop iteration exceeded" or user said "consecutive repair failure limit reached"
-  bot say "Loop Termination Contract Triggered: Automatic branch swap and escalation."
+define user signal loop breach
+  "max iterations reached"
+  "consecutive failure limit tripped"
+  "vram budget ceiling exceeded"
+  "tabu failure limit breached"
+
+define flow check loop termination
+  user signal loop breach
+  bot halt loop execution
+  stop
+
+define bot halt loop execution
+  "Execution Halted: Machine-checkable stop condition tripped by NeMo loop contract rail."

@@ -1,6 +1,6 @@
 # Hermes Agent OS — NeMo Guardrails Configuration
-# Milestone D7-11: Formal Input/Output/Dialog/Loop Rails (Colang 2.x)
-colang_version: "2.x"
+# Milestone D7-11: Formal Input/Output/Dialog/Loop Rails
+colang_version: "1.0"
 
 models:
   - type: main
@@ -8,3 +8,15 @@ models:
     model: gemma-4-E4B-it
     parameters:
       temperature: 0.0
+
+rails:
+  input:
+    flows:
+      - check critical commands
+      - check shell injection
+  output:
+    flows:
+      - check sensitive data leakage
+  dialog:
+    flows:
+      - check role capability boundaries

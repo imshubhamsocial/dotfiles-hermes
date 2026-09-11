@@ -944,6 +944,62 @@ def probe_phase7_self_improvement_loop() -> Tuple[bool, List[str]]:
         return False, [f"Phase 7 Self-Improvement Loop probe exception: {e}"]
 
 
+def probe_phase8_scientific_discovery() -> Tuple[bool, List[str]]:
+    """Verifies Phase 8 Scientific Discovery Engine (AI Scientist Pattern): Hypothesis DAG formulation, sandboxed benchmark execution, automated paper synthesis (>=500 words), permanent knowledge base ingestion, and multi-hop query interface."""
+    evidence = []
+    try:
+        try:
+            from scientific_discovery import (
+                ScientificExperiment,
+                ScientificPaper,
+                ScientificDiscoveryEngine,
+                get_scientific_discovery_engine,
+            )
+            from hypothesis_tree import HypothesisTree, get_hypothesis_tree
+        except ImportError:
+            from agent.core.scientific_discovery import (
+                ScientificExperiment,
+                ScientificPaper,
+                ScientificDiscoveryEngine,
+                get_scientific_discovery_engine,
+            )
+            from agent.core.hypothesis_tree import HypothesisTree, get_hypothesis_tree
+
+        engine = get_scientific_discovery_engine()
+
+        # 1. Hypothesis DAG formulation
+        tree, exps = engine.formulate_hypothesis_dag("Integrity Probe Attention Invariant")
+        root = tree.get_root()
+        if not root or len(tree.get_children(tree.root_id)) < 3:
+            return False, ["Hypothesis DAG formulation failed"]
+        evidence.append(f"Hypothesis Tree DAG active with {len(tree.nodes)} nodes and {len(exps)} testable experiments")
+
+        # 2. Benchmark execution
+        exp = exps[0]
+        passed, val, ev = engine.execute_experiment(exp)
+        if not passed:
+            return False, [f"Benchmark execution failed: {ev}"]
+        evidence.append(f"Bubblewrap sandboxed benchmark operational (metric={exp.metric_name}, val={val:.2f})")
+
+        # 3. Paper synthesis and length verification
+        eval_res = engine.evaluate_dag(tree, exps)
+        paper = engine.synthesize_paper(tree, exps, "Integrity Probe Attention Invariant")
+        if not paper.filepath.exists() or paper.word_count < 500:
+            return False, [f"Paper synthesis failed or word count < 500 (words={paper.word_count})"]
+        evidence.append(f"Publication-grade paper synthesized: '{paper.title[:35]}...' ({paper.word_count} words)")
+
+        # 4. Knowledge Base Ingestion & Query
+        ingest_res = engine.ingest_findings(paper, tree)
+        query_res = engine.query_scientific_knowledge("attention")
+        if not query_res["papers_found"]:
+            return False, ["Scientific knowledge base query returned empty"]
+        evidence.append(f"Permanent knowledge base federated ({ingest_res['triples_stored']} triples stored, query answered)")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 8 Scientific Discovery probe exception: {e}"]
+
+
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
     ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
@@ -985,6 +1041,7 @@ def main() -> None:
         ("phase5_cua_automation", probe_phase5_cua_automation),
         ("phase6_multimodal_vision", probe_phase6_multimodal_vision),
         ("phase7_self_improvement_loop", probe_phase7_self_improvement_loop),
+        ("phase8_scientific_discovery", probe_phase8_scientific_discovery),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

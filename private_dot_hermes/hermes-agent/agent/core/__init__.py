@@ -190,5 +190,26 @@ from .vision_context import (
     get_context_injector,
 )
 
+# Phase VII: Self-Improvement Loop (Absolute Zero Pattern)
+from .task_proposer import (
+    TaskCandidate,
+    UCB1Bandit,
+    TaskProposer,
+    RLBufferCollector,
+    EvolutionaryPromptOptimizer,
+    SelfImprovementEngine,
+    get_self_improvement_engine,
+)
 
-
+# Phase VIII: Scientific Discovery Engine (AI Scientist Pattern)
+from .hypothesis_tree import (
+    HypothesisNode,
+    HypothesisTree,
+    get_hypothesis_tree,
+)
+from .scientific_discovery import (
+    ScientificExperiment,
+    ScientificPaper,
+    ScientificDiscoveryEngine,
+    get_scientific_discovery_engine,
+)

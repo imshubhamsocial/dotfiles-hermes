@@ -140,3 +140,24 @@ from .quorum_moa import (
     get_moa_engine,
 )
 
+# Phase IV: Autonomous Web Grounding & Real-Time Fact Verification
+from .search_reasoner import (
+    SearchResult,
+    Citation,
+    SearchReasoningResult,
+    MultiTurnSearchReasoner,
+    get_search_reasoner,
+    reason_and_ground_search,
+)
+from .fact_verifier import (
+    FactVerificationReport,
+    RealTimeFactVerifier,
+    get_fact_verifier,
+    verify_claim,
+)
+from .web_grounding import (
+    GroundingResult,
+    WebGroundingEngine,
+    get_grounding_engine,
+)
+

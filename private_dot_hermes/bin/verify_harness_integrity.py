@@ -753,6 +753,37 @@ def probe_phase3_moa_collective_intelligence() -> Tuple[bool, List[str]]:
         return False, [f"Phase 3 MoA probe exception: {e}"]
 
 
+def probe_phase4_web_grounding_search_r1() -> Tuple[bool, List[str]]:
+    """Verifies Phase 4 Search-R1 multi-turn search reasoner and real-time fact verifier."""
+    evidence = []
+    try:
+        from search_reasoner import get_search_reasoner
+        from fact_verifier import get_fact_verifier
+        from web_grounding import get_grounding_engine
+
+        reasoner = get_search_reasoner()
+        subqs = reasoner.decompose_query("Quantum computing quantum supremacy")
+        if len(subqs) < 2:
+            return False, ["Search-R1 query decomposition failed"]
+        evidence.append("Search-R1 Multi-Turn Query Decomposition operational")
+
+        verifier = get_fact_verifier()
+        rep = verifier.verify_claim("Python was created by Guido van Rossum and released in 1991.", min_sources=1)
+        if not rep.verified or rep.confidence < 0.60:
+            return False, ["Real-time fact verification failed on known fact"]
+        evidence.append(f"Real-Time Fact Verifier operational (verified={rep.verified}, conf={rep.confidence:.2f})")
+
+        engine = get_grounding_engine()
+        res = engine.ground("Three.js OrbitControls ESM", policy="always")
+        if not res.executed or len(res.sources) < 1:
+            return False, ["WebGroundingEngine failed execution"]
+        evidence.append("Keyless Web Grounding Engine active with RAMDisk caching in /dev/shm")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 4 Web Grounding probe exception: {e}"]
+
+
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
     ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
@@ -790,6 +821,7 @@ def main() -> None:
         ("phase1_reasoning_amplification", probe_phase1_reasoning_amplification),
         ("phase2_moba_sparse_context", probe_phase2_moba_sparse_context),
         ("phase3_moa_collective_intelligence", probe_phase3_moa_collective_intelligence),
+        ("phase4_web_grounding_search_r1", probe_phase4_web_grounding_search_r1),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

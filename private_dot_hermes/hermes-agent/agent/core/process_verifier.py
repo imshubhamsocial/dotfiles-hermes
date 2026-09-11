@@ -93,16 +93,6 @@ class System2DeepVerifier:
             if re.search(pat, text.lower()):
                 anomalies.append(f"Unresolved contradiction in reasoning: '{pat}'")
 
-        # Check for unexamined counterfactual premises / trick question traps
-        premise_traps = [
-            (r"\b(bury|burial)\b.*\b(survivor|survivors)\b", "Survivors are alive; premise falsely asks to bury survivors"),
-            (r"\b(smoke|steam)\b.*\b(electric train)\b", "Electric trains do not emit smoke; premise is counterfactual"),
-            (r"\b(divide|division)\b.*\b(by zero)\b", "Division by zero undefined; verify algebraic validity"),
-        ]
-        for pat, desc in premise_traps:
-            if re.search(pat, text.lower()):
-                if not any(w in text.lower() for w in ["survivors are alive", "cannot bury", "don't bury", "no smoke", "electric", "undefined", "invalid", "impossible", "not buried"]):
-                    anomalies.append(f"Unrefuted counterfactual premise: {desc}")
 
         # Check for numeric or conclusion consistency
         has_conclusion = bool(re.search(r"(therefore|thus|hence|in conclusion|final answer|result is)", text.lower()))

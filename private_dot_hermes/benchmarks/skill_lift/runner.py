@@ -44,7 +44,7 @@ def run_single_task(
         if resp.status_code == 200:
             response_text = resp.json().get("content", "")
             expected = task.get("expected_contains", "").lower()
-            passed = expected in response_text.lower() or expected in prompt.lower()
+            passed = expected in response_text.lower()
     except Exception:
         # Offline mode simulation
         response_text = "Offline evaluation pass"

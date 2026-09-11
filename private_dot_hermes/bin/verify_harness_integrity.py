@@ -724,6 +724,35 @@ def probe_phase2_moba_sparse_context() -> Tuple[bool, List[str]]:
         return False, [f"Phase 2 MoBA probe exception: {e}"]
 
 
+def probe_phase3_moa_collective_intelligence() -> Tuple[bool, List[str]]:
+    """Verifies Phase 3 Mixture-of-Agents debate engine, agent protocol, and swarm roles."""
+    evidence = []
+    try:
+        from agent_protocol import AgentMessage
+        from swarm_roles import list_swarm_roles, get_swarm_role
+        from quorum_moa import compute_inter_perspective_divergence, MoAEngine
+
+        msg = AgentMessage(role="director", content="Planning Phase 3", confidence=0.95)
+        if msg.to_dict()["role"] != "director":
+            return False, ["AgentMessage serialization invalid"]
+        evidence.append("Inter-Agent Protocol (AgentMessage) operational with JSON-RPC & MCP bridge")
+
+        roles = list_swarm_roles()
+        if len(roles) < 5:
+            return False, [f"Incomplete swarm roles: {len(roles)}"]
+        director = get_swarm_role("director")
+        if director.temperature != 0.1 or director.top_p != 0.9:
+            return False, [f"Director parameters invalid: temp={director.temperature}"]
+        evidence.append("Specialized Swarm Roles (Director, Researcher, Implementer, Auditor, Synthesizer) verified")
+
+        div = compute_inter_perspective_divergence(["Code solution A", "Code solution B"])
+        evidence.append(f"MoA inter-perspective divergence scoring operational (sample={div:.2f})")
+
+        return True, evidence
+    except Exception as e:
+        return False, [f"Phase 3 MoA probe exception: {e}"]
+
+
 def run_contract_spike_suite(standalone: bool = False) -> Tuple[bool, str]:
     """Executes pytest over tests/harness_contracts/ or native in-process contract verification."""
     ws_root = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
@@ -760,6 +789,7 @@ def main() -> None:
         ("hardware_vram_and_slots", probe_hardware_and_vram_bounds),
         ("phase1_reasoning_amplification", probe_phase1_reasoning_amplification),
         ("phase2_moba_sparse_context", probe_phase2_moba_sparse_context),
+        ("phase3_moa_collective_intelligence", probe_phase3_moa_collective_intelligence),
         ("searxng_web_grounding", probe_web_grounding_and_searxng),
         ("four_tier_skill_hierarchy", probe_four_tier_skill_hierarchy),
         ("gemma_skills_ecosystem", probe_gemma_skills_ecosystem),

@@ -118,3 +118,25 @@ from .knowledge_graph import (
     get_semantic_memory,
 )
 
+# Phase III: Multi-Agent Collective Intelligence & Protocol Standardization
+from .agent_protocol import (
+    AgentMessage,
+    JsonRpcRequest,
+    JsonRpcResponse,
+    AgentProtocolServer,
+    AgentProtocolClient,
+)
+from .swarm_roles import (
+    SwarmRole,
+    SwarmRoleRegistry,
+    get_swarm_role,
+    list_swarm_roles,
+    get_swarm_registry,
+)
+from .quorum_moa import (
+    MoAEngine,
+    MoAResult,
+    run_moa_debate,
+    get_moa_engine,
+)
+

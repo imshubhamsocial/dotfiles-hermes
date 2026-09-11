@@ -1,8 +1,7 @@
 import unittest
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from __init__ import check_syntax
+from plugins.observer_gate import check_syntax
 
 class TestObserverGate(unittest.TestCase):
     

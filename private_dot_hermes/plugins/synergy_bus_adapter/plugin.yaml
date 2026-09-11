@@ -1,3 +1,4 @@
+enabled: true
 name: synergy_bus_adapter
 version: 1.0.0
 description: "Unified Reactive Execution & Memory Synergy Bus Adapter. Bridges session lifecycle events to asynchronous reactive subscribers."

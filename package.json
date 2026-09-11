@@ -1,0 +1,29 @@
+{
+  "name": "hermes-agent-os",
+  "version": "2.0.0",
+  "description": "Hermes Agent OS: Frontier-Level AGI Self-Evolving Superintelligence Harness",
+  "private": true,
+  "scripts": {
+    "test": "pytest .hermes/tests/ -q",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "ast:search": "ast-grep scan"
+  },
+  "devDependencies": {
+    "@ast-grep/cli": "^0.45.2",
+    "@biomejs/biome": "^2.5.6",
+    "prettier": "^3.5.0",
+    "pyright": "^1.1.390",
+    "typescript": "^5.8.0"
+  },
+  "keywords": [
+    "hermes",
+    "agent-os",
+    "self-evolution",
+    "agi",
+    "harness-engineering",
+    "llm-agent"
+  ],
+  "author": "Shubham Mahajan <imshubhamsocial+github@gmail.com>",
+  "license": "MIT"
+}

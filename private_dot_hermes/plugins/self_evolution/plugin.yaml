@@ -1,0 +1,7 @@
+name: self_evolution
+version: "1.0.0"
+description: "Spec-Kit Driven Self-Evolution Engine & Live-SWE-agent Runtime Self-Improvement Loop."
+author: "Hermes Core Engineering"
+kind: standalone
+tags: [evolution, spec-kit, self-improvement, benchmark, failure-modes]
+enabled: true

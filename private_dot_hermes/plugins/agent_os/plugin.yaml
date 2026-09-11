@@ -1,3 +1,4 @@
+enabled: true
 name: agent_os
 version: "1.0.0"
 description: "Two-Tier Agent OS Standards & Plan.json Decomposition Engine. Enforces structured pre-commit planning and invariant verification."

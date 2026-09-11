@@ -1,0 +1,28 @@
+# Node.js Type Definitions (seed — core modules)
+# Format: symbol_name: type signature
+
+# fs
+readFileSync: function(path: string | URL, options?: { encoding?: string; flag?: string }): string | Buffer
+writeFileSync: function(path: string | URL, data: string | Buffer, options?: { encoding?: string; flag?: string; mode?: number }): void
+existsSync: function(path: string | URL): boolean
+mkdirSync: function(path: string | URL, options?: { recursive?: boolean; mode?: number }): string | undefined
+readdirSync: function(path: string | URL, options?: { encoding?: string; withFileTypes?: boolean }): Dirent[] | string[]
+statSync: function(path: string | URL, options?: { throwIfNoEntry?: boolean }): Stats
+
+# path
+join: function(...paths: string[]): string
+resolve: function(...paths: string[]): string
+basename: function(path: string, ext?: string): string
+dirname: function(path: string): string
+extname: function(path: string): string
+
+# child_process
+execSync: function(command: string, options?: { cwd?: string; timeout?: number; encoding?: string }): string | Buffer
+spawn: function(command: string, args?: string[], options?: { cwd?: string; stdio?: string[] }): ChildProcess
+
+# crypto
+randomBytes: function(size: number): Buffer
+createHash: function(algorithm: string): Hash
+
+# events
+EventEmitter: class EventEmitter { on(event: string, listener: Function): this; emit(event: string, ...args: any[]): boolean; }

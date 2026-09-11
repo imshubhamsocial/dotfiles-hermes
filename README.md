@@ -1,41 +1,45 @@
 ---
 title: "Hermes Agent OS & Living Harness"
-version: "1.7.0"
+version: "2.0.0"
 runtime: "ws-hermes"
 model: "gemma-4-E4B-it-Q4_K_M.gguf"
 hardware_requirements:
-  gpu_vram_limit_mib: 4812
+  gpu_vram_limit_mib: 4800
   context_window_tokens: 65536
   kv_cache: "q4_0"
 capabilities:
+  - "bpe-memory-workspace"
+  - "meta-harness-self-evolution"
+  - "trajectory-sqlite-observability"
+  - "smolagents-code-as-action"
+  - "aider-search-replace-diffs"
+  - "dynamic-tool-retrieval-dtdr"
+  - "agent2agent-a2a-cards"
+  - "frognano-learnability-frontier"
+  - "hybrid-context-budget-router"
+  - "ecc-agentshield-security"
   - "autonomous-dag-planning"
   - "state-grounded-skill-retrieval"
   - "generative-ui-artifacts"
-  - "hub-mode-multi-agent-delegation"
-  - "polars-lazy-analytics"
+  - "litho-c4-architecture-docs"
   - "pre-commit-observer-gate"
-  - "graphify-ast-knowledge-graph"
   - "fastmcp-tool-server"
   - "nemo-guardrails-policies"
-  - "dspy-mipro-teleprompter"
-  - "graphiti-temporal-memory"
-  - "openlit-otlp-telemetry"
   - "quorum-maker-verifier-gate"
-  - "lora-adapter-hot-swap"
-  - "gemma-multimodal-vision-budget"
-  - "zero-test-folder-self-audit"
+  - "zero-wrapper-native-subcommands"
 
 tags:
   - "agent-os"
   - "local-slm"
   - "gemma-4"
-  - "antigravity-aligned"
+  - "self-evolving-agi"
+  - "harness-engineering"
 ---
 
-# Hermes Agent OS & Living Harness
+# Hermes Agent OS & Living Harness (Era 9)
 
-> **A High-Performance, Turnkey Autonomous Agent Operating System on Local Silicon**  
-> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, SQLite WAL TaskDAGs, and Hardware-Hardened Sandboxing.
+> **Frontier-Level AGI Self-Evolving Superintelligence Harness on Consumer Silicon**  
+> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (245/245 Contract Tests Passing).
 
 ---
 

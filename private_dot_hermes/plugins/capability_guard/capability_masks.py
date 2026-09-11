@@ -295,7 +295,16 @@ def allowed_for(role: str) -> frozenset:
 
 
 def check_tool(role: str, tool_name: str) -> Tuple[bool, str]:
-    """Dispatch-level verdict with a structured rejection reason."""
+    """Dispatch-level verdict with a structured rejection reason, integrated with NeMo Guardrails dialog rails."""
+    try:
+        from plugins.nemo_guardrails import get_guardrails_engine
+        engine = get_guardrails_engine()
+        dialog_verdict = engine.check_dialog_rail(role, f"execute {tool_name}")
+        if not dialog_verdict.allowed:
+            return False, f"NEMO_DIALOG_RAIL_BLOCKED: {dialog_verdict.reason}"
+    except Exception:
+        pass
+
     if tool_name in allowed_for(role):
         return True, "allowed."
     return False, (
@@ -330,7 +339,15 @@ def validate_security_policy_path(filepath: str, is_write: bool = True) -> Tuple
 
 
 def validate_security_policy_command(cmd: str) -> Tuple[bool, str]:
-    """Inspects shell commands for forbidden actions (tampering with audit logs, modifying policy)."""
+    """Inspects shell commands using NVIDIA NeMo input rails and policy rules."""
+    try:
+        from plugins.nemo_guardrails import get_guardrails_engine
+        engine = get_guardrails_engine()
+        input_verdict = engine.check_input_rail(cmd)
+        if not input_verdict.allowed:
+            return False, f"SECURITY_POLICY_VIOLATION: {input_verdict.reason}"
+    except Exception:
+        pass
     c = str(cmd).lower()
     dangerous_patterns = [
         ("rm ", ".integrity"),

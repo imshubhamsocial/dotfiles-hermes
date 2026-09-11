@@ -1,0 +1,7 @@
+name: reward_scorer
+version: "1.0.0"
+description: "EvoHarness-RL Reward Scorer and SFT Data Curator enforcing Hermes 8 Golden Laws as constitutional RL signals."
+author: "Hermes Core Engineering"
+kind: standalone
+tags: [rl, reward, evoharness, sft, lora, constitutional-ai]
+enabled: true

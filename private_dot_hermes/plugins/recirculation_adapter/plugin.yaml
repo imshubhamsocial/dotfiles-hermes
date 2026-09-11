@@ -1,3 +1,4 @@
+enabled: true
 name: recirculation_adapter
 version: 1.0.0
 description: "Google DeepMind Recirculation System-2 prefill hook. Guarantees >= +20% reasoning lift on task specifications via Lyapunov dynamical energy convergence."

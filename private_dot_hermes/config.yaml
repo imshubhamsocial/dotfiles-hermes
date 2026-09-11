@@ -11,24 +11,31 @@ terminal:
   timeout: 180
 plugins:
   enabled:
-    - adk_orchestrator
-    - agent_os
-    - branch_swapper
-    - cactus_uncertainty
-    - capability_guard
-    - cog_verifier
-    - demo_validator
-    - embedding_gemma
-    - gepa_optimizer
-    - mcp_tools
-    - nemo_guardrails
-    - observer_gate
-    - openskills
-    - quorum_audit
-    - recirculation_adapter
-    - reflective_learner_adapter
-    - symbol_index
-    - synergy_bus_adapter
+  - adk_orchestrator
+  - agent_os
+  - agentshield
+  - bpe_workspace
+  - branch_swapper
+  - cactus_uncertainty
+  - capability_guard
+  - cog_verifier
+  - context_budget_manager
+  - demo_validator
+  - embedding_gemma
+  - gepa_optimizer
+  - mcp_tools
+  - nemo_guardrails
+  - observer_gate
+  - openskills
+  - quorum_audit
+  - recirculation_adapter
+  - reflective_learner_adapter
+  - reward_scorer
+  - self_evolution
+  - skill_intelligence
+  - symbol_index
+  - synergy_bus_adapter
+  - trajectory_recorder
   disabled: []
   entries:
     adk_orchestrator:
@@ -67,42 +74,16 @@ plugins:
       allow_tool_override: false
     synergy_bus_adapter:
       allow_tool_override: false
+    bpe_workspace:
+      allow_tool_override: false
+    context_budget_manager:
+      allow_tool_override: false
+    agentshield:
+      allow_tool_override: false
+    skill_intelligence:
+      allow_tool_override: false
+    reward_scorer:
+      allow_tool_override: false
+    self_evolution:
+      allow_tool_override: false
 _config_version: 42
-
-# ── Security ──────────────────────────────────────────────────────────
-# Secret redaction is ON by default — strings that look like API keys,
-# tokens, and passwords are masked in tool output, logs, and chat
-# responses before the model or user ever sees them. Set redact_secrets
-# to false to disable (e.g. when developing the redactor itself).
-# tirith pre-exec scanning is enabled by default when the tirith binary
-# is available. Configure via security.tirith_* keys or env vars
-# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
-#
-# security:
-#   redact_secrets: true
-#   tirith_enabled: true
-#   tirith_path: "tirith"
-#   tirith_timeout: 5
-#   tirith_fail_open: true
-
-# ── Fallback Model ────────────────────────────────────────────────────
-# Automatic provider failover when primary is unavailable.
-# Uncomment and configure to enable. Triggers on rate limits (429),
-# overload (529), service errors (503), or connection failures.
-#
-# Supported providers:
-#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
-#   openai-codex (OAuth — hermes auth) — OpenAI Codex
-#   nous         (OAuth — hermes auth) — Nous Portal
-#   zai          (ZAI_API_KEY)         — Z.AI / GLM
-#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
-#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
-#   minimax      (MINIMAX_API_KEY)     — MiniMax
-#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
-#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
-#
-# For custom OpenAI-compatible endpoints, add base_url and key_env.
-#
-# fallback_model:
-#   provider: openrouter
-#   model: anthropic/claude-sonnet-4

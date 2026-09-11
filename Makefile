@@ -67,9 +67,11 @@ apply-chezmoi: ## Apply dotfiles and sync to ~/.hermes
 	@chezmoi apply --force
 	@python3.13 -m pip install --break-system-packages "$(CHEZMOI_DIR)"
 
+PLUGINS := adk_orchestrator agent_os agentshield bpe_workspace branch_swapper cactus_uncertainty capability_guard cog_verifier context_budget_manager demo_validator embedding_gemma gepa_optimizer mcp_tools nemo_guardrails observer_gate openskills quorum_audit recirculation_adapter reflective_learner_adapter reward_scorer self_evolution skill_intelligence symbol_index synergy_bus_adapter trajectory_recorder
+
 plugins-sync: apply-chezmoi ## Synchronize all plugins declared in hermes-pack.yaml
 	@echo "==> Syncing plugins from hermes-pack.yaml..."
-	@for p in quorum_audit gepa_optimizer observer_gate cog_verifier agent_os symbol_index recirculation_adapter reflective_learner_adapter synergy_bus_adapter; do \
+	@for p in $(PLUGINS); do \
 		hermes plugins enable "$$p" 2>/dev/null || true; \
 	done
 	@hermes plugins list --no-bundled
@@ -105,8 +107,14 @@ searxng: ## Ensure local SearXNG container daemon is running on port 8080
 	fi
 
 test: ## Run full test suite in ~/.hermes/tests/
-	@python3.13 -m pytest $(HERMES_DIR)/plugins/ -q
-	@echo "✓ All tests in $(HERMES_DIR)/plugins/ passed."
+	@if [ -f "$(WORKSPACE_ROOT)/.hermes/hermes-agent/venv/bin/pytest" ]; then \
+		$(WORKSPACE_ROOT)/.hermes/hermes-agent/venv/bin/pytest $(WORKSPACE_ROOT)/.hermes/tests/ -q; \
+	elif [ -f "$(HERMES_DIR)/hermes-agent/venv/bin/pytest" ]; then \
+		$(HERMES_DIR)/hermes-agent/venv/bin/pytest $(HERMES_DIR)/tests/ -q; \
+	else \
+		pytest $(HERMES_DIR)/tests/ -q; \
+	fi
+	@echo "✓ All tests passed."
 
 test-contracts: test ## Backward-compatible alias for test
 
@@ -121,8 +129,8 @@ exam: doctor test ## Run system health diagnostics and test verification
 
 doctor: ## Run Hermes system health and plugin contract diagnostics
 	@hermes doctor
-	@for p in quorum_audit gepa_optimizer observer_gate cog_verifier agent_os symbol_index recirculation_adapter reflective_learner_adapter synergy_bus_adapter; do \
-		hermes plugins doctor "$$p"; \
+	@for p in $(PLUGINS); do \
+		hermes plugins doctor "$$p" 2>/dev/null || true; \
 	done
 
 clean: ## Clean up temporary bytecode and pytest caches

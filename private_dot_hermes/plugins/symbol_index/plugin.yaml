@@ -1,7 +1,7 @@
 name: symbol_index
 version: "1.0.0"
-description: "Codebase Memory AST Indexer & Symbol Graph MCP Server. Enables fast lexical and AST-level symbol lookups."
-author: "Hermes Agent OS"
-tools:
-  - symbol_search
-  - codebase_graph
+description: "AST Codebase Symbol Graph and Automated C4 Architecture Documentation Generator (Litho pattern)."
+author: "Hermes Core Engineering / Litho Pattern"
+kind: standalone
+tags: [ast, symbol-index, c4, documentation, diagrams, litho]
+enabled: true

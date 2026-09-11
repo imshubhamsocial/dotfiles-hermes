@@ -1,3 +1,4 @@
+enabled: true
 name: cog_verifier
 version: "1.0.0"
 description: "COG Dual-Agent Verifier & Second Brain Vault. Performs adversarial verification and cross-session memory retrieval."

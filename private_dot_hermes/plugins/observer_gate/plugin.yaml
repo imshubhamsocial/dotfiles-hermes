@@ -1,7 +1,7 @@
+enabled: true
 name: observer_gate
-version: "1.0.0"
-description: "Hermes Agent OS Observer Gate & Dual-Agent Verification Matrix Hook. Enforces AST syntax checks, brace balance, Draft-Detective phantom claim audits, and 2-strike Tabu branch pruning on all tool mutations."
-author: "Hermes Agent OS"
-hooks:
-  - pre_tool_call
-  - transform_tool_result
+version: 1.0.0
+description: "Pre-commit syntax validation gate."
+entrypoint: __init__.py
+provides_hooks:
+  - pre_verify

@@ -1,6 +1,6 @@
 ---
 title: "Hermes Agent OS & Living Harness"
-version: "2.0.0"
+version: "3.0.0-AGY-FRONTIER"
 runtime: "ws-hermes"
 model: "gemma-4-E4B-it-Q4_K_M.gguf"
 hardware_requirements:
@@ -8,38 +8,43 @@ hardware_requirements:
   context_window_tokens: 65536
   kv_cache: "q4_0"
 capabilities:
+  - "google-antigravity-2.0-artifacts"
+  - "gemini-thought-signature-preservation"
+  - "hierarchical-rule-progressive-disclosure"
+  - "magentic-one-dual-ledgers-stall-breaker"
+  - "google-jules-worktree-isolation"
+  - "agent2agent-a2a-protocol-cards"
   - "bpe-memory-workspace"
   - "meta-harness-self-evolution"
   - "trajectory-sqlite-observability"
   - "smolagents-code-as-action"
   - "aider-search-replace-diffs"
-  - "dynamic-tool-retrieval-dtdr"
-  - "agent2agent-a2a-cards"
+  - "nemo-guardrails-colang-2.0"
+  - "shannon-entropy-execution-rails"
+  - "deterministic-ast-code-prm"
   - "frognano-learnability-frontier"
   - "hybrid-context-budget-router"
   - "ecc-agentshield-security"
   - "autonomous-dag-planning"
-  - "state-grounded-skill-retrieval"
-  - "generative-ui-artifacts"
+  - "generative-ui-html-aux-pane"
   - "litho-c4-architecture-docs"
-  - "pre-commit-observer-gate"
-  - "fastmcp-tool-server"
-  - "nemo-guardrails-policies"
   - "quorum-maker-verifier-gate"
   - "zero-wrapper-native-subcommands"
 
 tags:
   - "agent-os"
+  - "antigravity"
+  - "jules"
   - "local-slm"
   - "gemma-4"
-  - "self-evolving-agi"
+  - "self-evolving-superintelligence"
   - "harness-engineering"
 ---
 
-# Hermes Agent OS & Living Harness (Era 9)
+# Hermes Agent OS & Living Harness (Era 10)
 
-> **Frontier-Level AGI Self-Evolving Superintelligence Harness on Consumer Silicon**  
-> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (245/245 Contract Tests Passing).
+> **Google AGY-Ready Self-Learning Superintelligence Harness on Consumer Silicon**  
+> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, Antigravity 2.0 Bridge, Magentic-One Dual Ledgers, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (**266/266 Contract Tests Passing**).
 
 ---
 

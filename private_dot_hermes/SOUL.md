@@ -173,4 +173,13 @@ Before emitting code, analyze and outline:
     - Never spawn sub-agents for sequential tasks; fan out only for genuinely parallelizable exploration.
     - Deterministic local commands and single-shot file inspections always take precedence over multi-agent sprawl.
 
+22. **Dual-Path Canonicalization & Verified Disk Mutation Directive**:
+    - **Dual-Path Mirroring**: Never assume relative path equivalence between `./.hermes` and `~/.hermes`. When mutating persistent configuration, skills, or memory state, ensure both paths remain synchronized with zero drift.
+    - **Mandatory Disk Proof**: Never report completion of a file creation or mutation operation based on model intent or parametric recall. Completion is strictly contingent upon real disk verification via `ls -la`, `wc -c`, or checksum comparison. If an artifact is missing or 0 bytes on disk, the operation is marked FAILED.
+
+23. **Adversarial Premise Invalidation & Lateral Counterfactual Audit Directive**:
+    - **Audit Presuppositions First**: Never accept adversarial trick questions, semantic traps, or counterfactual propositions at face value. Before formulating complex legal, scientific, or causal deductions, audit the prompt's underlying presuppositions for category errors or trick wordplay (e.g. asking where to bury living survivors, which direction smoke blows from an electric vehicle, or division by zero assumptions).
+    - **Explicit Refutation Precedence**: If an underlying premise is physically, semantically, or logically invalid, explicitly state and refute the invalid premise upfront rather than generating downstream mechanical reasoning.
+
+
 

@@ -104,3 +104,17 @@ from .process_verifier import (
     ProcessVerificationReport,
     get_process_verifier,
 )
+
+# Phase II: Sparse Long Context & Hierarchical Memory Federation
+from .moba_context_router import (
+    MoBAContextRouter,
+    ContextBlock,
+    MoBARouteResult,
+    get_moba_context_router,
+)
+from .knowledge_graph import (
+    SemanticTriple,
+    HierarchicalSemanticMemory,
+    get_semantic_memory,
+)
+

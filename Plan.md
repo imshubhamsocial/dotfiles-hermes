@@ -121,7 +121,7 @@ flowchart TD
 | **P1-01** | **Ponytail Minimalist Guardrail** (7-Rung YAGNI Ladder & Diff Pruner) | H2 | Critical | `agent/core/ponytail_ladder.py` & `SOUL.md` | ✅ Completed |
 | **P1-02** | **Arkon MRP Knowledge Pipeline** (Map $\to$ Reduce $\to$ Plan $\to$ Refine $\to$ Verify) | H3 | Critical | `agent/core/mrp_planner.py` | ✅ Completed |
 | **P1-03** | **Hermes Self-Repair Diagnostic Loop** (Inspect logs, patch core, auto-rollback) | H4 | Critical | `agent/core/self_healer.py` & `meta_harness.py` | 🟢 Queued |
-| **P1-04** | **Autonomous In-The-Loop Learner** (Auto-reflection on low reward $\to$ `/learn`) | H5 | High | `agent/core/autonomous_learner.py` | 🟢 Queued |
+| **P1-04** | **Autonomous In-The-Loop Learner** (Auto-reflection on low reward $\to$ `/learn`) | H5 | High | `agent/core/autonomous_learner.py` | ✅ Completed |
 | **P1-05** | **Native Loop & Context Flush Bridge** (Automated `/loop` & `/clear` lifecycle) | H1 | High | `agent/core/loop_orchestrator.py` | ✅ Completed |
 
 ---
@@ -145,7 +145,7 @@ flowchart TD
 | **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
-| **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_horizon4_autonomous_learn.py` | ⏳ PENDING |
+| **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_phase4_autonomous_learner.py` | ✅ PASSED |
 | **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_phase2_autonomous_loop.py` | ✅ PASSED |
 | **Gate X.6** | Native Contract Gate enforces ProcessVerifier, SymPy invariance, and AST simplicity | `verify_phase3_native_contract_gate.py` | ✅ PASSED |
 
@@ -166,6 +166,7 @@ flowchart TD
 | 2026-09-12 | Phase 2 Implemented (Autonomous Loop & /clear Context Flush Engine) | Implemented `agent/core/loop_orchestrator.py` with multi-modality tool dispatch (Bubblewrap sandbox shell, keyless web grounding, SmolVLM2 port 8139 multimodal vision, CUA), ContextFlushBridge (/clear at 80% / 52,428 tokens), StateCheckpointManager (SQLite state.db persistence), and bounded loop termination invariants (DONE, BLOCKED, STEP_LIMIT_EXCEEDED). 100% verified via `verify_phase2_autonomous_loop.py`. |
 | 2026-09-12 | Phase 3 Implemented (Native Contract Gate: ProcessVerifier + SymPy + AST check) | Implemented `agent/core/contract_gate.py` unifying ProcessVerifier (System-1/2 fast heuristics and contradiction detection), SymPy symbolic equivalence & anti-drift derivation checks, AST structural syntax, required symbols, security boundaries, and Ponytail YAGNI simplicity scores. Integrated directly into `LoopOrchestrator` step execution. 100% verified via `verify_phase3_native_contract_gate.py`. |
 | 2026-09-12 | Phase 0 Implemented (Faraday Director Mode & Cognitive Fusion) | Implemented `agent/core/faraday_director.py` answering the 4 foundational director questions: What to build (80/20 minimal essentials), What to skip (gold-plating omission), What to validate first (fatal boundary invariant), and Experiment sequence (cheapest sub-second probe). Bridges directly into Phase 1 MRPPlan, Phase 2 LoopOrchestrator, and Phase 3 NativeContractGate. 100% verified via `verify_phase0_faraday_director.py`. |
+| 2026-09-12 | Phase 4 Implemented (Autonomous In-The-Loop Learner & Rule Extraction) | Implemented `agent/core/autonomous_learner.py` with failure trace diagnosis, behavioral invariant synthesis, rl_buffer.jsonl ingestion, Phase 3 Contract Gate failure translation, and blind transfer verification under simulated /clear context reset. 100% verified via `verify_phase4_autonomous_learner.py`. |
 
 ---
 

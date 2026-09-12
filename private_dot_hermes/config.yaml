@@ -110,4 +110,8 @@ plugins:
       allow_tool_override: false
     antigravity_bridge:
       allow_tool_override: false
+    cua_bridge:
+      allow_tool_override: false
+    vision_sidecar:
+      allow_tool_override: false
 _config_version: 43

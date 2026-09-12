@@ -308,6 +308,15 @@ def verify_cli_integration() -> None:
     assert "Synthesized rule" in res_task["output"]
     assert "test_premise_trap" in res_task["output"]
 
+    # Clean up test rule synthesized during CLI test to keep production rulesets clean
+    import glob
+    for base in [Path.home() / ".hermes/rules", Path.cwd() / ".hermes/rules"]:
+        for rpath in glob.glob(str(base / "rule_*test_pre*.md")):
+            try:
+                os.remove(rpath)
+            except OSError:
+                pass
+
     print("  ✓ CLI /loop learn command dispatch verified.")
 
 

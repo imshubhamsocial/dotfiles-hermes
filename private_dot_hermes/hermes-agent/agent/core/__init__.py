@@ -6,16 +6,6 @@ Incorporating:
   - Claude Code Ephemeral Scratchpads & Non-Regression Invariant Gates
   - DeepSeek Deterministic AST Extraction & Sliced Non-Destructive Patching
 """
-import sys
-import types
-from pathlib import Path
-
-# Register virtual hermes_core package mapping to hermes-agent/agent/core
-if "hermes_core" not in sys.modules:
-    core_dir = Path(__file__).resolve().parent
-    core_pkg = types.ModuleType("hermes_core")
-    core_pkg.__path__ = [str(core_dir)]
-    sys.modules["hermes_core"] = core_pkg
 
 from .agent import Agent, Response, Result, AgentFunction
 from .swarm_engine import HermesOrchestrator
@@ -171,45 +161,88 @@ from .web_grounding import (
     get_grounding_engine,
 )
 
-# Phase V: Computer Use Activation (CUA Full Loop)
-from .cua_controller import (
-    CUAController,
-    BrowserAutomationLoop,
-    TerminalCUA,
-    get_cua_controller,
+# Phase 1: MRP Planning & Dependency Graph (Topological task ordering & YAGNI ladder)
+from .ponytail_ladder import (
+    YAGNIRung,
+    BloatSeverity,
+    BloatViolation,
+    YAGNIEvaluationReport,
+    DiffAuditReport,
+    PonytailDiffPruner,
+    PonytailLadder,
+    audit_code_simplicity,
+    pre_commit_observer_gate,
+)
+from .mrp_planner import (
+    TaskNode,
+    TaskState,
+    TaskDependencyGraph,
+    MRPPlan,
+    MRPPlanner,
+    CycleDetectedError,
+    create_mrp_plan,
+    FactualClaim,
+    ConceptPage,
+    ArkonMRPKnowledgeReport,
+    ArkonKnowledgePipeline,
+    WikiGraphNavigator,
+    execute_arkon_mrp_pipeline,
+    get_wiki_graph_navigator,
 )
 
-# Phase VI: Multimodal Visual Reasoning & Context Injection
-from .vision_engine import (
-    VisionEngine,
-    VisionServerSupervisor,
-    get_vision_engine,
-)
-from .vision_context import (
-    MultimodalContextInjector,
-    get_context_injector,
-)
-
-# Phase VII: Self-Improvement Loop (Absolute Zero Pattern)
-from .task_proposer import (
-    TaskCandidate,
-    UCB1Bandit,
-    TaskProposer,
-    RLBufferCollector,
-    EvolutionaryPromptOptimizer,
-    SelfImprovementEngine,
-    get_self_improvement_engine,
+# Phase 2: Autonomous Tool Execution & Context Guardrails (/loop & /clear)
+from .loop_orchestrator import (
+    LoopTerminationReason,
+    ToolModality,
+    ToolExecutionResult,
+    LoopStepRecord,
+    LoopReceipt,
+    estimate_tokens,
+    StateCheckpointManager,
+    ContextFlushBridge,
+    ToolExecutionSubsystem,
+    LoopOrchestrator,
+    execute_autonomous_loop,
 )
 
-# Phase VIII: Scientific Discovery Engine (AI Scientist Pattern)
-from .hypothesis_tree import (
-    HypothesisNode,
-    HypothesisTree,
-    get_hypothesis_tree,
+# Phase 3: Native Contract Gate (ProcessVerifier + SymPy + AST check)
+from .contract_gate import (
+    ContractCategory,
+    ContractViolation,
+    ContractGateVerdict,
+    SymPyContractVerifier,
+    ASTContractVerifier,
+    NativeContractGate,
+    get_native_contract_gate,
 )
-from .scientific_discovery import (
-    ScientificExperiment,
-    ScientificPaper,
-    ScientificDiscoveryEngine,
-    get_scientific_discovery_engine,
+
+# Phase 0: Faraday Director Mode (What to build, what to skip, what to validate first)
+from .faraday_director import (
+    GoalDomain,
+    FaradayAssessment,
+    FaradayDirector,
+    get_faraday_director,
 )
+
+# Phase 4: Autonomous In-The-Loop Learning (/learn)
+from .autonomous_learner import (
+    FailureDiagnosis,
+    AutonomousLearner,
+    get_autonomous_learner,
+)
+
+# Horizon 4: Autonomous Internal Self-Diagnosis & Hermes Self-Repair
+from .meta_harness import (
+    PatchReceipt,
+    AtomicPatcher,
+    HarnessIntegrityGate,
+)
+from .self_healer import (
+    InternalErrorDiagnostic,
+    SelfRepairReceipt,
+    LogDiagnosticEngine,
+    TraceFailureAnalyzer,
+    HermesSelfHealer,
+    get_self_healer,
+)
+

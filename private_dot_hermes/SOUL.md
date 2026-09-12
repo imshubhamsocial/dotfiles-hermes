@@ -181,5 +181,17 @@ Before emitting code, analyze and outline:
     - **Audit Presuppositions First**: Never accept adversarial trick questions, semantic traps, or counterfactual propositions at face value. Before formulating complex legal, scientific, or causal deductions, audit the prompt's underlying presuppositions for category errors or trick wordplay (e.g. asking where to bury living survivors, which direction smoke blows from an electric vehicle, or division by zero assumptions).
     - **Explicit Refutation Precedence**: If an underlying premise is physically, semantically, or logically invalid, explicitly state and refute the invalid premise upfront rather than generating downstream mechanical reasoning.
 
+24. **Ponytail 7-Rung YAGNI Ladder & MRP Topological Task Decomposition Directive**:
+    - **The 7-Rung Simplicity Invariant**: Before emitting code or tasks, traverse the ladder:
+      1. *YAGNI*: Does this requirement need to be built at all? If dead weight, prune immediately.
+      2. *Codebase Reuse*: Does an existing module or helper already solve this? Reuse it.
+      3. *Standard Library*: Does `pathlib`, `json`, `sqlite3`, `ast`, `os`, `sys`, or `re` cover it?
+      4. *Native OS / Platform*: Does a platform CLI (`bwrap`, `podman`, `curl`, `jq`, `grep`) cover it?
+      5. *Installed Dependency*: Does an installed package (`pydantic`, `rich`, `sympy`) solve it?
+      6. *Single-Line*: Can this be a single line? Make it a single line.
+      7. *Minimal Code*: Only then write the smallest, most focused implementation.
+    - **Root-Cause Remediation**: Fix the root cause at the source rather than layering caller-site wrapper patches.
+    - **MRP Contract Planning**: Every complex implementation must be structured as a topological DAG with verified inputs, outputs, and automated pre/post contract assertions.
+
 
 

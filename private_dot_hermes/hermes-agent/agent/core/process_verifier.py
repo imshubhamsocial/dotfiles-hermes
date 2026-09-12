@@ -93,7 +93,6 @@ class System2DeepVerifier:
             if re.search(pat, text.lower()):
                 anomalies.append(f"Unresolved contradiction in reasoning: '{pat}'")
 
-
         # Check for numeric or conclusion consistency
         has_conclusion = bool(re.search(r"(therefore|thus|hence|in conclusion|final answer|result is)", text.lower()))
         if not has_conclusion and len(text.split()) > 60:
@@ -168,9 +167,11 @@ class ProcessVerifier:
         # Step 2: System-2 Deep Verification
         s2_anomalies: List[str] = list(s1_anomalies)
         
-        # Math & reasoning checks
-        math_passed, math_conf, math_anom = self.deep_verifier.verify_math_reasoning(step_content)
-        s2_anomalies.extend(math_anom)
+        # Math & reasoning checks (only applied to reasoning/math step types)
+        math_conf = 0.95
+        if step_type in ("reasoning", "math"):
+            math_passed, math_conf, math_anom = self.deep_verifier.verify_math_reasoning(step_content)
+            s2_anomalies.extend(math_anom)
 
         # Code invariant checks if relevant
         if "def " in step_content or "class " in step_content or "```" in step_content:

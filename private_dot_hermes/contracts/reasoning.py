@@ -12,7 +12,6 @@ Verifies Phase 1 System-2 Reasoning Layer end-to-end:
 7. COT RL Buffer recording in cot_rl_buffer.jsonl
 """
 
-import os
 import sys
 import json
 from pathlib import Path
@@ -23,19 +22,15 @@ sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent/agent"))
 sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent/agent/core"))
 
 from thinking_budget import (
-    ThinkingBudgetManager,
     TaskComplexity,
-    COTRLBufferCollector,
     get_thinking_budget_manager,
 )
 from process_verifier import (
-    ProcessVerifier,
     System1FastChecker,
-    System2DeepVerifier,
     get_process_verifier,
 )
 from agent import Agent
-from cog_verifier import CogVerifier, VerificationChecks
+from cog_verifier import VerificationChecks
 
 def run_verification():
     print("=" * 70)

@@ -10,7 +10,6 @@ Executes in-process contract verification against:
   5. CLI Slash Command Interface (/loop auto <goal>, /loop status, /loop stop)
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -26,27 +25,20 @@ for p in [
         sys.path.insert(0, str(p))
 
 from agent.core.mrp_planner import (
-    MRPPlan,
-    TaskDependencyGraph,
-    TaskNode,
     TaskState,
     create_mrp_plan,
 )
 from agent.core.loop_orchestrator import (
     LoopOrchestrator,
-    LoopReceipt,
-    LoopStepRecord,
     LoopTerminationReason,
     StateCheckpointManager,
-    ToolExecutionResult,
     ToolExecutionSubsystem,
     ToolModality,
     ContextFlushBridge,
-    execute_autonomous_loop,
     CONTEXT_FLUSH_THRESHOLD_TOKENS,
 )
 from agent.core.contract_gate import NativeContractGate
-from hermes_cli.loops import dispatch_loop_command, LoopManager
+from hermes_cli.loops import dispatch_loop_command
 
 
 def verify_autonomous_plan_execution() -> None:

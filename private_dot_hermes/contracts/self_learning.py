@@ -29,8 +29,6 @@ for p in [
 
 from agent.core.autonomous_learner import (
     AutonomousLearner,
-    FailureDiagnosis,
-    get_autonomous_learner,
 )
 from agent.core.contract_gate import (
     ContractCategory,

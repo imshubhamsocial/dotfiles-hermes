@@ -11,10 +11,7 @@ Verifies Phase 2 end-to-end:
 6. Context Compactor 80% ceiling auto-trigger & MoBA session archival
 """
 
-import os
 import sys
-import json
-import time
 from pathlib import Path
 
 # Setup paths
@@ -22,8 +19,8 @@ sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent"))
 sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent/agent"))
 sys.path.insert(0, str(Path.home() / ".hermes/hermes-agent/agent/core"))
 
-from moba_context_router import MoBAContextRouter, get_moba_context_router, estimate_tokens
-from knowledge_graph import HierarchicalSemanticMemory, SemanticTriple, get_semantic_memory
+from moba_context_router import get_moba_context_router, estimate_tokens
+from knowledge_graph import get_semantic_memory
 from context_compactor import ContextCompactorGate, AUTO_COMPACTION_CEILING_80PCT
 
 

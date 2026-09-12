@@ -55,3 +55,31 @@ Repository = "https://github.com/nousresearch/hermes-agent"
 [tool.setuptools.packages.find]
 where = [".hermes"]
 include = ["plugins*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    "__pycache__",
+    ".cache",
+    ".venv",
+    "venv",
+    ".hermes_archived",
+    ".local_archived",
+    ".local",
+    ".hermes/hermes-agent",
+    ".hermes/skills",
+    ".hermes/profiles",
+    "tests",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "E402",
+    "E501",
+    "F841",
+    "F401",
+    "E731",
+    "E741",
+]

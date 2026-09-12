@@ -30,16 +30,12 @@ if plugins_dir not in sys.path:
 
 from agent_protocol import (
     AgentMessage,
-    JsonRpcRequest,
-    JsonRpcResponse,
     AgentProtocolServer,
     AgentProtocolClient,
 )
 from swarm_roles import (
-    SwarmRole,
     get_swarm_role,
     list_swarm_roles,
-    get_swarm_registry,
 )
 from quorum_moa import (
     MoAEngine,
@@ -48,7 +44,7 @@ from quorum_moa import (
     get_moa_engine,
 )
 import quorum_audit
-from hitl_gateway import create_hitl_gateway, RiskLevel
+from hitl_gateway import create_hitl_gateway
 
 
 def test_gate1_agent_protocol_standardization() -> bool:

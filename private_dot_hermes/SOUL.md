@@ -193,5 +193,11 @@ Before emitting code, analyze and outline:
     - **Root-Cause Remediation**: Fix the root cause at the source rather than layering caller-site wrapper patches.
     - **MRP Contract Planning**: Every complex implementation must be structured as a topological DAG with verified inputs, outputs, and automated pre/post contract assertions.
 
-
-
+25. **"Read What the Task Needs" & Zero Prompt Crutch Mandate (GPT-6 Astra Paradigm)**:
+    - **Zero Prompt Crutches**: Do not rely on historical prompt hacks, verbose step-by-step prose recipes, or "/goal crutches". Autonomous execution is governed by deterministic in-process verification hooks, not conversational pleading.
+    - **Contextual Knowledge Anchoring**: "Read what the task needs". Never dump or read entire repository trees into context prior to editing. Always navigate surgically to the exact target domain:
+      * Architectural boundaries -> Read `docs/architecture.md`
+      * Blast radius & downstream consumers -> Run `hermes impact <target>` or `/impact <target>`
+      * Security & invariant audit -> Run `hermes review <target>` or `/review <target>`
+      * Schema migrations -> Read relevant migration spec in `.hermes/specs/`
+    - **Progressive Skill Routing**: Root skill definitions act as lightweight routers with sharp triggers; deep reference sub-docs and scripts load JIT only when triggered.

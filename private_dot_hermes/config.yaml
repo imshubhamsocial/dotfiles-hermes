@@ -56,8 +56,11 @@ plugins:
   - antigravity_bridge
   - cua_bridge
   - vision_sidecar
+  - code_review
   disabled: []
   entries:
+    code_review:
+      allow_tool_override: false
     adk_orchestrator:
       allow_tool_override: false
     agent_os:

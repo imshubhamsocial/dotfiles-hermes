@@ -10,7 +10,6 @@ Executes in-process contract verification against:
   5. End-to-End Closed-Loop Pipeline Bridge: Phase 0 (Faraday) -> Phase 1 (MRP) -> Phase 2 (Loop) -> Phase 3 (Contract Gate)
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -26,12 +25,9 @@ for p in [
         sys.path.insert(0, str(p))
 
 from agent.core.faraday_director import (
-    FaradayAssessment,
     FaradayDirector,
     GoalDomain,
-    get_faraday_director,
 )
-from agent.core.ponytail_ladder import YAGNIRung
 from agent.core.mrp_planner import MRPPlan, TaskState
 from agent.core.loop_orchestrator import LoopOrchestrator, LoopTerminationReason
 from agent.core.contract_gate import NativeContractGate

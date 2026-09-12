@@ -27,18 +27,13 @@ for p in [
 
 from agent.core.ponytail_ladder import (
     YAGNIRung,
-    BloatSeverity,
-    PonytailDiffPruner,
     PonytailLadder,
     audit_code_simplicity,
 )
 from agent.core.mrp_planner import (
     CycleDetectedError,
-    MRPPlan,
-    MRPPlanner,
     TaskDependencyGraph,
     TaskNode,
-    TaskState,
     create_mrp_plan,
 )
 

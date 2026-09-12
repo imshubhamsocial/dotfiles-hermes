@@ -27,14 +27,11 @@ for p in [
     if p.is_dir() and str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from agent.core.meta_harness import AtomicPatcher, HarnessIntegrityGate, PatchReceipt
+from agent.core.meta_harness import AtomicPatcher, HarnessIntegrityGate
 from agent.core.self_healer import (
     InternalErrorDiagnostic,
-    SelfRepairReceipt,
     LogDiagnosticEngine,
-    TraceFailureAnalyzer,
     HermesSelfHealer,
-    get_self_healer,
 )
 from hermes_cli.loops import dispatch_loop_command
 

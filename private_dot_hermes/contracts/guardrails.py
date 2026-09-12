@@ -14,7 +14,6 @@ Verifies:
   7. Observer Gate Pre-Commit Hook & CLI Integration
 """
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -30,12 +29,8 @@ for p in [
 
 from agent.core.ponytail_ladder import (
     YAGNIRung,
-    BloatSeverity,
-    BloatViolation,
-    DiffAuditReport,
     PonytailDiffPruner,
     PonytailLadder,
-    audit_code_simplicity,
     pre_commit_observer_gate,
 )
 from agent.prompt_builder import PONYTAIL_LADDER_GUIDANCE

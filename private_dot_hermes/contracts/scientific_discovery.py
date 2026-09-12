@@ -15,20 +15,15 @@ Zero-Test-Folder Architecture: Pure native executable contract verification.
 
 from __future__ import annotations
 
-import json
-import os
 import sys
-import time
 from pathlib import Path
 
 hermes_root = Path.home() / ".hermes"
 sys.path.insert(0, str(hermes_root / "hermes-agent"))
 
-import agent.core as core
-from agent.core.hypothesis_tree import HypothesisNode, HypothesisTree, get_hypothesis_tree
+from agent.core.hypothesis_tree import HypothesisTree
 from agent.core.scientific_discovery import (
     ScientificExperiment,
-    ScientificPaper,
     ScientificDiscoveryEngine,
     get_scientific_discovery_engine,
 )

@@ -11,6 +11,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -195,7 +196,16 @@ def register(ctx=None):
 
     idx = get_symbol_index()
 
+    # Dynamic import of UnderstandAnythingEngine
+    def _get_ua():
+        core_p = Path(__file__).resolve().parents[2] / "hermes-agent" / "agent" / "core"
+        if str(core_p) not in sys.path:
+            sys.path.insert(0, str(core_p))
+        from agent.core.understand_anything import get_ua_engine
+        return get_ua_engine()
+
     if hasattr(ctx, "register_cli_command"):
+        # 1. C4 Architecture Docs: hermes docs
         def setup_docs(parser):
             parser.description = "Generate and inspect C4 architecture documentation (Litho pattern)"
             sub = parser.add_subparsers(dest="docs_cmd")
@@ -224,6 +234,64 @@ def register(ctx=None):
             return 0
 
         ctx.register_cli_command("docs", "Generate and view C4 architecture documentation", setup_docs, handle_docs)
+
+        # 2. Understand Anything: hermes understand
+        def setup_understand(parser):
+            parser.description = "Build Understand-Anything codebase knowledge graph (.ua/knowledge-graph.json)"
+            parser.add_argument("--output", "-o", help="Custom path for .ua/knowledge-graph.json")
+
+        def handle_understand(args):
+            ua = _get_ua()
+            print("==> Analyzing workspace AST, architectural layers, and business domains...")
+            st = ua.scan_workspace(incremental=True)
+            out_p = Path(args.output) if getattr(args, "output", None) else None
+            saved = ua.export_ua_json(out_p)
+            print("✓ Understand-Anything Knowledge Graph generated:")
+            print(f"  Graph Artifact:  {saved}")
+            print(f"  Total Nodes:     {st['total_nodes']}")
+            print(f"  Total Edges:     {st['total_edges']}")
+            print(f"  Domains:         {st['domains_count']}")
+            print(f"  Files Scanned:   {st['files_scanned']}")
+            return 0
+
+        ctx.register_cli_command("understand", "Build Understand-Anything knowledge graph (.ua/knowledge-graph.json)", setup_understand, handle_understand)
+
+        # 3. Diff Impact Analysis: hermes impact <target>
+        def setup_impact(parser):
+            parser.description = "Perform diff impact & blast-radius ripple analysis before code changes"
+            parser.add_argument("target", help="File path or symbol name to analyze")
+
+        def handle_impact(args):
+            ua = _get_ua()
+            ua.scan_workspace(incremental=True)
+            rep = ua.diff_impact_analysis([args.target])
+            print(rep.render_markdown())
+            return 0
+
+        ctx.register_cli_command("impact", "Calculate blast radius and ripple impact of code changes", setup_impact, handle_impact)
+
+    # 4. Native Slash Commands
+    if hasattr(ctx, "register_command"):
+        def slash_understand(raw_args: str) -> str:
+            ua = _get_ua()
+            st = ua.scan_workspace(incremental=True)
+            out = ua.export_ua_json()
+            return (
+                f"**Understand-Anything**: Knowledge graph generated at `{out}`\\n"
+                f"- Nodes: `{st['total_nodes']}` | Edges: `{st['total_edges']}` | Domains: `{st['domains_count']}`"
+            )
+
+        def slash_impact(raw_args: str) -> str:
+            target = raw_args.strip()
+            if not target:
+                return "Usage: /impact <file_path_or_symbol>"
+            ua = _get_ua()
+            ua.scan_workspace(incremental=True)
+            rep = ua.diff_impact_analysis([target])
+            return rep.render_markdown()
+
+        ctx.register_command("understand", "Generate Understand-Anything knowledge graph", slash_understand)
+        ctx.register_command("impact", "Analyze blast radius of modified symbols or files", slash_impact)
 
     return True
 

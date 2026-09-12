@@ -30,13 +30,10 @@ for p in [
         sys.path.insert(0, str(p))
 
 from agent.core.mrp_planner import (
-    FactualClaim,
-    ConceptPage,
     ArkonMRPKnowledgeReport,
     ArkonKnowledgePipeline,
     WikiGraphNavigator,
     execute_arkon_mrp_pipeline,
-    get_wiki_graph_navigator,
 )
 
 

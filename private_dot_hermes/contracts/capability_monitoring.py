@@ -19,7 +19,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 hermes_root = Path.home() / ".hermes"
@@ -187,7 +186,7 @@ def test_gate6_zero_test_folder_and_chezmoi_invariant() -> bool:
         "GATE 6",
         "Zero-Test-Folder Architecture & Core Artifact Invariants",
         True,
-        f"All 9 Phase core modules present. Zero-test-folder rule certified.",
+        "All 9 Phase core modules present. Zero-test-folder rule certified.",
     )
     return True
 

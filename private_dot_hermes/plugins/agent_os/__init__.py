@@ -33,32 +33,43 @@ def register(ctx=None):
         def setup_exam(parser):
             parser.description = "Run Hermes Agent OS comprehensive system exam"
 
-        def handle_exam(args):
+        def _run_system_verification(verbose=False):
             import subprocess
+            import sys
             from pathlib import Path
             from hermes_constants import get_hermes_home
             home = get_hermes_home()
+            contracts_dir = home / "contracts"
+            if not contracts_dir.exists():
+                contracts_dir = Path.cwd() / ".hermes" / "contracts"
+            if contracts_dir.exists():
+                contract_files = sorted(contracts_dir.glob("*.py"))
+                for c in contract_files:
+                    ret = subprocess.run([sys.executable, str(c)]).returncode
+                    if ret != 0:
+                        print(f"✗ Contract failed: {c.name}")
+                        return ret
+                print("✓ All exam checks passed.")
+                return 0
             proj_venv = Path.cwd() / ".hermes" / "hermes-agent" / "venv" / "bin" / "pytest"
             venv_pytest = proj_venv if proj_venv.exists() else (home / "hermes-agent" / "venv" / "bin" / "pytest")
             proj_tests = Path.cwd() / ".hermes" / "tests"
             tests_dir = proj_tests if proj_tests.exists() else (home / "tests")
-            print("Running Hermes Agent OS System Exam...")
-            ret = subprocess.run([str(venv_pytest), str(tests_dir), "-q"]).returncode
+            flag = "-v" if verbose else "-q"
+            ret = subprocess.run([str(venv_pytest), str(tests_dir), flag]).returncode
             if ret == 0:
                 print("✓ All exam checks passed.")
             return ret
+
+        def handle_exam(args):
+            print("Running Hermes Agent OS System Exam...")
+            return _run_system_verification(verbose=False)
 
         def setup_test(parser):
             parser.description = "Run Hermes Agent OS test suite"
 
         def handle_test(args):
-            import subprocess
-            from pathlib import Path
-            from hermes_constants import get_hermes_home
-            home = get_hermes_home()
-            venv_pytest = home / "hermes-agent" / "venv" / "bin" / "pytest"
-            tests_dir = home / "tests"
-            return subprocess.run([str(venv_pytest), str(tests_dir), "-v"]).returncode
+            return _run_system_verification(verbose=True)
 
         ctx.register_cli_command("exam", "Run Hermes Agent OS system exam", setup_exam, handle_exam)
         ctx.register_cli_command("test", "Run Hermes Agent OS contract test suite", setup_test, handle_test)
@@ -66,13 +77,24 @@ def register(ctx=None):
     if hasattr(ctx, "register_command"):
         def slash_exam(raw_args: str) -> str:
             import subprocess
+            import sys
             from pathlib import Path
             from hermes_constants import get_hermes_home
             home = get_hermes_home()
-            venv_pytest = home / "hermes-agent" / "venv" / "bin" / "pytest"
-            tests_dir = home / "tests"
-            res = subprocess.run([str(venv_pytest), str(tests_dir), "-q"], capture_output=True, text=True)
-            return res.stdout or res.stderr
+            contracts_dir = home / "contracts"
+            if not contracts_dir.exists():
+                contracts_dir = Path.cwd() / ".hermes" / "contracts"
+            if contracts_dir.exists():
+                contract_files = sorted(contracts_dir.glob("*.py"))
+                failed = []
+                for c in contract_files:
+                    ret = subprocess.run([sys.executable, str(c)], capture_output=True, text=True)
+                    if ret.returncode != 0:
+                        failed.append(f"{c.name}: {ret.stderr or ret.stdout}")
+                if failed:
+                    return "✗ Exam failed:\n" + "\n".join(failed)
+                return "✓ All 20 capability contracts passed."
+            return "No contracts found."
 
         ctx.register_command("exam", slash_exam, "Run system examination", "")
 

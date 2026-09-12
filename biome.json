@@ -1,0 +1,42 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "files": {
+    "ignoreUnknown": true,
+    "maxSize": 10485760,
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.hermes_archived",
+      "!**/.local_archived",
+      "!**/.local",
+      "!**/.venv",
+      "!**/.cache",
+      "!**/.config",
+      "!**/.cua-driver",
+      "!**/.hermes/hermes-agent",
+      "!**/.hermes/cache",
+      "!**/.hermes/sessions",
+      "!**/.hermes/logs",
+      "!**/.hermes/skills",
+      "!**/.hermes/profiles",
+      "!**/*.jsonl",
+      "!**/*cache*.json",
+      "!**/*.html",
+      "!**/venv",
+      "!**/dist",
+      "!**/build",
+      "!**/.git"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "linter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  }
+}

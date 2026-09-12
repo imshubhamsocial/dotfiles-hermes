@@ -1,11 +1,12 @@
 enabled: true
 name: recirculation_adapter
-version: 1.0.0
+version: "1.0.0"
 description: "Google DeepMind Recirculation System-2 prefill hook. Guarantees >= +20% reasoning lift on task specifications via Lyapunov dynamical energy convergence."
 author: "Hermes Agent OS"
 kind: standalone
 platforms:
   - linux
   - macos
-hooks:
+provides_hooks:
   - on_session_start
+  - pre_llm_call

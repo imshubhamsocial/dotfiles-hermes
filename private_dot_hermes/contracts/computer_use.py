@@ -15,27 +15,20 @@ Zero-Test-Folder Architecture: Pure native executable contract verification.
 
 from __future__ import annotations
 
-import hashlib
-import json
-import os
 import sys
-import time
 from pathlib import Path
 
 # Setup paths
 hermes_root = Path.home() / ".hermes"
 sys.path.insert(0, str(hermes_root / "hermes-agent"))
 
-import agent.core as core
 from agent.core.cua_controller import (
     CUAController,
     BrowserAutomationLoop,
     TerminalCUA,
     get_cua_controller,
 )
-from agent.core.trajectory import TrajectoryRecorder, CANONICAL_RELATIVE
-import cv2
-import numpy as np
+from agent.core.trajectory import TrajectoryRecorder
 from PIL import Image
 
 

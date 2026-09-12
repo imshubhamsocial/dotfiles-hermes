@@ -10,7 +10,6 @@ Executes in-process contract verification against:
   5. Closed-Loop Integration with LoopOrchestrator (/loop Enforcement & Bounded Interception)
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -26,30 +25,20 @@ for p in [
         sys.path.insert(0, str(p))
 
 from agent.core.mrp_planner import (
-    MRPPlan,
-    TaskDependencyGraph,
-    TaskNode,
-    TaskState,
     create_mrp_plan,
 )
 from agent.core.loop_orchestrator import (
     LoopOrchestrator,
-    LoopReceipt,
     LoopTerminationReason,
 )
 from agent.core.contract_gate import (
     ContractCategory,
-    ContractGateVerdict,
-    ContractViolation,
     NativeContractGate,
     SymPyContractVerifier,
     ASTContractVerifier,
-    get_native_contract_gate,
 )
 from agent.core.process_verifier import (
     ProcessVerifier,
-    System1FastChecker,
-    System2DeepVerifier,
 )
 
 
@@ -352,7 +341,7 @@ def verify_loop_orchestrator_closed_loop_gate() -> None:
         assert "Contract Gate Failure" in failed_record.result.error
         assert "boilerplate" in failed_record.result.error.lower()
 
-    print(f"  ✓ Closed-loop contract enforcement confirmed: compliant tasks DONE, contract violations BLOCKED with diagnostic traces.")
+    print("  ✓ Closed-loop contract enforcement confirmed: compliant tasks DONE, contract violations BLOCKED with diagnostic traces.")
 
 
 def main() -> None:

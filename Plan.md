@@ -120,7 +120,7 @@ flowchart TD
 |:---|:---|:---:|:---:|:---|:---:|
 | **P1-01** | **Ponytail Minimalist Guardrail** (7-Rung YAGNI Ladder & Diff Pruner) | H2 | Critical | `agent/core/ponytail_ladder.py` & `SOUL.md` | ✅ Completed |
 | **P1-02** | **Arkon MRP Knowledge Pipeline** (Map $\to$ Reduce $\to$ Plan $\to$ Refine $\to$ Verify) | H3 | Critical | `agent/core/mrp_planner.py` | ✅ Completed |
-| **P1-03** | **Hermes Self-Repair Diagnostic Loop** (Inspect logs, patch core, auto-rollback) | H4 | Critical | `agent/core/self_healer.py` & `meta_harness.py` | 🟢 Queued |
+| **P1-03** | **Hermes Self-Repair Diagnostic Loop** (Inspect logs, patch core, auto-rollback) | H4 | Critical | `agent/core/self_healer.py` & `meta_harness.py` | ✅ Completed |
 | **P1-04** | **Autonomous In-The-Loop Learner** (Auto-reflection on low reward $\to$ `/learn`) | H5 | High | `agent/core/autonomous_learner.py` | ✅ Completed |
 | **P1-05** | **Native Loop & Context Flush Bridge** (Automated `/loop` & `/clear` lifecycle) | H1 | High | `agent/core/loop_orchestrator.py` | ✅ Completed |
 
@@ -144,7 +144,7 @@ flowchart TD
 | **Gate X.0** | Faraday Director Mode assesses 4 foundational invariants and bridges into MRP plan | `verify_phase0_faraday_director.py` | ✅ PASSED |
 | **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_horizon2_ponytail_guardrails.py` | ✅ PASSED |
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_horizon3_arkon_knowledge_pipeline.py` | ✅ PASSED |
-| **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
+| **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon4_self_repair.py` | ✅ PASSED |
 | **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_phase4_autonomous_learner.py` | ✅ PASSED |
 | **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_horizon1_loop_engine.py` | ✅ PASSED |
 | **Gate X.6** | Native Contract Gate enforces ProcessVerifier, SymPy invariance, and AST simplicity | `verify_phase3_native_contract_gate.py` | ✅ PASSED |
@@ -170,6 +170,7 @@ flowchart TD
 | 2026-09-12 | Horizon 1 Implemented (Autonomous In-The-Loop Execution Engine /loop & /clear) | Integrated `/loop auto <goal>` into `hermes_cli/loops.py`, verified autonomous multi-turn execution, `/clear` 80% boundary context flush (52,428 tokens), unified multi-modal tool execution subsystem (Sandbox, Web, Vision, CUA), bounded loop termination criteria (DONE, BLOCKED, STEP_LIMIT_EXCEEDED), and CLI dispatch. 100% verified via `verify_horizon1_loop_engine.py`. |
 | 2026-09-12 | Horizon 2 Implemented (Ponytail Minimalist Engineering & Anti-Overengineering Guardrails) | Injected 7-Rung YAGNI Ladder & Root-Cause Remediation Invariant into core system prompt, implemented `pre_commit_observer_gate` with AST diff size computation (>3x bloat rejection), redundant helper pruning, unrequested dependency rejection, and call-graph divergence analysis. 100% verified via `verify_horizon2_ponytail_guardrails.py`. |
 | 2026-09-12 | Horizon 3 Implemented (Arkon MRP Knowledge Pipeline & Traceable Graph Memory) | Implemented full 6-phase Arkon MRP knowledge engine (Map -> Reduce -> Plan-Review -> Refine -> Verify -> Commit) in `agent/core/mrp_planner.py` with SQLite `semantic_triples.db` persistence, concept markdown generation with YAML frontmatter, `[[wikilinks]]`, provenance auditing, and `WikiGraphNavigator` for multi-hop bidirectional graph traversal. 100% verified via `verify_horizon3_arkon_knowledge_pipeline.py`. |
+| 2026-09-12 | Horizon 4 Implemented (Autonomous Internal Self-Diagnosis & Hermes Self-Repair) | Implemented `LogDiagnosticEngine` (traceback call-stack parser & earliest point of divergence isolation), `TraceFailureAnalyzer` (categorization of syntax drift, broken imports, and plugin collisions), `AtomicPatcher` with mandatory `.bak` backup creation, `HarnessIntegrityGate`, and automatic `/rollback` on post-patch regression. Wired `/loop repair` and `/loop rollback`. 100% verified via `verify_horizon4_self_repair.py` (Gate X.3). |
 
 ---
 

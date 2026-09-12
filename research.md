@@ -95,8 +95,11 @@
     - [ADR-7: BM25Plus on Micro-Corpora vs BM25Okapi Zero-Score Defect](#adr-7-bm25plus-on-micro-corpora-vs-bm25okapi-zero-score-defect)
     - [ADR-8: Selective Mutation-Only Audit Logging vs Full Tool-Call SQLite Bloat](#adr-8-selective-mutation-only-audit-logging-vs-full-tool-call-sqlite-bloat)
     - [ADR-9: Semantic Capability Contract Architecture & Alienation Pruning](#adr-9-semantic-capability-contract-architecture--alienation-pruning)
-  - [Master Capability Contract Traceability Matrix (17 Semantic Contracts)](#master-capability-contract-traceability-matrix-17-semantic-contracts)
-  - [Master Ingestion Ledger (Unified Summary Table 1–62)](#master-ingestion-ledger-unified-summary-table-162)
+    - [ADR-10: SMART Clean-Slate Regeneration vs Incremental Patch Accretion](#adr-10-smart-clean-slate-regeneration-vs-incremental-patch-accretion)
+    - [ADR-11: Understand-Anything Dual AST & Domain Graph vs Unstructured Context Reading](#adr-11-understand-anything-dual-ast--domain-graph-vs-unstructured-context-reading)
+    - [ADR-12: Superhuman AI Code Review & Strict Persona Isolation vs Author Self-Verification](#adr-12-superhuman-ai-code-review--strict-persona-isolation-vs-author-self-verification)
+  - [Master Capability Contract Traceability Matrix (20 Semantic Contracts)](#master-capability-contract-traceability-matrix-20-semantic-contracts)
+  - [Master Ingestion Ledger (Unified Summary Table 1–66)](#master-ingestion-ledger-unified-summary-table-166)
 
 ---
 
@@ -1050,16 +1053,28 @@ This document traces the historical evolution of all research conducted across t
   - Inconsistent naming obscured which verification file corresponded to which cognitive capability, plugin, or research milestone.
 - **Decision**: **Standardized on a single, permanent Semantic Capability Contract Architecture (`.hermes/contracts/*.py`) and pruned all alienated artifacts**.
 - **Forensic Tradeoff Analysis**:
-  1. *Elimination of File Alienation*: All 17 core cognitive capabilities are mapped to standardized generic contract names (`director.py`, `planner.py`, `reasoning.py`, `autonomous_loop.py`, `context_router.py`, `multi_agent.py`, `contract_gate.py`, `guardrails.py`, `grounding.py`, `computer_use.py`, `multimodal_vision.py`, `self_evolution.py`, `self_learning.py`, `knowledge_pipeline.py`, `self_repair.py`, `scientific_discovery.py`, `capability_monitoring.py`).
+  1. *Elimination of File Alienation*: All 20 core cognitive capabilities are mapped to standardized generic contract names (`director.py`, `planner.py`, `reasoning.py`, `autonomous_loop.py`, `context_router.py`, `multi_agent.py`, `contract_gate.py`, `guardrails.py`, `grounding.py`, `computer_use.py`, `multimodal_vision.py`, `self_evolution.py`, `self_learning.py`, `knowledge_pipeline.py`, `self_repair.py`, `scientific_discovery.py`, `capability_monitoring.py`, `code_review.py`, `smart_engine.py`, `storage_pool.py`).
   2. *Executable Invariant Enforcement*: Each contract is a standalone, deterministic Python module exposing an `execute_contract() -> bool` entrypoint verifying the subsystem's mathematical and operational invariants without brittle multi-file side effects.
-  3. *Zero-Duplication Binary Hygiene*: Pruned 39.5MB duplicate `tirith` binary, redundant shims (`observer_gate.py`, `hypothesis_tree.py`), and obsolete `verify_harness_integrity.py` from `.hermes/bin/`, retaining strictly operational binaries (`capability_dashboard.py` and `vision_sidecar_server.sh`).
+  3. *Zero-Duplication Binary Hygiene*: Pruned duplicate binaries, redundant shims, and obsolete verification files, retaining strictly operational binaries (`capability_dashboard.py` and `vision_sidecar_server.sh`).
   4. *Complete Bidirectional Traceability*: A formal Master Traceability Matrix preserves mapping from every refactored generic contract back to its legacy alienated filename, research milestone, core engine file, Hermes plugin, and backing PyPI package.
+
+### ADR-10: SMART Clean-Slate Regeneration vs Incremental Patch Accretion
+- **Context**: Incremental patching of decaying codebases leads to compounding generation debt ($D_{t+1} > 0$). When specifications or frameworks change, localized patches accumulate divergence and unexpected regression loops.
+- **Decision**: Implemented the SMART Paradigm (arXiv:2609.05364): Natural-language design documents in `.hermes/specs/` form a topological DAG and represent the sole durable source of truth. Implementation code is ephemeral and regenerated clean-slate ($C_t = G(S_t)$ with $D_{t+1} = 0$), backed by SymPy Minimal Symbolic IR roll-ups and exact numeric reconciliation anchors.
+
+### ADR-11: Understand-Anything Dual AST & Domain Graph vs Unstructured Context Reading
+- **Context**: Navigating multi-module systems by indiscriminately dumping full source files into context quickly blows through LLM attention budgets and triggers memory compaction.
+- **Decision**: Implemented the Understand-Anything dual-layer knowledge graph engine (`.ua/knowledge-graph.json`). Synthesizes a structural AST graph and a horizontal domain/business logic DAG with pre-mutation blast-radius ripple forecasting and SHA-256 incremental hash caching.
+
+### ADR-12: Superhuman AI Code Review & Strict Persona Isolation vs Author Self-Verification
+- **Context**: Models acting as author and reviewer in the same session share cognitive blind spots and reinforce hallucinations, leading to silent security leaks or broken invariants.
+- **Decision**: Implemented OpenAI Codex lead paradigm: Author != Auditor strict persona isolation. Every task completion is intercepted by a PR-blocking review gate auditing OWASP security, command injection, path traversal, secrets leaks, and path portability before exit code 0 sign-off.
 
 ---
 
-## Master Capability Contract Traceability Matrix (17 Semantic Contracts)
+## Master Capability Contract Traceability Matrix (20 Semantic Contracts)
 
-The table below provides **100% bidirectional traceability** between every refactored generic contract in `.hermes/contracts/*.py`, its legacy alienated filename (`verify_horizon*.py` / `verify_phase*.py`), its foundational research milestone (Items 1–62), its underlying core engine module, its associated Hermes plugin, its official upstream PyPI/GitHub package backing, and its certified invariants.
+The table below provides **100% bidirectional traceability** between every refactored generic contract in `.hermes/contracts/*.py`, its legacy alienated filename (`verify_horizon*.py` / `verify_phase*.py`), its foundational research milestone (Items 1–66), its underlying core engine module, its associated Hermes plugin, its official upstream PyPI/GitHub package backing, and its certified invariants.
 
 | Refactored Contract (`.hermes/contracts/`) | Legacy Alienated Filename | Research Milestone(s) | Core Engine Implementation (`agent/core/`) | Hermes Plugin(s) | Backing Package & Version | Verified Invariants & Capability Scope |
 |:---|:---|:---:|:---|:---|:---|:---|
@@ -1080,10 +1095,13 @@ The table below provides **100% bidirectional traceability** between every refac
 | [`self_repair.py`](../.hermes/contracts/self_repair.py) | `verify_horizon4_self_repair.py` | Items 35, 42 | [`self_healer.py`](../.hermes/hermes-agent/agent/core/self_healer.py) | `branch_swapper` | In-process Atomic Patcher | Culprit traceback frame isolation, failure mode categorization, atomic patcher with `.bak`, automatic `/rollback` |
 | [`scientific_discovery.py`](../.hermes/contracts/scientific_discovery.py) | `verify_phase8_scientific_discovery.py` | Item 19 | [`scientific_discovery.py`](../.hermes/hermes-agent/agent/core/scientific_discovery.py) | `branch_swapper`, `antigravity_bridge` | `bubblewrap==0.12.0`, SymPy | HypothesisTree DAG, sandboxed benchmark execution, paper synthesis (>= 500 words), knowledge base ingestion |
 | [`capability_monitoring.py`](../.hermes/contracts/capability_monitoring.py) | `verify_phase9_monitoring.py` | Item 59 | [`capability_dashboard.py`](../.hermes/bin/capability_dashboard.py) | `agent_os` | `openlit==1.45.0`, `opentelemetry-sdk` | Live capability scoring, ANSI progress bars, JSON telemetry, hardware VRAM ceiling enforcement (<= 4,812 MiB) |
+| [`code_review.py`](../.hermes/contracts/code_review.py) | `contract_code_review.py` | Item 65 | [`code_review.py`](../.hermes/hermes-agent/agent/core/code_review.py) | `code_review`, `observer_gate` | OpenAI Codex / Sottiaux Paradigm | PR-blocking security gate, Author!=Auditor separation, OWASP injection, secrets leak, path traversal |
+| [`smart_engine.py`](../.hermes/contracts/smart_engine.py) | `contract_smart_engine.py` | Item 63 | [`smart_engine.py`](../.hermes/hermes-agent/agent/core/smart_engine.py) | `agent_os` | arXiv:2609.05364, `sympy==1.14.0` | Design doc DAG topological sort, cycle detection, SymPy minimal symbolic IR, clean-slate regeneration |
+| [`storage_pool.py`](../.hermes/contracts/storage_pool.py) | `contract_storage_pool.py` | Item 66 | [`storage_pool.py`](../.hermes/hermes-agent/agent/core/storage_pool.py) | `bpe_workspace`, `trajectory_recorder` | SQLite WAL connection pool | 8-reader async pool, 1 writer queue, sub-1.5ms read latency, zero lock contention, dynamic substrate reconnaissance |
 
 ---
 
-## Master Ingestion Ledger (Unified Summary Table 1–62)
+## Master Ingestion Ledger (Unified Summary Table 1–66)
 
 | # | Milestone | Era | Source / Precedent | Needed? | Active? | Discard? | Rationale & Architectural Verdict |
 |:---|:---|:---:|:---|:---:|:---:|:---:|:---|
@@ -1149,4 +1167,8 @@ The table below provides **100% bidirectional traceability** between every refac
 | **60** | Vaibhav Sisinty Growth Experimentation | Era 8 | GrowthSchool / Ex-Uber | **Yes** | **Yes** | **No** | Hypothesis-driven rapid test cycles, minimum viable test, and repeatable playbook capture. |
 | **61** | Computer-Use Automation (CUA) Substrate | Era 8 | CuaDriver v0.21.0 | **Yes** | **Yes** | **No** | Direct Linux X11/Wayland automation & AT-SPI accessibility tree via `cua_bridge`. |
 | **62** | Multimodal Vision Sidecar (Port 8139) | Era 8 | SmolVLM2 / llama-server | **Yes** | **Yes** | **No** | Lightweight visual reasoning & UI grounding on port 8139 with 0 MiB GPU VRAM impact. |
+| **63** | SMART Clean-Slate Regeneration Engine | Era 8 | arXiv:2609.05364 | **Yes** | **Yes** | **No** | Natural-language spec DAGs as durable artifact; ephemeral code regenerated clean-slate ($D_{t+1}=0$). |
+| **64** | Understand-Anything Knowledge Graph | Era 8 | Egonex-AI | **Yes** | **Yes** | **No** | Dual-layer AST & domain flow graph with diff blast-radius forecasting (`.ua/knowledge-graph.json`). |
+| **65** | Superhuman AI Code Review & Security Gate | Era 8 | OpenAI Codex / Sottiaux | **Yes** | **Yes** | **No** | Mandatory PR-blocking review gate with Author!=Auditor persona isolation and OWASP vulnerability traps. |
+| **66** | Habitat High-Throughput Online Storage | Era 8 | OpenAI Habitat | **Yes** | **Yes** | **No** | SQLite WAL multi-reader connection pool (<1.5ms latency) and dynamic substrate reconnaissance. |
 

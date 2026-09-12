@@ -1,5 +1,5 @@
 # Behavioral Invariant: Premise_Invalidation Rule
-> Inferred from user correction /learn event `evt_8d7d862ff995`
+> Inferred from user correction /learn event `evt_2cc6a2215dd0`
 
 ## Mandate
 * INVARIANT: Always audit and explicitly validate the existential and logical premises of a query before computing, deriving, or generating a solution. If a premise is physically, legally, or logically invalid (e.g. burying survivors), immediately falsify the premise rather than hallucinating jurisdiction or rules.

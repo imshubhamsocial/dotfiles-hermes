@@ -218,7 +218,7 @@ def register(ctx=None):
             if cmd == "generate":
                 out = Path(args.output) if getattr(args, "output", None) else None
                 res = C4ArchitectureGenerator.generate(idx, output_file=out)
-                print(f"✓ C4 Architecture Documentation Generated (Litho Pattern):")
+                print("✓ C4 Architecture Documentation Generated (Litho Pattern):")
                 print(f"  Target File:     {res['output_path']}")
                 print(f"  Modules Scanned: {res['stats']['indexed_modules']}")
                 print(f"  Classes Found:   {res['stats']['total_classes']}")
@@ -226,7 +226,7 @@ def register(ctx=None):
                 return 0
             elif cmd == "status":
                 st = idx.scan()
-                print(f"AST Symbol Index Status:")
+                print("AST Symbol Index Status:")
                 print(f"  Total Files:     {st['total_files']}")
                 print(f"  Classes:         {st['total_classes']}")
                 print(f"  Functions:       {st['total_functions']}")

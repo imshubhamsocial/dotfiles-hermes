@@ -324,9 +324,9 @@ def register(ctx=None):
         def slash_evolve(raw_args: str) -> str:
             st = engine.status()
             lines = [
-                f"**Spec-Kit Self-Evolution Engine**",
+                "**Spec-Kit Self-Evolution Engine**",
                 f"- **Hypotheses**: {st['total_hypotheses']} total ({st['verified_hypotheses']} verified)",
-                f"- **Zero-Regression Guard**: Enforced",
+                "- **Zero-Regression Guard**: Enforced",
             ]
             for h in st["hypotheses"][:3]:
                 lines.append(f"  * `{h['id']}`: {h['title']} ({h['status']})")

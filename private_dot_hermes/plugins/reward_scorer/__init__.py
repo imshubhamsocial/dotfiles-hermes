@@ -407,7 +407,7 @@ def register(ctx=None):
 
         def handle_train(args):
             res = SFTDataCurator.curate(percentile=args.percentile, frontier_only=getattr(args, "frontier_only", False))
-            print(f"SFT Dataset Curation Summary:")
+            print("SFT Dataset Curation Summary:")
             print(f"  Curated Samples:       {res['curated_count']}")
             print(f"  Selection Percentile:  Top {int(res['cutoff_percentile']*100)}%")
             print(f"  Reward Cutoff Range:   [{res.get('lowest_curated_reward')}, {res.get('highest_reward')}]")

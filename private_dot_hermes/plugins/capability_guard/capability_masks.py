@@ -16,8 +16,7 @@ Default posture for unknown roles is READ-ONLY (least privilege).
 Extended for U37: Dynamic OpenAI tool schema generation per phase.
 """
 
-from typing import Dict, List, Optional, Tuple, Any, Callable
-import inspect
+from typing import Dict, List, Optional, Tuple, Any
 
 READ_ONLY_TOOLS = frozenset({
     "read_file", "grep_codebase", "get_symbol_map", "get_workspace_tree",

@@ -50,7 +50,7 @@ def register(ctx=None):
                 if getattr(args, "json", False):
                     print(json.dumps(report, indent=2))
                 else:
-                    print(f"\nSkillEvaluator Benchmark Summary:")
+                    print("\nSkillEvaluator Benchmark Summary:")
                     print(f"  Total Tasks:    {report['total_tasks']}")
                     print(f"  Base Accuracy:  {report['base_accuracy'] * 100:.1f}%")
                     print(f"  Skill Accuracy: {report['skill_accuracy'] * 100:.1f}%")

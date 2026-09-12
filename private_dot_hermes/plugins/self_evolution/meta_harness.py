@@ -12,8 +12,6 @@ Enables Hermes to:
 from __future__ import annotations
 
 import difflib
-import json
-import os
 import shutil
 import subprocess
 import sys

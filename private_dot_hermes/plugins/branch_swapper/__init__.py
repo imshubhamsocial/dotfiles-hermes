@@ -54,7 +54,7 @@ def register(ctx=None):
                 active_id = tree.active_node_id or "None (Root)"
                 active_node = tree.nodes.get(tree.active_node_id) if tree.active_node_id else None
                 constraints = tree.get_accumulated_negative_constraints()
-                print(f"Hypothesis Tree Status:")
+                print("Hypothesis Tree Status:")
                 print(f"  Total Nodes: {len(tree.nodes)}")
                 print(f"  Active Branch: [{active_id}] {active_node.title if active_node else 'N/A'}")
                 if active_node:

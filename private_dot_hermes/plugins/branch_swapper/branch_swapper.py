@@ -14,14 +14,12 @@ Integrates with:
 """
 
 import json
-import os
 import sqlite3
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 from enum import Enum
 
 DB_PATH = "/dev/shm/branch_swapper.db"

@@ -88,8 +88,8 @@ def register(ctx=None):
                     print(json.dumps(st, indent=2))
                 else:
                     print("NoRA Online Adaptation Pipeline Status:")
-                    print(f"  Stage 1 (Signal Capture): ACTIVE")
-                    print(f"  Stage 2-4 (Hot-Swap):     Awaiting llama.cpp LoRA hot-reload API")
+                    print("  Stage 1 (Signal Capture): ACTIVE")
+                    print("  Stage 2-4 (Hot-Swap):     Awaiting llama.cpp LoRA hot-reload API")
                     print(f"  Buffer File:              {st['buffer_path']}")
                     print(f"  Total Ingested Trajectories: {st['total_samples']}")
                     print(f"  Verified Samples (Ready):    {st['verified_samples']}")

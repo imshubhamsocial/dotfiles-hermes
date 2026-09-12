@@ -586,10 +586,10 @@ def register(ctx=None):
             else:
                 findings = SecretScanner.scan_text(args.target)
                 if not findings:
-                    print(f"✓ Text Scan Clean: No secrets detected.")
+                    print("✓ Text Scan Clean: No secrets detected.")
                     return 0
                 else:
-                    print(f"✗ Secret Findings in Text:")
+                    print("✗ Secret Findings in Text:")
                     for f in findings:
                         print(f"  - [{f['type']}] {f['name']}: {f['masked']}")
                     return 1
@@ -619,11 +619,11 @@ def register(ctx=None):
             ok, msg = audit.verify_chain()
             entries = audit.get_recent(limit=3)
             lines = [
-                f"**ECC AgentShield Security Status**",
+                "**ECC AgentShield Security Status**",
                 f"- **Audit Chain**: {'✓ Verified' if ok else '✗ Corrupt'} ({msg})",
-                f"- **Secret Scanner**: Active (Entropy H > 4.6 + 7 regex signatures)",
-                f"- **Blast Radius**: Active (Tree-sitter AST impact scoring with token cache)",
-                f"- **Recent Blocks**:",
+                "- **Secret Scanner**: Active (Entropy H > 4.6 + 7 regex signatures)",
+                "- **Blast Radius**: Active (Tree-sitter AST impact scoring with token cache)",
+                "- **Recent Blocks**:",
             ]
             for e in entries:
                 lines.append(f"  * #{e['seq']} `{e['action']}` on `{e['target']}` ({e['status']})")

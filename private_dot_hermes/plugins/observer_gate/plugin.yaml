@@ -1,7 +1,9 @@
 enabled: true
 name: observer_gate
-version: 1.0.0
-description: "Pre-commit syntax validation gate."
+version: 2.0.0
+description: "Universal AST verification, dynamic reconnaissance, and contractual verification gate."
 entrypoint: __init__.py
 provides_hooks:
   - pre_verify
+  - post_tool_call
+  - transform_tool_result

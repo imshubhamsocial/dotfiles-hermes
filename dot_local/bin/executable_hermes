@@ -2,4 +2,18 @@
 unset PYTHONPATH
 unset PYTHONHOME
 export PATH="$HOME/.local/bin:$PATH"
-exec python3.13 -m hermes_cli.main "$@"
+
+HERMES_VENV_PY="$HOME/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/venv/bin/python3"
+if [[ -x "$HERMES_VENV_PY" ]]; then
+    exec "$HERMES_VENV_PY" -m hermes_cli.main "$@"
+fi
+
+for py in python3.13 python3.14 python3; do
+    if command -v "$py" >/dev/null 2>&1; then
+        if "$py" -c "import hermes_cli" >/dev/null 2>&1; then
+            exec "$py" -m hermes_cli.main "$@"
+        fi
+    fi
+done
+
+exec python3 -m hermes_cli.main "$@"

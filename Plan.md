@@ -118,8 +118,8 @@ flowchart TD
 
 | # | Task | Horizon | Impact | Target File | Status |
 |:---|:---|:---:|:---:|:---|:---:|
-| **P1-01** | **Ponytail Minimalist Guardrail** (7-Rung YAGNI Ladder & Diff Pruner) | H2 | Critical | `agent/core/ponytail_ladder.py` & `SOUL.md` | 🟢 Queued |
-| **P1-02** | **Arkon MRP Knowledge Pipeline** (Map $\to$ Reduce $\to$ Plan $\to$ Refine $\to$ Verify) | H3 | Critical | `agent/core/arkon_pipeline.py` | 🟢 Queued |
+| **P1-01** | **Ponytail Minimalist Guardrail** (7-Rung YAGNI Ladder & Diff Pruner) | H2 | Critical | `agent/core/ponytail_ladder.py` & `SOUL.md` | ✅ Completed |
+| **P1-02** | **Arkon MRP Knowledge Pipeline** (Map $\to$ Reduce $\to$ Plan $\to$ Refine $\to$ Verify) | H3 | Critical | `agent/core/mrp_planner.py` | ✅ Completed |
 | **P1-03** | **Hermes Self-Repair Diagnostic Loop** (Inspect logs, patch core, auto-rollback) | H4 | Critical | `agent/core/self_healer.py` & `meta_harness.py` | 🟢 Queued |
 | **P1-04** | **Autonomous In-The-Loop Learner** (Auto-reflection on low reward $\to$ `/learn`) | H5 | High | `agent/core/autonomous_learner.py` | 🟢 Queued |
 | **P1-05** | **Native Loop & Context Flush Bridge** (Automated `/loop` & `/clear` lifecycle) | H1 | High | `agent/core/loop_orchestrator.py` | 🟢 Queued |
@@ -141,8 +141,8 @@ flowchart TD
 
 | Gate | Milestone Condition | Verification Harness | Status |
 |:---|:---|:---|:---:|
-| **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_horizon1_ponytail.py` | ⏳ PENDING |
-| **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_horizon2_arkon.py` | ⏳ PENDING |
+| **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_phase1_mrp_planner.py` | ✅ PASSED |
+| **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
 | **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_horizon4_autonomous_learn.py` | ⏳ PENDING |
 | **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_horizon5_loop_engine.py` | ⏳ PENDING |
@@ -160,6 +160,7 @@ flowchart TD
 | 2026-09-12 | Full Substrate & Package Update Executed | Upgraded global toolchain (`@biomejs/biome` 2.5.13, `@ast-grep/cli` 0.45.3, `pyright` 1.1.414, `typescript` 7.0.2, `typescript-language-server` 6.0.0, `pnpm` 12.4.1, `qmd` 2.8.3, `eslint` 10.10.0) |
 | 2026-09-12 | Hermes Upstream Engine Synchronized | Updated from `v0.21.1` to `v0.21.2` (`main @ 31d0a24`), rebuilt Web UI, synced bundled skills across 19 profiles, upgraded `cua-driver` 0.28.0 |
 | 2026-09-12 | Patched `llama-server` Wrapper Calibrated | Repaired Python 3.14 dynamic site-packages CUDA 13/cuBLAS/NCCL runtime injection; verified dual library paths, MTP speculative decoding (3-token draft), Flash-Attention, Jinja DSL, 128k context, and slot persistence |
+| 2026-09-12 | Phase 1 Implemented (MRP Planning & Ponytail YAGNI Ladder) | Implemented `agent/core/ponytail_ladder.py`, `agent/core/mrp_planner.py`, Directive 24 in `SOUL.md`. Verified Kahn's topological sort, CycleDetectedError, parallel waves, AST over-engineering pruner, and Arkon Map-Reduce-Plan lifecycle. 100% verified via `verify_phase1_mrp_planner.py`. |
 
 ---
 

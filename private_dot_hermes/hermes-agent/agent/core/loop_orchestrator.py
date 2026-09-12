@@ -555,9 +555,10 @@ class LoopOrchestrator:
 
     def run_autonomous_loop(self, goal: str) -> LoopReceipt:
         """High-level entrypoint to plan and execute an autonomous loop for a goal."""
-        from agent.core.mrp_planner import get_arkon_mrp_planner
-        planner = get_arkon_mrp_planner(self.workspace_root)
-        plan = planner.plan(goal)
+        from agent.core.faraday_director import get_faraday_director
+        director = get_faraday_director(self.workspace_root)
+        assessment = director.assess_goal(goal)
+        plan = director.bridge_to_mrp_plan(assessment)
         return self.execute_plan(plan)
 
 

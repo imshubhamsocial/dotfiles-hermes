@@ -1,7 +1,7 @@
 ---
 name: substrate-recon
 description: Diagnose container/host and install system devel packages.
-triggers: ["missing header", "cannot find -l", "FindLibuv", "cmake error", "dnf install", "pkg-config", "devel package"]
+triggers: ["missing header", "cannot find -l", "missing library", "cmake error", "dnf install", "pkg-config", "devel package"]
 ---
 
 # Substrate Reconnaissance & Package Discovery

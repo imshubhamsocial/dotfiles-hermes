@@ -1,6 +1,6 @@
 # Fedora -devel Package Discovery & Installation Workflow
 
-When a build fails with missing C/C++ headers (e.g., `uv.h`, `luv.h`, `openssl/ssl.h`):
+When a build fails with missing C/C++ headers (e.g., `zlib.h`, `openssl/ssl.h`, `ffi.h`):
 
 1. **Search quietly**:
    ```bash

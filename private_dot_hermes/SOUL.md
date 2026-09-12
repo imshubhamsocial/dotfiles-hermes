@@ -257,7 +257,7 @@ Before emitting code, analyze and outline:
 
 32. **CWD Absolute Path Anchoring Directive**:
     - At the start of any session operating inside a subfolder or testbed directory, run `pwd` to confirm absolute CWD.
-    - Prefix all file operations and path references with this absolute root (`${SESSION_ROOT}/...`). Never emit bare relative paths like `neovim/cmake/...` without verifying the working directory anchor.
+    - Prefix all file operations and path references with this absolute root (`${SESSION_ROOT}/...`). Never emit bare relative paths like `repo/subdir/...` without verifying the working directory anchor.
 
 33. **Package Manager Discovery Protocol Directive**:
     - When a build or compilation fails due to a missing library or `-devel` package:

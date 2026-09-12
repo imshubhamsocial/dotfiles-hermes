@@ -695,6 +695,25 @@ def dispatch_loop_command(
         except Exception as exc:
             return {"output": f"[Rollback Failed] {exc}", "created": False}
 
+    if arg.startswith("learn ") or arg == "learn":
+        target = arg[6:].strip() if arg.startswith("learn ") else "general_task"
+        try:
+            from agent.core.autonomous_learner import get_autonomous_learner
+            learner = get_autonomous_learner()
+            rule = learner.learn_from_failure(
+                task_id=target,
+                prompt=f"Task {target}",
+                solution="Automated failure analysis",
+                error_trace=f"Simulated failure on {target}",
+                reward=0.0,
+            )
+            return {
+                "output": f"✓ Synthesized rule for {target}: {rule.title} ({rule.rule_id})",
+                "created": False,
+            }
+        except Exception as exc:
+            return {"output": f"/loop learn failed: {exc}", "created": False}
+
     control = _CONTROL_COMMANDS.get(arg.lower())
     if control is not None:
         return {"output": control(mgr), "created": False}

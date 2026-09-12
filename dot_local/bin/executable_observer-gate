@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.13
+#!/usr/bin/env python3
 """
 Observer / Monitor Gating Layer (Astra-Derived Safe Compute Pattern)
 ====================================================================
@@ -39,6 +39,14 @@ import subprocess
 from pathlib import Path
 from html.parser import HTMLParser
 from collections import Counter
+
+# Add active hermes-agent path
+for _p in [
+    Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent"),
+    Path.home() / ".hermes" / "hermes-agent",
+]:
+    if _p.is_dir() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 # Known oracle fingerprints that must NEVER appear in clean-room artifacts
 ORACLE_FINGERPRINTS = [
@@ -432,7 +440,12 @@ def run_all_gates(filepath: str, baseline: str = None, diff_old: str = None, dif
     ]
 
     if diff_old is not None and diff_new is not None:
-        checks.append(check_ast_diff_size(diff_old, diff_new))
+        try:
+            from agent.core.ponytail_ladder import pre_commit_observer_gate
+            diff_res = pre_commit_observer_gate(diff_old, diff_new, filepath=filepath)
+            checks.extend(diff_res["checks"])
+        except Exception:
+            checks.append(check_ast_diff_size(diff_old, diff_new))
 
     gate_count = len(checks)
     all_passed = all(c["passed"] for c in checks)

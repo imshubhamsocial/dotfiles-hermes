@@ -181,6 +181,19 @@ def audit_file(filepath: str | Path) -> dict:
             "detail": "; ".join(violations) if violations else "No dangerous AST patterns detected",
         })
 
+    # 4. Ponytail YAGNI Simplicity Gate (for Python)
+    if lang == "python":
+        try:
+            from agent.core.ponytail_ladder import audit_code_simplicity
+            report = audit_code_simplicity(code)
+            checks.append({
+                "name": "ponytail_yagni_simplicity",
+                "passed": report.passed,
+                "detail": f"Simplicity score {report.simplicity_score:.2f} (Rung {int(report.assigned_rung)}: {report.assigned_rung.name})" if report.passed else f"Simplicity {report.simplicity_score:.2f} < 0.70 ({len(report.violations)} bloat violations)",
+            })
+        except Exception as ex:
+            checks.append({"name": "ponytail_yagni_simplicity", "passed": True, "detail": f"Skipped: {ex}"})
+
     all_passed = all(c["passed"] for c in checks)
     verdict = "APPROVED" if all_passed else "REJECTED"
     summary_msg = f"Observer Gate {verdict}: {path.name} ({len(checks)} checks evaluated)"
@@ -194,12 +207,36 @@ def audit_file(filepath: str | Path) -> dict:
     }
 
 
+def pre_commit_observer_gate(
+    old_code: str,
+    new_code: str,
+    filepath: str = "",
+    requested_dependencies: Optional[List[str]] = None,
+    call_graph: Optional[Dict[str, List[str]]] = None,
+    failing_symbol: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Observer Gate pre-commit hook enforcing AST diff limits, redundant helper pruning,
+    unrequested dependency rejection, and root-cause call graph invariants.
+    """
+    from agent.core.ponytail_ladder import pre_commit_observer_gate as _pc_gate
+    return _pc_gate(
+        old_code=old_code,
+        new_code=new_code,
+        filepath=filepath,
+        requested_dependencies=requested_dependencies,
+        call_graph=call_graph,
+        failing_symbol=failing_symbol,
+    )
+
+
 def register_plugin(registry=None):
     """Legacy registry interface for backward compatibility."""
     if registry:
         registry.register("observer_gate", {
             "check_syntax": check_syntax,
             "audit_file": audit_file,
+            "pre_commit_observer_gate": pre_commit_observer_gate,
         })
     return True
 

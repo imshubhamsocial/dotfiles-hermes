@@ -142,7 +142,7 @@ flowchart TD
 | Gate | Milestone Condition | Verification Harness | Status |
 |:---|:---|:---|:---:|
 | **Gate X.0** | Faraday Director Mode assesses 4 foundational invariants and bridges into MRP plan | `verify_phase0_faraday_director.py` | ✅ PASSED |
-| **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_phase1_mrp_planner.py` | ✅ PASSED |
+| **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_horizon2_ponytail_guardrails.py` | ✅ PASSED |
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
 | **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_phase4_autonomous_learner.py` | ✅ PASSED |
@@ -168,6 +168,7 @@ flowchart TD
 | 2026-09-12 | Phase 0 Implemented (Faraday Director Mode & Cognitive Fusion) | Implemented `agent/core/faraday_director.py` answering the 4 foundational director questions: What to build (80/20 minimal essentials), What to skip (gold-plating omission), What to validate first (fatal boundary invariant), and Experiment sequence (cheapest sub-second probe). Bridges directly into Phase 1 MRPPlan, Phase 2 LoopOrchestrator, and Phase 3 NativeContractGate. 100% verified via `verify_phase0_faraday_director.py`. |
 | 2026-09-12 | Phase 4 Implemented (Autonomous In-The-Loop Learner & Rule Extraction) | Implemented `agent/core/autonomous_learner.py` with failure trace diagnosis, behavioral invariant synthesis, rl_buffer.jsonl ingestion, Phase 3 Contract Gate failure translation, and blind transfer verification under simulated /clear context reset. 100% verified via `verify_phase4_autonomous_learner.py`. |
 | 2026-09-12 | Horizon 1 Implemented (Autonomous In-The-Loop Execution Engine /loop & /clear) | Integrated `/loop auto <goal>` into `hermes_cli/loops.py`, verified autonomous multi-turn execution, `/clear` 80% boundary context flush (52,428 tokens), unified multi-modal tool execution subsystem (Sandbox, Web, Vision, CUA), bounded loop termination criteria (DONE, BLOCKED, STEP_LIMIT_EXCEEDED), and CLI dispatch. 100% verified via `verify_horizon1_loop_engine.py`. |
+| 2026-09-12 | Horizon 2 Implemented (Ponytail Minimalist Engineering & Anti-Overengineering Guardrails) | Injected 7-Rung YAGNI Ladder & Root-Cause Remediation Invariant into core system prompt, implemented `pre_commit_observer_gate` with AST diff size computation (>3x bloat rejection), redundant helper pruning, unrequested dependency rejection, and call-graph divergence analysis. 100% verified via `verify_horizon2_ponytail_guardrails.py`. |
 
 ---
 

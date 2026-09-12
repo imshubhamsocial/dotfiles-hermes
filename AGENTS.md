@@ -24,8 +24,6 @@ The repository is organized into a clean, minimal root with all runtime executio
 ```
 /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/
 ├── AGENTS.md                  # <-- You Are Here: Definitive operating standard for AI coding agents
-├── Plan.md                    # Active roadmap & multi-phase architectural plan (100% Complete)
-├── Summary1.md                # Milestone completion ledger & historical verification records
 ├── README.md                  # Project overview, quickstart, and feature matrix
 ├── Makefile                   # Unified developer targets (sys-deps, py-deps, node-deps)
 ├── pyproject.toml             # Single canonical Python manifest (PEP 621 dependencies, ruff, pytest)

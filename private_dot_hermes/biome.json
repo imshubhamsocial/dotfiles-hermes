@@ -28,8 +28,12 @@
       "!**/dist",
       "!**/build",
       "!**/tests",
-      "!**/.git"
+      "!**/.git",
+      "!**/runtime",
+      "!**/desktop",
+      "!**/*boot*.json"
     ]
+
   },
   "formatter": {
     "enabled": true,

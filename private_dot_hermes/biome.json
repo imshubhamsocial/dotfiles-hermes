@@ -31,9 +31,9 @@
       "!**/.git",
       "!**/runtime",
       "!**/desktop",
-      "!**/*boot*.json"
+      "!**/*boot*.json",
+      "!**/spawn-trees"
     ]
-
   },
   "formatter": {
     "enabled": true,

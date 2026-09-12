@@ -69,12 +69,15 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 * When testing `/loop learn` or `AutonomousLearner`, tests **must never write permanent rule files** into `.hermes/rules/` or `~/.hermes/rules/`.
 * Always use `tempfile.TemporaryDirectory()` for tests, or explicitly clean up any synthetic test rules (`rule_*test_pre*.md`) immediately after assertion.
 
-### Law 4: Triple Directory Parity (Workspace, Home, Chezmoi)
-* Hermes configuration and plugins exist across three mirrors:
-  1. Workspace: `.hermes/`
-  2. Home Directory: `~/.hermes/`
-  3. Chezmoi Repository: `~/.local/share/chezmoi/private_dot_hermes/`
-* Whenever modifying files in `.hermes/` (plugins, config, rules, bin, cron), **ensure identical parity across all three locations** and commit the changes to Chezmoi git.
+### Law 4: Isolated Container Environment (`ws-hermes`) & Zero Host Pollution
+* Hermes runs in a dedicated Distrobox container named `ws-hermes` with `--home /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes` to emulate an isolated, fresh PC setup.
+* Inside `ws-hermes`, `$HOME` is the workspace root itself; thus `$HOME/.hermes` resolves directly to `./.hermes` and `$HOME/.local/bin` resolves to `./.local/bin`.
+* **Host Home Invariant**: Never execute commands or generate files in the host home (`/var/home/imshubhamsocial`). The host environment must remain 100% clean and unpolluted.
+* Always execute verification, tests, and agent commands inside the container via:
+  ```bash
+  distrobox enter ws-hermes -- <command>
+  ```
+* Config and rule synchronization: maintain strict parity between `./.hermes/` and the Chezmoi repository (`~/.local/share/chezmoi/private_dot_hermes/`).
 
 ### Law 5: Zero Root Pollution
 * The workspace root must remain clean and minimal.

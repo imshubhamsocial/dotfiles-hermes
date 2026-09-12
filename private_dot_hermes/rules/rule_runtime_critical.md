@@ -1,5 +1,5 @@
 # Behavioral Invariant: Runtime_Behavior Rule
-> Inferred from user correction /learn event `evt_465fb979c7fd`
+> Inferred from user correction /learn event `evt_23e704a9d943`
 
 ## Mandate
 * INVARIANT: Ensure strict compliance with execution verification contract for task 'critical_failing_task'. Eliminate boilerplate refusal patterns and verify non-zero outputs.

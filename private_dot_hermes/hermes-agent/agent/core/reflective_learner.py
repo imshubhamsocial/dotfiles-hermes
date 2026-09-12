@@ -135,7 +135,13 @@ class ReflectiveLearner:
     """
 
     def __init__(self, db_path: Optional[Union[str, Path]] = None, rules_dir: Optional[Union[str, Path]] = None):
-        self.db_path = Path(db_path) if db_path else Path.home() / ".hermes" / "knowledge" / "state.db"
+        if db_path:
+            self.db_path = Path(db_path)
+        else:
+            cand = Path.home() / ".hermes" / "memories" / "knowledge" / "state.db"
+            if not cand.parent.exists() and (Path.home() / ".hermes" / "knowledge" / "state.db").exists():
+                cand = Path.home() / ".hermes" / "knowledge" / "state.db"
+            self.db_path = cand
         self.rules_dir = Path(rules_dir) if rules_dir else Path.home() / ".hermes" / "rules"
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.rules_dir.mkdir(parents=True, exist_ok=True)

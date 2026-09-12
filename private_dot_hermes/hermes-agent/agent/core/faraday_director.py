@@ -17,6 +17,7 @@ import logging
 import re
 import shutil
 import subprocess
+import sys
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -178,7 +179,7 @@ class FaradayDirector:
             validate_first = "Process can bind target port/socket and return valid response within hardware limits."
             cheapest_probe = {
                 "type": "command",
-                "command": "python3 -c 'import os, sys; print(\"ENV_OK\")'",
+                "command": f"{sys.executable} -c 'import os, sys; print(\"ENV_OK\")'",
                 "timeout_sec": 2,
             }
         elif domain == GoalDomain.DATA_ENGINEERING:
@@ -195,7 +196,7 @@ class FaradayDirector:
             validate_first = "SQLite schema initializes cleanly and persists atomic round-trip transaction."
             cheapest_probe = {
                 "type": "command",
-                "command": "python3 -c 'import sqlite3; con = sqlite3.connect(\":memory:\"); print(\"SQLITE_OK\")'",
+                "command": f"{sys.executable} -c 'import sqlite3; con = sqlite3.connect(\":memory:\"); print(\"SQLITE_OK\")'",
                 "timeout_sec": 2,
             }
         elif domain == GoalDomain.SCIENTIFIC_ALGORITHMIC:
@@ -212,7 +213,7 @@ class FaradayDirector:
             validate_first = "Symbolic identity holds without algebraic drift."
             cheapest_probe = {
                 "type": "command",
-                "command": "python3 -c 'import sympy; print(\"SYMPY_OK\")'",
+                "command": f"{sys.executable} -c 'import sympy; print(\"SYMPY_OK\")'",
                 "timeout_sec": 2,
             }
         elif domain == GoalDomain.WEB_BROWSER_AUTOMATION:

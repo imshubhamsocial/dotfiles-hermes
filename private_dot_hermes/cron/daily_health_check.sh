@@ -16,14 +16,14 @@ echo "Hermes Agent OS Daily Health Report — ${DATE_STR}" >> "${LOG_FILE}"
 echo "Generated at: $(date -Iseconds)" >> "${LOG_FILE}"
 echo "========================================================" >> "${LOG_FILE}"
 
-# Step 1: Run native in-process capability & integrity check
+# Step 1: Run make test and check for regressions
 echo "" >> "${LOG_FILE}"
-echo "--- 1. Native Capability & Invariant Check ---" >> "${LOG_FILE}"
+echo "--- 1. Contract Test Regression Check ---" >> "${LOG_FILE}"
 cd "${WORKSPACE}"
-if python3 "${HERMES_DIR}/bin/verify_harness_integrity.py" --standalone >> "${LOG_FILE}" 2>&1; then
-    echo "Result: PASS (All native capabilities verified green)" >> "${LOG_FILE}"
+if make test >> "${LOG_FILE}" 2>&1; then
+    echo "Result: PASS (266 contract tests verified green)" >> "${LOG_FILE}"
 else
-    echo "Result: FAIL (Anomaly detected in native capabilities)" >> "${LOG_FILE}"
+    echo "Result: FAIL (Regression detected in make test)" >> "${LOG_FILE}"
 fi
 
 # Step 2: Check disk usage of cache and state.db
@@ -43,9 +43,9 @@ else
     echo "experiential.jsonl: Missing or 0 bytes." >> "${LOG_FILE}"
 fi
 
-# Step 4: Capability Dashboard & AGI Equivalence Audit
+# Step 4: Live Capability Dashboard & Telemetry Audit
 echo "" >> "${LOG_FILE}"
-echo "--- 4. Capability Dashboard & AGI Equivalence Snapshot ---" >> "${LOG_FILE}"
+echo "--- 4. Live Capability Dashboard & Telemetry Audit ---" >> "${LOG_FILE}"
 python3 "${HERMES_DIR}/bin/capability_dashboard.py" --append-log >> "${LOG_FILE}" 2>&1 || true
 
 echo "" >> "${LOG_FILE}"

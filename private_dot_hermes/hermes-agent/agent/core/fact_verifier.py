@@ -96,9 +96,13 @@ class RealTimeFactVerifier:
 
             # If claim has critical discriminating anchors, check that the majority are present
             critical_match = True
-            if critical_anchors:
+            numeric_anchors = [w.lower() for w in re.findall(r"\b\d+\b", claim)]
+            if numeric_anchors and not all(na in combined_text for na in numeric_anchors):
+                critical_match = False
+
+            if critical_match and critical_anchors:
                 matched_critical = sum(1 for ca in critical_anchors if ca in combined_text)
-                if matched_critical / len(critical_anchors) < 0.60:
+                if matched_critical / len(critical_anchors) < 0.70:
                     critical_match = False
 
             if overlap_ratio >= 0.50 and critical_match:

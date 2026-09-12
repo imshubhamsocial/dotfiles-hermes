@@ -19,6 +19,7 @@
       "!**/.hermes/logs",
       "!**/.hermes/skills",
       "!**/.hermes/profiles",
+      "!**/.hermes/memories",
       "!**/*.jsonl",
       "!**/*cache*.json",
       "!**/*.html",

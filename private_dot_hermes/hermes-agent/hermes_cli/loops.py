@@ -682,9 +682,9 @@ def dispatch_loop_command(
             from agent.core.self_healer import get_self_healer
             healer = get_self_healer()
             rec = healer.diagnose_and_repair()
-            return {"output": f"↻ /loop repair completed: {rec.verdict.value} (culprit: {rec.culprit_frame})", "created": False}
+            return {"output": f"[Self-Repair] Verdict: {rec.verdict.value} (culprit: {rec.culprit_frame})", "created": False}
         except Exception as exc:
-            return {"output": f"/loop repair failed: {exc}", "created": False}
+            return {"output": f"[Self-Repair Failed] {exc}", "created": False}
 
     if arg.startswith("rollback ") or arg == "rollback":
         try:
@@ -692,9 +692,9 @@ def dispatch_loop_command(
             healer = get_self_healer()
             target = arg[9:].strip() if arg.startswith("rollback ") else None
             ok = healer.rollback_patch(target)
-            return {"output": f"↻ /loop rollback: {'restored' if ok else 'failed'}", "created": False}
+            return {"output": f"[Rollback] {'restored' if ok else 'failed'}", "created": False}
         except Exception as exc:
-            return {"output": f"/loop rollback failed: {exc}", "created": False}
+            return {"output": f"[Rollback Failed] {exc}", "created": False}
 
     control = _CONTROL_COMMANDS.get(arg.lower())
     if control is not None:

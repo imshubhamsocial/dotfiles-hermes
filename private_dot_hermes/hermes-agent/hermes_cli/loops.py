@@ -700,15 +700,17 @@ def dispatch_loop_command(
         try:
             from agent.core.autonomous_learner import get_autonomous_learner
             learner = get_autonomous_learner()
-            rule = learner.learn_from_failure(
+            res = learner.learn_from_failure(
                 task_id=target,
                 prompt=f"Task {target}",
                 solution="Automated failure analysis",
                 error_trace=f"Simulated failure on {target}",
                 reward=0.0,
             )
+            event = res[0] if isinstance(res, (tuple, list)) else res
+            title = getattr(event, "synthesized_rule_title", getattr(event, "title", str(event)))
             return {
-                "output": f"✓ Synthesized rule for {target}: {rule.title} ({rule.rule_id})",
+                "output": f"✓ Synthesized rule for {target}: {title}",
                 "created": False,
             }
         except Exception as exc:

@@ -1,6 +1,5 @@
 from typing import Callable, Union, List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from abc import ABC
 
 # Define core types as requested
 AgentFunction = Callable[..., Union[str, "Agent", "Result", Dict[str, Any]]]

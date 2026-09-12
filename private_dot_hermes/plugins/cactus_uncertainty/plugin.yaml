@@ -1,7 +1,14 @@
 name: cactus_uncertainty
-version: "1.0.0"
-description: "Cactus Hybrid Uncertainty Detection & Clarification Gate via real logprob entropy"
+version: 1.0.0
+description: Cactus Hybrid Uncertainty Detection & Clarification Gate via real logprob
+  entropy
 author: hermes
-tags: [uncertainty, safety, logprobs, clarification]
+tags:
+- uncertainty
+- safety
+- logprobs
+- clarification
 enabled: true
 mcp_servers: []
+provides_hooks:
+- pre_tool_call

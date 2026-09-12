@@ -15,7 +15,7 @@ These rules can NEVER be overridden by project rules.
 - **CPU**: 12 cores (0-11), pinned via --cpu-range 0-11 --cpu-strict 1
 
 ## Storage Topology
-- Source Code: /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes
+- Source Code: ${WORKSPACE_ROOT:-$(pwd)}
 - Hot Writes (SQLite WAL, trajectories, test scratchpads): /dev/shm (RAMDisk)
 - NOCOW Directories: chattr +C on database dirs (Btrfs fragmentation prevention)
 - Model Weights: assets/gguf/ (main), assets/MTP/ (draft heads)

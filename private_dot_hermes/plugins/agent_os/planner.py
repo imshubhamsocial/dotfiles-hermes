@@ -8,9 +8,7 @@ Formats active plan state into machine-readable block for Slot 3 / user turns.
 
 from __future__ import annotations
 
-import hashlib
 import json
-import os
 import threading
 import time
 import uuid
@@ -18,7 +16,6 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Literal
 
-import yaml
 
 
 # =============================================================================
@@ -258,6 +255,63 @@ class SpecFirstPlanner:
                     return step
             
             return None
+
+    def inject_recovery_subgraph(
+        self,
+        failed_step_id: str,
+        quadrant: str = "QUADRANT_IV",
+        recovery_steps: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[PlanStep]:
+        """
+        Dynamically splices a recovery sub-graph into the active Plan immediately following
+        a failed step, driven by Rule 31 4-Quadrant failure attribution.
+        """
+        with self._lock:
+            plan = self.get_plan()
+            if plan is None:
+                return []
+
+            idx = next((i for i, s in enumerate(plan.steps) if s.id == failed_step_id), -1)
+            if idx == -1:
+                return []
+
+            if not recovery_steps:
+                if "III" in quadrant or "environment" in quadrant.lower():
+                    recovery_steps = [
+                        {"description": "Run substrate-recon & install missing devel packages", "verification": "which/pkg-config"},
+                        {"description": f"Retry step {failed_step_id} with verified substrate environment", "verification": "exit 0"}
+                    ]
+                elif "II" in quadrant or "grounding" in quadrant.lower():
+                    recovery_steps = [
+                        {"description": "Run symbol index query (rg -n) to resolve hallucinated symbols", "verification": "symbol found"},
+                        {"description": f"Retry step {failed_step_id} with grounded symbol references", "verification": "compilation ok"}
+                    ]
+                elif "IV" in quadrant or "logic" in quadrant.lower():
+                    recovery_steps = [
+                        {"description": "Execute dialectic inner critique (Thesis/Antithesis) & Tabu swap", "verification": "hypothesis distinct"},
+                        {"description": f"Apply hardened patch for step {failed_step_id}", "verification": "test passes"}
+                    ]
+                else:
+                    recovery_steps = [
+                        {"description": "Re-read design spec in .hermes/specs/ & probe AST interface", "verification": "spec aligns"},
+                        {"description": f"Re-implement step {failed_step_id} adhering strictly to design spec", "verification": "contract ok"}
+                    ]
+
+            inserted_steps = []
+            for i, r_step in enumerate(recovery_steps):
+                s_id = f"{failed_step_id}_recovery_{i+1}"
+                new_step = PlanStep(
+                    id=s_id,
+                    description=r_step["description"],
+                    status="pending",
+                    verification=r_step.get("verification", ""),
+                    metadata={"recovery_for": failed_step_id, "quadrant": quadrant}
+                )
+                plan.steps.insert(idx + 1 + i, new_step)
+                inserted_steps.append(new_step)
+
+            plan.save(self.plan_path)
+            return inserted_steps
     
     # -------------------------------------------------------------------------
     # PLAN VALIDATION

@@ -259,7 +259,87 @@ def sanitize_output_with_guardrails(text: str) -> str:
 
 def register(ctx=None):
     """Registers plugin nemo_guardrails into Hermes runtime."""
-    pass
+    if not ctx:
+        return True
+
+    engine = get_guardrails_engine()
+
+    # 1. Native CLI command: hermes guardrails [status | check]
+    if hasattr(ctx, "register_cli_command"):
+        def setup_guardrails(parser):
+            parser.description = "Inspect NeMo Guardrails status and test policy verification"
+            subparsers = parser.add_subparsers(dest="subcommand", help="Guardrails actions")
+            subparsers.add_parser("status", help="Show NeMo Guardrails status and active rails")
+            check_p = subparsers.add_parser("check", help="Audit input string against input rails")
+            check_p.add_argument("text", help="Text or command to audit")
+            check_p.add_argument("--role", default=None, help="Agent role boundary (e.g. auditor, coder)")
+
+        def handle_guardrails(args):
+            subcmd = getattr(args, "subcommand", None) or "status"
+            if subcmd == "status":
+                print("NeMo Guardrails Bridge Status:")
+                print(f"  NeMo Installed: {NEMO_GUARDRAILS_AVAILABLE}")
+                print(f"  Critical Command Patterns: {len(CRITICAL_COMMAND_PATTERNS)}")
+                print(f"  Secret Redaction Patterns: {len(SENSITIVE_SECRET_PATTERNS)}")
+                print(f"  Colang Config Dir: {get_guardrails_config_path()}")
+                print("  Active Rails: Input Rail, Output Rail, Dialog Rail, Loop Rail")
+            elif subcmd == "check":
+                verdict = engine.check_input_rail(args.text, role=args.role)
+                print(f"Verdict: allowed={verdict.allowed}, rail={verdict.rail_triggered}, reason='{verdict.reason}'")
+
+        ctx.register_cli_command("guardrails", setup_guardrails, handle_guardrails)
+
+    # 2. Slash command: /guardrails
+    if hasattr(ctx, "register_command"):
+        def slash_guardrails(arg_str: str = ""):
+            if not arg_str.strip():
+                return (
+                    f"NeMo Guardrails Active. Config: {get_guardrails_config_path()}.\n"
+                    f"Use `/guardrails <command>` to audit an input against active rails."
+                )
+            verdict = engine.check_input_rail(arg_str.strip())
+            return f"Guardrail Check: allowed={verdict.allowed}, rail={verdict.rail_triggered}, reason={verdict.reason}"
+
+        ctx.register_command("guardrails", slash_guardrails, "Audit command or prompt against NeMo Guardrails", "<text>")
+
+    # 3. Lifecycle Hooks
+    if hasattr(ctx, "register_hook"):
+        def nemo_pre_tool_call(tool_name: str = "", args: Optional[Dict[str, Any]] = None, **kwargs):
+            args = args or {}
+            # Audit terminal command execution
+            if tool_name in ("terminal", "process", "execute_code"):
+                cmd = str(args.get("command") or args.get("code") or "")
+                if "/var/home/imshubhamsocial" in cmd:
+                    return {"action": "block", "message": "REFUSED by NeMo Guardrails: Hardcoded host path detected in command (AGENTS.md Law 9 violation)"}
+                verdict = engine.check_input_rail(cmd)
+                if not verdict.allowed:
+                    return {"action": "block", "message": f"REFUSED by NeMo Guardrails [{verdict.rail_triggered}]: {verdict.reason}"}
+
+            # Audit write_file / patch target path
+            if tool_name in ("write_file", "patch", "patch_file"):
+                target_path = str(args.get("path") or args.get("filepath") or "")
+                content = str(args.get("content") or args.get("new_string") or "")
+                if "/var/home/imshubhamsocial" in target_path or "/var/home/imshubhamsocial" in content:
+                    return {"action": "block", "message": "REFUSED by NeMo Guardrails: Hardcoded host path detected in mutation (AGENTS.md Law 9 violation)"}
+                verdict = engine.check_input_rail(target_path)
+                if not verdict.allowed:
+                    return {"action": "block", "message": f"REFUSED by NeMo Guardrails [{verdict.rail_triggered}]: {verdict.reason}"}
+
+            return None
+
+        ctx.register_hook("pre_tool_call", nemo_pre_tool_call)
+
+        def nemo_transform_llm_output(response_text: str = "", **kwargs):
+            if not response_text:
+                return None
+            verdict = engine.check_output_rail(response_text)
+            if not verdict.allowed and verdict.sanitized_content:
+                return verdict.sanitized_content
+            return None
+
+        ctx.register_hook("transform_llm_output", nemo_transform_llm_output)
+
+    return True
 
 
 __all__ = [

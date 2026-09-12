@@ -1,7 +1,15 @@
 name: skill_intelligence
-version: "1.0.0"
-description: "Frontier Skill Intelligence OS: XML Contract verification, Gemini 3.8 Thought Signatures for long-horizon tasks, and Superpowers capability registry."
-author: "Hermes Core Engineering"
+version: 1.0.0
+description: 'Frontier Skill Intelligence OS: XML Contract verification, Gemini 3.8
+  Thought Signatures for long-horizon tasks, and Superpowers capability registry.'
+author: Hermes Core Engineering
 kind: standalone
-tags: [skills, thought-signature, gemini-3.8, superpowers, xml-contracts]
+tags:
+- skills
+- thought-signature
+- gemini-3.8
+- superpowers
+- xml-contracts
 enabled: true
+provides_hooks:
+- pre_llm_call

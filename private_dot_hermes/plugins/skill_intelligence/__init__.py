@@ -579,17 +579,18 @@ def register(ctx=None):
         ctx.register_command("thought", slash_thought, "Show active thought signature", "")
         ctx.register_command("superpowers", slash_superpowers, "List active superpowers", "")
 
-    # 3. Lifecycle Hooks
+    # 3. Lifecycle Hooks (Prefix-Cache Discipline: append to user message suffix, not system prompt)
     if hasattr(ctx, "register_hook"):
-        def thought_pre_turn_hook(**kwargs):
-            """Injects active step and drift guard into prompt prefix."""
+        def thought_pre_llm_hook(**kwargs):
+            """Injects active step and drift guard into user message suffix,
+            keeping the system prompt prefix byte-static to preserve llama.cpp KV cache."""
             sig = thought_engine.active_signature
             if sig:
                 snippet = f"[Thought Signature] Active: '{sig.active_step}' | Drift: {sig.context_drift_score}"
-                return {"action": "continue", "injected_context": snippet}
-            return {"action": "continue"}
+                return {"context": snippet}
+            return None
 
-        ctx.register_hook("pre_turn", thought_pre_turn_hook)
+        ctx.register_hook("pre_llm_call", thought_pre_llm_hook)
 
     return True
 

@@ -11,7 +11,6 @@ Implements standardized SKILL.md parsing with progressive disclosure:
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -19,7 +18,7 @@ import tempfile
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 try:
     import yaml

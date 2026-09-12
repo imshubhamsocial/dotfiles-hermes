@@ -1,11 +1,17 @@
 name: demo_validator
-version: "1.0.0"
-description: "AST syntax validation gate for Python/JS/HTML artifacts"
+version: 1.0.0
+description: AST syntax validation gate for Python/JS/HTML artifacts
 author: hermes
-tags: [validation, ast, pre-commit]
+tags:
+- validation
+- ast
+- pre-commit
 enabled: true
 hooks:
   pre_commit: hooks/pre_commit.py
   post_commit: hooks/post_commit.py
 mcp_servers: []
-subagent_profiles: [agents/tester.yaml]
+subagent_profiles:
+- agents/tester.yaml
+provides_hooks:
+- pre_verify

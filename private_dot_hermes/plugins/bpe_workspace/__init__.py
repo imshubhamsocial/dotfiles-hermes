@@ -713,18 +713,19 @@ def register(ctx=None):
         ctx.register_command("recall", slash_recall, "Recall past experience lessons", "<query>")
         ctx.register_command("note", slash_note, "Note lesson into experience DB", "<insight>")
 
-    # 3. Lifecycle Hooks
+    # 3. Lifecycle Hooks (Prefix-Cache Discipline: append to user message suffix, not system prompt)
     if hasattr(ctx, "register_hook"):
-        def bpe_pre_turn_hook(**kwargs):
-            """Injects a concise BPE workspace status (<= 150 tokens) into system prompt."""
+        def bpe_pre_llm_hook(**kwargs):
+            """Injects a concise BPE workspace status (<= 150 tokens) into user message suffix,
+            keeping the system prompt prefix 100% byte-static to preserve llama.cpp KV cache."""
             st = engine.status()
             snippet = (
                 f"[BPE Memory Workspace] Progress: {st['progress']['completed_subgoals']}/{st['progress']['total_subgoals']} | "
                 f"Experiences: {st['experience']['total_entries']} ({st['experience']['promoted_entries']} promoted)"
             )
-            return {"action": "continue", "injected_context": snippet}
+            return {"context": snippet}
 
-        ctx.register_hook("pre_turn", bpe_pre_turn_hook)
+        ctx.register_hook("pre_llm_call", bpe_pre_llm_hook)
 
     return True
 

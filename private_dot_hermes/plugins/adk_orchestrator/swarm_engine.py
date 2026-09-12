@@ -6,14 +6,13 @@ Multi-agent workflow and tool execution loop interfacing with local OpenAI-compa
 from __future__ import annotations
 
 import inspect
-import json
 from typing import Any, Callable, Dict, List, Optional
 from openai import OpenAI
 
 try:
     from .agent import Agent, Response, Result
 except (ImportError, ValueError):
-    from agent import Agent, Response, Result
+    from agent import Agent, Response
 
 
 def function_to_schema(func: Callable) -> Dict[str, Any]:

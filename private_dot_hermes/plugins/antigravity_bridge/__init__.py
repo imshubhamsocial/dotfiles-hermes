@@ -22,8 +22,57 @@ from .shannon_prm import ShannonEntropyRail, DeterministicCodePRM
 
 
 def register(ctx=None):
-    """Entry point for Hermes plugin loader."""
-    print("Google Antigravity 2.0 Bridge Plugin registered successfully.")
+    """Entry point for Hermes plugin loader: wires Antigravity 2.0 Bridge."""
+    if not ctx:
+        return True
+
+    artifacts_mgr = AGYArtifactsManager()
+    preserver = GeminiThoughtSignaturePreserver()
+
+    # 1. Native CLI command: hermes agy [status | alert | mermaid]
+    if hasattr(ctx, "register_cli_command"):
+        def setup_agy(parser):
+            parser.description = "Google DeepMind Antigravity 2.0 (AGY) Bridge & Artifacts"
+            subparsers = parser.add_subparsers(dest="subcommand", help="AGY actions")
+            subparsers.add_parser("status", help="Show Antigravity Bridge and brain directory status")
+            alert_p = subparsers.add_parser("alert", help="Format a GitHub-style compliant alert block")
+            alert_p.add_argument("level", choices=["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"], help="Alert level")
+            alert_p.add_argument("text", help="Alert text content")
+            mermaid_p = subparsers.add_parser("mermaid", help="Validate Mermaid diagram specification")
+            mermaid_p.add_argument("chart_type", help="Chart type (e.g. 'flowchart TD', 'sequenceDiagram')")
+            mermaid_p.add_argument("body", help="Chart body content")
+
+        def handle_agy(args):
+            subcmd = getattr(args, "subcommand", None) or "status"
+            if subcmd == "status":
+                print("Antigravity 2.0 (AGY) Bridge Status:")
+                print(f"  Brain Directory: {artifacts_mgr.brain_dir}")
+                print(f"  Scratch Directory: {artifacts_mgr.scratch_dir}")
+                print(f"  Manifest Path: {artifacts_mgr.manifest_path}")
+                print(f"  Active Thought Signatures: {len(preserver._active_signatures)}")
+            elif subcmd == "alert":
+                print(artifacts_mgr.format_alert(args.level, args.text))
+            elif subcmd == "mermaid":
+                try:
+                    formatted = artifacts_mgr.format_mermaid(args.chart_type, args.body)
+                    print("Mermaid diagram validated:")
+                    print(formatted)
+                except ValueError as e:
+                    print(f"Mermaid validation error: {e}")
+
+        ctx.register_cli_command("agy", setup_agy, handle_agy)
+
+    # 2. Slash command: /agy
+    if hasattr(ctx, "register_command"):
+        def slash_agy(arg_str: str = ""):
+            return (
+                f"Antigravity 2.0 Bridge Active. Brain: {artifacts_mgr.brain_dir}.\n"
+                f"Artifacts Manager and Gemini Thought Preserver operational."
+            )
+
+        ctx.register_command("agy", slash_agy, "Inspect Antigravity 2.0 Bridge status", "")
+
+    return True
 
 
 __all__ = [

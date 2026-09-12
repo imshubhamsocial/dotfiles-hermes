@@ -41,6 +41,43 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+def distill_semantic_content(text: str) -> str:
+    """
+    Distills verbose turn text into atomic entity facts and signals before WARM demotion,
+    reducing token consumption by up to ~80% while retaining critical retrieval semantics.
+    """
+    if not text or len(text) < 250:
+        return text
+
+    facts = []
+    # Extract file paths
+    paths = re.findall(r'(?:/[a-zA-Z0-9_.-]+)+|[a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+', text)
+    if paths:
+        unique_paths = list(dict.fromkeys(paths))[:4]
+        facts.append(f"paths: {', '.join(unique_paths)}")
+
+    # Extract exit codes or status
+    exit_codes = re.findall(r'(?:exit_code|returncode|status)[:=]\s*(\d+|\w+)', text)
+    if exit_codes:
+        facts.append(f"outcomes: {', '.join(set(exit_codes))}")
+
+    # Extract critical error/success tokens
+    signals = re.findall(r'\b(?:ERROR|FAIL|PASS|WARNING|CRITICAL|Traceback|NotFound)\b', text, re.IGNORECASE)
+    if signals:
+        facts.append(f"signals: {', '.join(set(s.upper() for s in signals[:3]))}")
+
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    core = lines[0] if lines else ""
+    if len(lines) > 1:
+        core += f" ... {lines[-1]}"
+
+    distilled = f"[Distilled] {core}"
+    if facts:
+        distilled += " | " + " | ".join(facts)
+
+    return distilled if len(distilled) < len(text) else text
+
+
 class ContextItem:
     def __init__(
         self,
@@ -139,6 +176,11 @@ class HybridContextRouter:
             candidates.sort(key=lambda x: (x.access_count, x.last_accessed))
             oldest = candidates[0]
             oldest.tier = "warm"
+            if oldest.tokens > 60:
+                distilled = distill_semantic_content(oldest.content)
+                if len(distilled) < len(oldest.content):
+                    oldest.content = distilled
+                    oldest.tokens = estimate_tokens(distilled)
             self.demotion_count += 1
 
         self._balance_warm_tier()
@@ -660,13 +702,13 @@ def register(ctx=None):
 
     # 3. Register Lifecycle Hook
     if hasattr(ctx, "register_hook"):
-        def pre_prompt_assembly_hook(**kwargs):
+        def pre_llm_call_hook(**kwargs):
             """Enforces HOT tier boundary <= 32K tokens before prompt injection."""
             if router.hot_tokens > router.HOT_MAX_TOKENS:
                 router._balance_hot_tier()
             return {"action": "continue", "hot_tokens": router.hot_tokens}
 
-        ctx.register_hook("pre_prompt_assembly", pre_prompt_assembly_hook)
+        ctx.register_hook("pre_llm_call", pre_llm_call_hook)
 
     return True
 

@@ -4,7 +4,7 @@
 ## Mandate
 1. **Autonomous `/loop` Execution**:
    - Every prompt task must operate strictly under the autonomous `/loop` methodology.
-   - Hermes must autonomously refine the prompt, construct an MRP DAG plan, decompose sub-tasks, explore heavy repositories via symbol indexing and knowledge graphs (`semantic_triples.db`, Graphiti), select and install missing skills or packages dynamically, flush context boundaries at 80% capacity (52,428 tokens) via `/clear`, compact operational cache, and execute independent QA before termination.
+   - Hermes must autonomously refine the prompt, construct an MRP DAG plan, decompose sub-tasks, explore heavy repositories via symbol indexing and knowledge graphs (`semantic_triples.db`, Graphiti), select and install missing skills or packages dynamically, proactively compress context at 87% effective token budget (~48,000 tokens) before attention degradation, keeping the prefix cache strictly byte-static across turns, and execute independent QA before termination.
 2. **Production TUI Standard**:
    - In production and capability benchmarking, Hermes must be invoked using its rich Terminal User Interface (TUI) via `hermes "<prompt>"`.
    - In desktop environments requiring live visual monitoring, launch inside a dedicated terminal emulator:

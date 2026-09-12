@@ -22,7 +22,7 @@ try:
     from .agent import Agent, Response, Result
     from .swarm_engine import HermesOrchestrator
 except (ImportError, ValueError):
-    from agent import Agent, Response, Result
+    from agent import Agent, Response
     from swarm_engine import HermesOrchestrator
 
 def adk_content_to_str(content: Any) -> str:

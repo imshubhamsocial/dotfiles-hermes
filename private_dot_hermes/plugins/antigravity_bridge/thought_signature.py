@@ -8,7 +8,6 @@ otherwise the API fails with HTTP 400 INVALID_ARGUMENT.
 
 from __future__ import annotations
 
-import json
 from typing import Any, Dict, List, Optional, Tuple
 
 

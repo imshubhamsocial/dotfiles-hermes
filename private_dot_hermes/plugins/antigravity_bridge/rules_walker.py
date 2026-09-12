@@ -9,10 +9,9 @@ Enforces Progressive Disclosure (L0 -> L1 -> L2) to cap prompt injection under 4
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 class ProgressiveRule:

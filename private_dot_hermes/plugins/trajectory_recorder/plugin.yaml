@@ -1,8 +1,12 @@
 name: trajectory_recorder
-version: "1.0.0"
-description: "Comprehensive Trajectory & Session Observability Engine. Records every prompt, reasoning trace, tool invocation, observation, exit code, and test outcome into an offline SQLite WAL store with SWE-agent observation windowing."
-author: "Hermes Agent OS"
+version: 1.0.0
+description: Comprehensive Trajectory & Session Observability Engine. Records every
+  prompt, reasoning trace, tool invocation, observation, exit code, and test outcome
+  into an offline SQLite WAL store with SWE-agent observation windowing.
+author: Hermes Agent OS
 enabled: true
 hooks:
-  - post_tool_call
-  - post_turn
+- post_tool_call
+- post_turn
+provides_hooks:
+- post_tool_call

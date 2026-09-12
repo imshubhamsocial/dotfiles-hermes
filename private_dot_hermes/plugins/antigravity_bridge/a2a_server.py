@@ -8,13 +8,11 @@ Complies with Google A2A specification:
 
 from __future__ import annotations
 
-import json
-import os
 import subprocess
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict
 
 
 class A2AAgentCardServer:

@@ -179,11 +179,16 @@ class CodeActionExecutor:
             output = stdout + (("\nSTDERR:\n" + stderr) if stderr else "")
 
             # Truncate if long using SWE-agent observation windowing
+            # Expand observation window for package managers (dnf, apt, pip, cargo, npm)
+            cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+            is_pkg_mgr = any(pkg in cmd_str.lower() for pkg in ("dnf", "apt", "pip", "cargo", "npm", "yum", "pacman"))
+            max_lines = 100 if is_pkg_mgr else 50
             lines = output.splitlines()
-            if len(lines) > 50:
-                head = "\n".join(lines[:25])
-                tail = "\n".join(lines[-25:])
-                output = f"{head}\n\n[... {len(lines) - 50} lines truncated by observation windowing ...]\n\n{tail}"
+            if len(lines) > max_lines:
+                half = max_lines // 2
+                head = "\n".join(lines[:half])
+                tail = "\n".join(lines[-half:])
+                output = f"{head}\n\n[... {len(lines) - max_lines} lines truncated by observation windowing ...]\n\n{tail}"
 
             return {
                 "success": proc.returncode == 0,

@@ -44,3 +44,28 @@ define flow check shell injection
 
 define bot refuse shell injection
   "Security Alert: Command chaining or sandbox privilege escalation attempt blocked by NeMo input rail."
+
+define flow check_vram_ceiling
+  if $vram_requested > 4812
+    bot refuse vram ceiling
+    stop
+
+define bot refuse vram ceiling
+  "REFUSED by NeMo Guardrails: VRAM parameter exceeds hardware ceiling (4,812 MiB limit)."
+
+define flow check_host_pollution
+  if $path contains "/var/home" and $path not contains "Projects/Workspace"
+    bot refuse host pollution
+    stop
+
+define bot refuse host pollution
+  "REFUSED by NeMo Guardrails: Host home path outside workspace (Law 4 violation)."
+
+define flow check_hardcoded_paths
+  if $output matches r'/var/home/imshubhamsocial'
+    bot refuse hardcoded path
+    stop
+
+define bot refuse hardcoded path
+  "REFUSED by NeMo Guardrails: Hardcoded host path detected (Law 9 violation)."
+

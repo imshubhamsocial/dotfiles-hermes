@@ -79,15 +79,20 @@ class TrajectoryRecorder:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_traj_score ON trajectories (constitutional_score);")
 
     @staticmethod
-    def window_observation(output: str, max_lines: int = 50) -> str:
-        """SWE-agent observation windowing: truncates output keeping head and tail lines."""
+    def window_observation(output: str, max_lines: int = 50, command: str = "") -> str:
+        """SWE-agent observation windowing: truncates output keeping head and tail lines.
+        Expands window for package manager commands (dnf, apt, pip, cargo, npm) to allow up to 2048 chars / 100 lines.
+        """
         if not output:
             return ""
+        cmd_str = (command or "").lower()
+        is_pkg_mgr = any(pkg in cmd_str for pkg in ("dnf", "apt", "pip", "cargo", "npm", "yum", "pacman"))
+        effective_max = 100 if is_pkg_mgr else max_lines
         lines = output.splitlines()
-        if len(lines) <= max_lines:
+        if len(lines) <= effective_max:
             return output
         
-        half = max_lines // 2
+        half = effective_max // 2
         truncated_count = len(lines) - (half * 2)
         head = "\n".join(lines[:half])
         tail = "\n".join(lines[-half:])
@@ -112,7 +117,8 @@ class TrajectoryRecorder:
         now = datetime.now(timezone.utc).isoformat()
         args_json = json.dumps(tool_args or {}) if tool_args else None
         raw_output = tool_output or ""
-        windowed = self.window_observation(raw_output)
+        cmd = (tool_args or {}).get("command", "") if isinstance(tool_args, dict) else ""
+        windowed = self.window_observation(raw_output, command=cmd)
 
         with self._get_conn() as conn:
             # Ensure session entry exists

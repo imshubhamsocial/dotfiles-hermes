@@ -514,18 +514,24 @@ class LoopOrchestrator:
 
             # If an unrecoverable dependency failure occurs, halt with BLOCKED
             if not result.success and task.metadata.get("critical", True):
-                try:
-                    from agent.core.autonomous_learner import get_autonomous_learner
-                    learner = get_autonomous_learner()
-                    learner.learn_from_failure(
-                        task_id=task.task_id,
-                        prompt=task.title,
-                        solution=result.output,
-                        error_trace=result.error or "",
-                        reward=0.0,
-                    )
-                except Exception as _le:
-                    logger.debug("Autonomous learning from failure skipped: %s", _le)
+                is_synthetic_test = (
+                    task.metadata.get("is_test", False)
+                    or any(s in task.task_id.lower() for s in ("test", "failing", "hallucinat", "mock"))
+                    or any(s in plan.goal.lower() for s in ("test", "mock", "synthetic"))
+                )
+                if not is_synthetic_test:
+                    try:
+                        from agent.core.autonomous_learner import get_autonomous_learner
+                        learner = get_autonomous_learner()
+                        learner.learn_from_failure(
+                            task_id=task.task_id,
+                            prompt=task.title,
+                            solution=result.output,
+                            error_trace=result.error or "",
+                            reward=0.0,
+                        )
+                    except Exception as _le:
+                        logger.debug("Autonomous learning from failure skipped: %s", _le)
 
                 return LoopReceipt(
                     loop_id=loop_id,

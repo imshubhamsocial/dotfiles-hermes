@@ -69,6 +69,7 @@ class AutonomousLearner:
         db_path: Optional[Path] = None,
         chezmoi_dir: Optional[Path] = None,
     ):
+        self._is_custom_rules_dir = rules_dir is not None
         self.rules_dir = Path(rules_dir) if rules_dir else DEFAULT_RULES_DIR
         self.rules_dir.mkdir(parents=True, exist_ok=True)
         self.learner = create_reflective_learner(db_path=db_path, rules_dir=self.rules_dir)
@@ -210,16 +211,17 @@ class AutonomousLearner:
         rule_path = self.learner.synthesize_and_persist_rule(event, rule_filename=fname)
         logger.info(f"[/learn Generated Rule] Persisted new rule to {rule_path}")
 
-        # Mirror to local workspace .hermes/rules/ if it exists and differs from rules_dir
-        workspace_rules_dir = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules")
-        if workspace_rules_dir.is_dir() and workspace_rules_dir.resolve() != self.rules_dir.resolve():
-            try:
-                shutil.copy2(rule_path, workspace_rules_dir / rule_path.name)
-            except Exception:
-                pass
+        # Mirror to local workspace .hermes/rules/ and Chezmoi only in production (not custom test rules_dir)
+        if not self._is_custom_rules_dir:
+            workspace_rules_dir = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules")
+            if workspace_rules_dir.is_dir() and workspace_rules_dir.resolve() != self.rules_dir.resolve():
+                try:
+                    shutil.copy2(rule_path, workspace_rules_dir / rule_path.name)
+                except Exception:
+                    pass
 
-        # Commit to Chezmoi
-        self.commit_rule_to_chezmoi(rule_path)
+            # Commit to Chezmoi
+            self.commit_rule_to_chezmoi(rule_path)
 
         return event, rule_path
 
@@ -247,14 +249,16 @@ class AutonomousLearner:
         )
         rule_path = self.learner.synthesize_and_persist_rule(event, rule_filename=fname)
 
-        workspace_rules_dir = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules")
-        if workspace_rules_dir.is_dir() and workspace_rules_dir.resolve() != self.rules_dir.resolve():
-            try:
-                shutil.copy2(rule_path, workspace_rules_dir / rule_path.name)
-            except Exception:
-                pass
+        # Mirror to local workspace .hermes/rules/ and Chezmoi only in production (not custom test rules_dir)
+        if not self._is_custom_rules_dir:
+            workspace_rules_dir = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules")
+            if workspace_rules_dir.is_dir() and workspace_rules_dir.resolve() != self.rules_dir.resolve():
+                try:
+                    shutil.copy2(rule_path, workspace_rules_dir / rule_path.name)
+                except Exception:
+                    pass
 
-        self.commit_rule_to_chezmoi(rule_path)
+            self.commit_rule_to_chezmoi(rule_path)
         return event, rule_path
 
     def learn_from_rl_buffer(

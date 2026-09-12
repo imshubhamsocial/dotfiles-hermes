@@ -1,32 +1,6 @@
-#!/usr/bin/env bash
-unset PYTHONHOME
-export PATH="$HOME/.local/bin:$PATH"
-
-# 1. Search for virtualenv python
-for py_cand in \
-    "$HERMES_HOME/hermes-agent/venv/bin/python3" \
-    "$HOME/.hermes/hermes-agent/venv/bin/python3" \
-    "$HOME/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/venv/bin/python3" \
-    "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/venv/bin/python3"; do
-    if [[ -x "$py_cand" ]]; then
-        exec "$py_cand" -m hermes_cli.main "$@"
-    fi
-done
-
-# 2. Add hermes-agent to PYTHONPATH for system python fallback
-for agent_candidate in "$HERMES_HOME/hermes-agent" "$HOME/.hermes/hermes-agent" "$HOME/Projects/Workspace/Personal/hermes/.hermes/hermes-agent"; do
-    if [[ -d "$agent_candidate" ]]; then
-        export PYTHONPATH="$agent_candidate:$PYTHONPATH"
-        break
-    fi
-done
-
-for py in python3.13 python3.12 python3; do
-    if command -v "$py" >/dev/null 2>&1; then
-        if "$py" -c "import hermes_cli" >/dev/null 2>&1; then
-            exec "$py" -m hermes_cli.main "$@"
-        fi
-    fi
-done
-
-exec python3 -m hermes_cli.main "$@"
+#!/usr/bin/python3.13
+import sys
+from hermes_cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

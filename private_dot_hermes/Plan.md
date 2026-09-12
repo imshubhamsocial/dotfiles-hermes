@@ -141,6 +141,7 @@ flowchart TD
 
 | Gate | Milestone Condition | Verification Harness | Status |
 |:---|:---|:---|:---:|
+| **Gate X.0** | Faraday Director Mode assesses 4 foundational invariants and bridges into MRP plan | `verify_phase0_faraday_director.py` | ✅ PASSED |
 | **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
@@ -164,6 +165,7 @@ flowchart TD
 | 2026-09-12 | Phase 1 Implemented (MRP Planning & Ponytail YAGNI Ladder) | Implemented `agent/core/ponytail_ladder.py`, `agent/core/mrp_planner.py`, Directive 24 in `SOUL.md`. Verified Kahn's topological sort, CycleDetectedError, parallel waves, AST over-engineering pruner, and Arkon Map-Reduce-Plan lifecycle. 100% verified via `verify_phase1_mrp_planner.py`. |
 | 2026-09-12 | Phase 2 Implemented (Autonomous Loop & /clear Context Flush Engine) | Implemented `agent/core/loop_orchestrator.py` with multi-modality tool dispatch (Bubblewrap sandbox shell, keyless web grounding, SmolVLM2 port 8139 multimodal vision, CUA), ContextFlushBridge (/clear at 80% / 52,428 tokens), StateCheckpointManager (SQLite state.db persistence), and bounded loop termination invariants (DONE, BLOCKED, STEP_LIMIT_EXCEEDED). 100% verified via `verify_phase2_autonomous_loop.py`. |
 | 2026-09-12 | Phase 3 Implemented (Native Contract Gate: ProcessVerifier + SymPy + AST check) | Implemented `agent/core/contract_gate.py` unifying ProcessVerifier (System-1/2 fast heuristics and contradiction detection), SymPy symbolic equivalence & anti-drift derivation checks, AST structural syntax, required symbols, security boundaries, and Ponytail YAGNI simplicity scores. Integrated directly into `LoopOrchestrator` step execution. 100% verified via `verify_phase3_native_contract_gate.py`. |
+| 2026-09-12 | Phase 0 Implemented (Faraday Director Mode & Cognitive Fusion) | Implemented `agent/core/faraday_director.py` answering the 4 foundational director questions: What to build (80/20 minimal essentials), What to skip (gold-plating omission), What to validate first (fatal boundary invariant), and Experiment sequence (cheapest sub-second probe). Bridges directly into Phase 1 MRPPlan, Phase 2 LoopOrchestrator, and Phase 3 NativeContractGate. 100% verified via `verify_phase0_faraday_director.py`. |
 
 ---
 

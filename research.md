@@ -79,6 +79,12 @@
     - [55. MiniCPM5 Edge Inference Dual-Mode Routing](#milestone-55-minicpm5-edge-inference-dual-mode-routing)
     - [56. NoRA Stage 2 Activation & High-Reward SFT Pipeline](#milestone-56-nora-stage-2-activation--high-reward-sft-pipeline)
     - [57. AgentShield Red-Team Security Audit & Token-Cache Hardening](#milestone-57-agentshield-red-team-security-audit--token-cache-hardening)
+  - [Era 8: Frontier Orchestration, Growth Experimentation & AGI Equivalence (Sept 11–12, 2026)](#era-8-frontier-orchestration-growth-experimentation--agi-equivalence-sept-1112-2026)
+    - [58. Google ADK 2.0 Multi-Agent Orchestration Substrate](#milestone-58-google-adk-20-multi-agent-orchestration-substrate)
+    - [59. OpenLIT & OpenTelemetry Unified Observability Standard](#milestone-59-openlit--opentelemetry-unified-observability-standard)
+    - [60. Vaibhav Sisinty Growth Experimentation & Playbook Synthesis](#milestone-60-vaibhav-sisinty-growth-experimentation--playbook-synthesis)
+    - [61. Computer-Use Automation (CUA) Driver Desktop Substrate](#milestone-61-computer-use-automation-cua-driver-desktop-substrate)
+    - [62. Port 8139 Multimodal Vision Sidecar](#milestone-62-port-8139-multimodal-vision-sidecar)
   - [Architectural Decision Records (ADRs) & Forensic Tradeoff Audit](#architectural-decision-records-adrs--forensic-tradeoff-audit)
     - [ADR-1: BPE External Workspace Compartmentalization (Option A vs Option B)](#adr-1-bpe-external-workspace-compartmentalization-option-a-vs-option-b)
     - [ADR-2: Offline vs Live LoRA Adapter Training under Hard VRAM Ceilings](#adr-2-offline-vs-live-lora-adapter-training-under-hard-vram-ceilings)
@@ -88,7 +94,9 @@
     - [ADR-6: Pruned os.walk Traversal & mtime Symbol Caching vs Naive AST Globbing](#adr-6-pruned-oswalk-traversal--mtime-symbol-caching-vs-naive-ast-globbing)
     - [ADR-7: BM25Plus on Micro-Corpora vs BM25Okapi Zero-Score Defect](#adr-7-bm25plus-on-micro-corpora-vs-bm25okapi-zero-score-defect)
     - [ADR-8: Selective Mutation-Only Audit Logging vs Full Tool-Call SQLite Bloat](#adr-8-selective-mutation-only-audit-logging-vs-full-tool-call-sqlite-bloat)
-  - [Master Ingestion Ledger (Unified Summary Table 1–57)](#master-ingestion-ledger-unified-summary-table-157)
+    - [ADR-9: Semantic Capability Contract Architecture & Alienation Pruning](#adr-9-semantic-capability-contract-architecture--alienation-pruning)
+  - [Master Capability Contract Traceability Matrix (17 Semantic Contracts)](#master-capability-contract-traceability-matrix-17-semantic-contracts)
+  - [Master Ingestion Ledger (Unified Summary Table 1–62)](#master-ingestion-ledger-unified-summary-table-162)
 
 ---
 
@@ -907,6 +915,70 @@ This document traces the historical evolution of all research conducted across t
 
 ---
 
+## Era 8: Frontier Orchestration, Growth Experimentation & AGI Equivalence (Sept 11–12, 2026)
+
+### Milestone 58: Google ADK 2.0 Multi-Agent Orchestration Substrate
+- **Author/Source**: Google Agent Development Kit (`google-adk`) & DeepMind Advanced Agentic Coding
+- **Status**:
+  - `Needed`: **Yes**
+  - `Active`: **Yes**
+  - `Discard`: **No**
+- **Findings & Invariants**:
+  - Replaces custom and fragile multi-agent state machines (`swarm_engine.py`, `task_graph.py`) with native ADK primitives (`Agent`, `SequentialAgent`, `ParallelAgent`, `LoopAgent`).
+  - Achieves 69% LOC reduction across orchestration while providing clean subagent delegation without context pollution.
+  - Formally established as the sole primary orchestration engine in `hermes_architecture_rules.md` and `global.md`.
+
+---
+
+### Milestone 59: OpenLIT & OpenTelemetry Unified Observability Standard
+- **Author/Source**: OpenLIT & OpenTelemetry Python SDK
+- **Status**:
+  - `Needed`: **Yes**
+  - `Active`: **Yes**
+  - `Discard`: **No**
+- **Findings & Invariants**:
+  - Deprecates ad-hoc unstandardized trajectory file formats in favor of OTLP telemetry exports (`http://127.0.0.1:4318`).
+  - Automatically captures LLM token metrics, latency distributions, and custom execution spans with cryptographic hash-chain sealing.
+  - Native integration enables reproducible session replay through OpenTelemetry checkpoint savers.
+
+---
+
+### Milestone 60: Vaibhav Sisinty Growth Experimentation & Playbook Synthesis
+- **Author/Source**: Vaibhav Sisinty (GrowthSchool / Ex-Uber)
+- **Status**:
+  - `Needed`: **Yes**
+  - `Active`: **Yes**
+  - `Discard`: **No**
+- **Findings & Invariants**:
+  - "Ship experiments, not products" methodology: rapid hypothesis framing, minimum viable test, fast signal evaluation, and deterministic playbook capture.
+  - Codified as the `vaibhav-experiment-model` skill and paired with `.hermes/knowledge/playbooks/` to feed empirical learnings into the GEPA evolutionary prompt optimizer.
+
+---
+
+### Milestone 61: Computer-Use Automation (CUA) Driver Desktop Substrate
+- **Author/Source**: CuaDriver (`trycua/driver` v0.21.0)
+- **Status**:
+  - `Needed`: **Yes**
+  - `Active`: **Yes**
+  - `Discard`: **No**
+- **Findings & Invariants**:
+  - Connects Hermes directly to Linux X11/Wayland desktop automation, mouse/keyboard gestures, and AT-SPI accessibility trees via the `cua_bridge` plugin.
+  - Closes the "Real-World Action" gap identified in the AGI benchmark evaluation.
+
+---
+
+### Milestone 62: Port 8139 Multimodal Vision Sidecar
+- **Author/Source**: SmolVLM2 / LLaVA Architecture on port 8139 (`llama-server`)
+- **Status**:
+  - `Needed`: **Yes**
+  - `Active`: **Yes**
+  - `Discard`: **No**
+- **Findings & Invariants**:
+  - Provides lightweight visual reasoning and screenshot inspection on port 8139 via `vision_sidecar` plugin.
+  - Keeps image embeddings isolated from the primary 6GB VRAM code SLM context, operating on CPU (0 MiB VRAM), preventing VRAM thrashing and attention rot.
+
+---
+
 ## Architectural Decision Records (ADRs) & Forensic Tradeoff Audit
 
 ### ADR-1: BPE External Workspace Compartmentalization (Option A vs Option B)
@@ -970,9 +1042,48 @@ This document traces the historical evolution of all research conducted across t
   - Logging every read-only tool invocation (`cat`, `view_file`, `find`) creates hundreds of database rows per hour, bloating the SQLite WAL file.
   - Limiting default logging to mutating actions (`write`, `edit`, `bash`) and blocked events preserves audit integrity while keeping database growth strictly bounded.
 
+### ADR-9: Semantic Capability Contract Architecture & Alienation Pruning
+- **Context**: The verification suite previously suffered from severe naming alienation and fragmentation:
+  - 69 ad-hoc scripts named `verify3_something.py`, `verify_phase0_*.py`, `verify_horizon*.py`, etc.
+  - Scattered across `.hermes/` root, `.hermes/bin/`, `.local/bin/`, and `.hermes/scripts/`.
+  - Misplaced files, redundant shell wrappers, and a 39.5MB duplicate binary (`tirith`) bloated storage and confused autonomous agents.
+  - Inconsistent naming obscured which verification file corresponded to which cognitive capability, plugin, or research milestone.
+- **Decision**: **Standardized on a single, permanent Semantic Capability Contract Architecture (`.hermes/contracts/*.py`) and pruned all alienated artifacts**.
+- **Forensic Tradeoff Analysis**:
+  1. *Elimination of File Alienation*: All 17 core cognitive capabilities are mapped to standardized generic contract names (`director.py`, `planner.py`, `reasoning.py`, `autonomous_loop.py`, `context_router.py`, `multi_agent.py`, `contract_gate.py`, `guardrails.py`, `grounding.py`, `computer_use.py`, `multimodal_vision.py`, `self_evolution.py`, `self_learning.py`, `knowledge_pipeline.py`, `self_repair.py`, `scientific_discovery.py`, `capability_monitoring.py`).
+  2. *Executable Invariant Enforcement*: Each contract is a standalone, deterministic Python module exposing an `execute_contract() -> bool` entrypoint verifying the subsystem's mathematical and operational invariants without brittle multi-file side effects.
+  3. *Zero-Duplication Binary Hygiene*: Pruned 39.5MB duplicate `tirith` binary, redundant shims (`observer_gate.py`, `hypothesis_tree.py`), and obsolete `verify_harness_integrity.py` from `.hermes/bin/`, retaining strictly operational binaries (`capability_dashboard.py` and `vision_sidecar_server.sh`).
+  4. *Complete Bidirectional Traceability*: A formal Master Traceability Matrix preserves mapping from every refactored generic contract back to its legacy alienated filename, research milestone, core engine file, Hermes plugin, and backing PyPI package.
+
 ---
 
-## Master Ingestion Ledger (Unified Summary Table 1–57)
+## Master Capability Contract Traceability Matrix (17 Semantic Contracts)
+
+The table below provides **100% bidirectional traceability** between every refactored generic contract in `.hermes/contracts/*.py`, its legacy alienated filename (`verify_horizon*.py` / `verify_phase*.py`), its foundational research milestone (Items 1–62), its underlying core engine module, its associated Hermes plugin, its official upstream PyPI/GitHub package backing, and its certified invariants.
+
+| Refactored Contract (`.hermes/contracts/`) | Legacy Alienated Filename | Research Milestone(s) | Core Engine Implementation (`agent/core/`) | Hermes Plugin(s) | Backing Package & Version | Verified Invariants & Capability Scope |
+|:---|:---|:---:|:---|:---|:---|:---|
+| [`director.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/director.py) | `verify_phase0_faraday_director.py` | Item 19 | [`faraday_director.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/faraday_director.py) | `adk_orchestrator`, `cactus_uncertainty` | `google-adk==2.9.0` | Multi-domain heuristics, pre-flight sub-second falsification, YAGNI task decomposition |
+| [`planner.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/planner.py) | `verify_phase1_mrp_planner.py` | Items 12, 58 | [`mrp_planner.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/mrp_planner.py) | `adk_orchestrator` | `google-adk==2.9.0` | Kahn's topological sort on DAGs, cycle detection (`CycleDetectedError`), parallel wave execution |
+| [`reasoning.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/reasoning.py) | `verify_phase1_reasoning.py` | Items 8, 34 | [`thinking_budget.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/thinking_budget.py), [`process_verifier.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/process_verifier.py) | `cog_verifier`, `recirculation_adapter` | Internal Dyve + Recirculation | Thinking budget (0/512/2048/8192), Draft->Critique->Revise loop, thinking privacy invariant |
+| [`autonomous_loop.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/autonomous_loop.py) | `verify_horizon1_loop_engine.py` & `verify_phase2_autonomous_loop.py` | Items 34, 46 | [`loop_orchestrator.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/loop_orchestrator.py), [`context_compactor.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/context_compactor.py) | `context_budget_manager` | NousResearch Hermes `/loop` & `/clear` | Multi-turn execution, /clear flush at 80% (52,428 tokens), SQLite atomic checkpoints, bounded loop termination |
+| [`context_router.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/context_router.py) | `verify_phase2_moba.py` | Items 36, 49 | [`moba_context_router.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/moba_context_router.py) | `bpe_workspace` | Mixture-of-Block-Attention (MoBA) | 683-block SQLite indexing, 150x context compression, sink & recency pinning, needle retrieval |
+| [`multi_agent.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/multi_agent.py) | `verify_phase3_moa.py` | Items 12, 43 | [`quorum_moa.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/quorum_moa.py), [`swarm_roles.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/swarm_roles.py) | `quorum_audit`, `synergy_bus_adapter` | `google-adk==2.9.0`, AgentMessage (arXiv:2504.16736), JSON-RPC 2.0 | 3-proposer concurrent MoA debate with logprob confidence scoring, Maker!=Verifier quorum invariant |
+| [`contract_gate.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/contract_gate.py) | `verify_phase3_native_contract_gate.py` | Items 11, 45 | [`contract_gate.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/contract_gate.py) | `observer_gate`, `capability_guard` | `sympy==1.14.0`, `ast-grep-py==0.45.3`, `nemoguardrails==0.24.0` | `ProcessVerifier` System-1 & System-2 checks, SymPy symbolic anti-drift, AST structural verification |
+| [`guardrails.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/guardrails.py) | `verify_horizon2_ponytail_guardrails.py` | Items 41, 45 | [`ponytail_ladder.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/ponytail_ladder.py) | `capability_guard`, `agentshield` | `ast-grep-py==0.45.3`, `ruff==0.16.6` | Ponytail 7-Rung YAGNI ladder, Karpathy U12 3x surgical AST diff limit, unrequested dependency rejection |
+| [`grounding.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/grounding.py) | `verify_phase4_grounding.py` | Items 13, 44 | [`search_reasoner.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/search_reasoner.py), [`fact_verifier.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/fact_verifier.py) | `openskills` | `crawl4ai==0.9.3`, `ddgs==9.16.0`, SearXNG | Multi-backend search, Search-R1 multi-turn query decomposition, real-time fact verifier |
+| [`computer_use.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/computer_use.py) | `verify_phase5_cua.py` | Item 61 | [`cua_controller.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/cua_controller.py) | `cua_bridge` | `cua-driver==0.21.0`, `bubblewrap==0.12.0` | Screen geometry detection, synthetic canvas fallback, AT-SPI accessibility tree, bubblewrap sandbox |
+| [`multimodal_vision.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/multimodal_vision.py) | `verify_phase6_vision.py` | Items 31, 62 | [`vision_engine.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/vision_engine.py), [`vision_context.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/vision_context.py) | `vision_sidecar` | SmolVLM2 on port 8139 (`llama-server`) | Port 8139 CPU-only (0 VRAM), dynamic pixel budgeting, visual UI grounding, Mermaid diagram extraction |
+| [`self_evolution.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/self_evolution.py) | `verify_phase7_self_improve.py` | Items 45, 50 | [`task_proposer.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/task_proposer.py), [`meta_harness.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/meta_harness.py) | `gepa_optimizer`, `reward_scorer`, `self_evolution` | `dspy==3.3.1`, UCB1 Bandit | UCB1 bandit task proposer across 4 categories, Absolute Zero RL buffer, GEPA prompt optimizer |
+| [`self_learning.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/self_learning.py) | `verify_horizon5_autonomous_learner.py` & `verify_phase4_autonomous_learner.py` | Items 47, 53 | [`autonomous_learner.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/autonomous_learner.py) | `reflective_learner_adapter`, `skill_intelligence` | NousResearch `/learn` standard | Multi-class failure diagnosis taxonomy, autonomous markdown rule synthesis in `rules/`, blind transfer test |
+| [`knowledge_pipeline.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/knowledge_pipeline.py) | `verify_horizon3_arkon_knowledge_pipeline.py` | Items 5, 26, 45 | [`knowledge_graph.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/knowledge_graph.py) | `symbol_index` | `graphiti-core==0.30.2`, `duckdb==1.5.5` | Arkon Map-Reduce-Plan-Refine, proposition deduplication, SQLite `semantic_triples.db`, bidirectional graph |
+| [`self_repair.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/self_repair.py) | `verify_horizon4_self_repair.py` | Items 35, 42 | [`self_healer.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/self_healer.py) | `branch_swapper` | In-process Atomic Patcher | Culprit traceback frame isolation, failure mode categorization, atomic patcher with `.bak`, automatic `/rollback` |
+| [`scientific_discovery.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/scientific_discovery.py) | `verify_phase8_scientific_discovery.py` | Item 19 | [`scientific_discovery.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent/agent/core/scientific_discovery.py) | `branch_swapper`, `antigravity_bridge` | `bubblewrap==0.12.0`, SymPy | HypothesisTree DAG, sandboxed benchmark execution, paper synthesis (>= 500 words), knowledge base ingestion |
+| [`capability_monitoring.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/contracts/capability_monitoring.py) | `verify_phase9_monitoring.py` | Item 59 | [`capability_dashboard.py`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/bin/capability_dashboard.py) | `agent_os` | `openlit==1.45.0`, `opentelemetry-sdk` | Live capability scoring, ANSI progress bars, JSON telemetry, hardware VRAM ceiling enforcement (<= 4,812 MiB) |
+
+---
+
+## Master Ingestion Ledger (Unified Summary Table 1–62)
 
 | # | Milestone | Era | Source / Precedent | Needed? | Active? | Discard? | Rationale & Architectural Verdict |
 |:---|:---|:---:|:---|:---:|:---:|:---:|:---|
@@ -1033,3 +1144,9 @@ This document traces the historical evolution of all research conducted across t
 | **55** | MiniCPM5 Dual-Mode Eval | Era 7 | OpenBMB MiniCPM | **Yes** | **Yes** | **No** | 1,500 MiB lightweight fallback candidate evaluated for edge inference. |
 | **56** | NoRA Stage 2 SFT Pipeline | Era 7 | EvoHarness-RL / NoRA | **Yes** | **Yes** | **No** | 25 rich trajectories scored (avg 1.9), SFT curated, QLoRA dry-run verified. |
 | **57** | AgentShield Red-Team & Cache | Era 7 | ECC / OWASP LLM01 | **Yes** | **Yes** | **No** | Token-cached blast radius, selective audit logging, cold retrieval, BPE invariants. |
+| **58** | Google ADK 2.0 Multi-Agent Substrate | Era 8 | Google ADK 2.9.0 | **Yes** | **Yes** | **No** | Replaced fragile custom state machines with native ADK primitives; 69% LOC reduction. |
+| **59** | OpenLIT & OpenTelemetry Observability | Era 8 | OpenLIT / OpenTelemetry | **Yes** | **Yes** | **No** | Deprecated ad-hoc trajectory files; standardized OTLP spans & cryptographic trace sealing. |
+| **60** | Vaibhav Sisinty Growth Experimentation | Era 8 | GrowthSchool / Ex-Uber | **Yes** | **Yes** | **No** | Hypothesis-driven rapid test cycles, minimum viable test, and repeatable playbook capture. |
+| **61** | Computer-Use Automation (CUA) Substrate | Era 8 | CuaDriver v0.21.0 | **Yes** | **Yes** | **No** | Direct Linux X11/Wayland automation & AT-SPI accessibility tree via `cua_bridge`. |
+| **62** | Multimodal Vision Sidecar (Port 8139) | Era 8 | SmolVLM2 / llama-server | **Yes** | **Yes** | **No** | Lightweight visual reasoning & UI grounding on port 8139 with 0 MiB GPU VRAM impact. |
+

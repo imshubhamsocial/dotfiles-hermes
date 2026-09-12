@@ -100,6 +100,21 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 * Do not create separate requirements files or ad-hoc pip dependencies.
 * All Python dependencies, test dependencies, and tools are declared canonically in [`pyproject.toml`](pyproject.toml).
 
+### Law 9: Strict Path Portability & Zero Machine Hardcoding
+* **Absolute Invariant**: Never hardcode host filesystem paths, username paths (e.g., `/var/home/imshubhamsocial`), or workspace paths in code, contracts, scripts, cron configurations, or metadata.
+* All paths must dynamically resolve via:
+  - Python: `Path(__file__).resolve().parents[...]`, `os.environ.get("HERMES_HOME", ...)`, or `Path.home()`
+  - Shell: `${WORKSPACE_ROOT:-$(pwd)}`, `${HERMES_HOME:-$HOME/.hermes}`, `${HOME}`
+
+### Law 10: Unified Makefile Toolchain Authority
+* Do not create or retain standalone setup scripts (`setup.sh`, `install.sh`).
+* All developer, installation, provisioning, and verification workflows are governed exclusively through `Makefile` targets (`make install`, `make test`, `make exam`, `make plugins-sync`).
+
+### Law 11: Isolated Git Testbeds under `tests/` & Production TUI Mandate
+* All prompt-driven capability evaluations and synthetic scenarios must reside in their own dedicated subfolder under `tests/` initialized as an independent Git repository (`git init .`).
+* Testbeds must remain completely self-contained with zero artifact or state leakage into the parent repository.
+* All prompt evaluations must be executed through the rich Hermes TUI (`hermes "<prompt>"`), optionally launched in a dedicated terminal window (`konsole`), strictly adhering to the autonomous `/loop` paradigm.
+
 ---
 
 ## 4. Agent Verification & Diagnostic Commands

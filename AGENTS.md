@@ -47,6 +47,10 @@ The repository is organized into a clean, minimal root with all runtime executio
 │   ├── SOUL.md                # 176-line cognitive system identity prompt
 │   └── config.yaml            # Master configuration for models, plugins, and gateways
 │
+├── .local/                    # Container $HOME/.local user environment (auto-created by distrobox)
+│   ├── bin/                   # System runtime binaries (llama-server, tirith, uv, hermes symlink)
+│   └── lib/                   # GGML CUDA/CPU libraries and python3.13 site-packages
+│
 └── ~/.local/share/chezmoi/    # Chezmoi dotfiles git repository tracking private_dot_hermes/
 ```
 
@@ -73,6 +77,7 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 * Hermes runs in a dedicated Distrobox container named `ws-hermes` with `--home /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes` to emulate an isolated, fresh PC setup.
 * Inside `ws-hermes`, `$HOME` is the workspace root itself; thus `$HOME/.hermes` resolves directly to `./.hermes` and `$HOME/.local/bin` resolves to `./.local/bin`.
 * **Host Home Invariant**: Never execute commands or generate files in the host home (`/var/home/imshubhamsocial`). The host environment must remain 100% clean and unpolluted.
+* **Core Code vs `.local/bin` Invariant**: Never place prototype python scripts, experimental CLI wrappers, or alias symlinks into `.local/bin` (e.g. legacy `observer-gate` or `hypothesis-tree`). All agent features, verification gates, and AST checks belong canonically in `.hermes/plugins/` or `agent/core/`. The directory `.local/bin/` is strictly reserved for standard package executables (`pip`, `uv`), compiled daemon runtimes (`llama-server`, `tirith`), and the `hermes` CLI entrypoint.
 * Always execute verification, tests, and agent commands inside the container via:
   ```bash
   distrobox enter ws-hermes -- <command>

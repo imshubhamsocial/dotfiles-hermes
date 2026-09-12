@@ -146,6 +146,7 @@ flowchart TD
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
 | **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_horizon4_autonomous_learn.py` | ⏳ PENDING |
 | **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_phase2_autonomous_loop.py` | ✅ PASSED |
+| **Gate X.6** | Native Contract Gate enforces ProcessVerifier, SymPy invariance, and AST simplicity | `verify_phase3_native_contract_gate.py` | ✅ PASSED |
 
 ---
 
@@ -162,6 +163,7 @@ flowchart TD
 | 2026-09-12 | Patched `llama-server` Wrapper Calibrated | Repaired Python 3.14 dynamic site-packages CUDA 13/cuBLAS/NCCL runtime injection; verified dual library paths, MTP speculative decoding (3-token draft), Flash-Attention, Jinja DSL, 128k context, and slot persistence |
 | 2026-09-12 | Phase 1 Implemented (MRP Planning & Ponytail YAGNI Ladder) | Implemented `agent/core/ponytail_ladder.py`, `agent/core/mrp_planner.py`, Directive 24 in `SOUL.md`. Verified Kahn's topological sort, CycleDetectedError, parallel waves, AST over-engineering pruner, and Arkon Map-Reduce-Plan lifecycle. 100% verified via `verify_phase1_mrp_planner.py`. |
 | 2026-09-12 | Phase 2 Implemented (Autonomous Loop & /clear Context Flush Engine) | Implemented `agent/core/loop_orchestrator.py` with multi-modality tool dispatch (Bubblewrap sandbox shell, keyless web grounding, SmolVLM2 port 8139 multimodal vision, CUA), ContextFlushBridge (/clear at 80% / 52,428 tokens), StateCheckpointManager (SQLite state.db persistence), and bounded loop termination invariants (DONE, BLOCKED, STEP_LIMIT_EXCEEDED). 100% verified via `verify_phase2_autonomous_loop.py`. |
+| 2026-09-12 | Phase 3 Implemented (Native Contract Gate: ProcessVerifier + SymPy + AST check) | Implemented `agent/core/contract_gate.py` unifying ProcessVerifier (System-1/2 fast heuristics and contradiction detection), SymPy symbolic equivalence & anti-drift derivation checks, AST structural syntax, required symbols, security boundaries, and Ponytail YAGNI simplicity scores. Integrated directly into `LoopOrchestrator` step execution. 100% verified via `verify_phase3_native_contract_gate.py`. |
 
 ---
 

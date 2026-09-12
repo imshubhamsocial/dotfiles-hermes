@@ -360,6 +360,7 @@ class LoopOrchestrator:
     ):
         self.max_steps = max_steps
         self.max_token_budget = max_token_budget
+        self.workspace_root = workspace_root
         self.tools = ToolExecutionSubsystem(workspace_root=workspace_root)
         self.state_db = StateCheckpointManager(db_path=db_path)
         self.flush_bridge = ContextFlushBridge(state_db=self.state_db)

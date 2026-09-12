@@ -90,7 +90,7 @@ def _call_llama_server(
         "top_logprobs": 1,
     }
 
-    url = f"{base_url.rstrip("/")}/chat/completions"
+    url = f"{base_url.rstrip('/')}/chat/completions"
     data_bytes = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url,

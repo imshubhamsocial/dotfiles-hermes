@@ -16,9 +16,10 @@ import os
 import sys
 from pathlib import Path
 
-# Add active hermes-agent path
+# Resolve hermes-agent path dynamically
+_hermes_dir = Path(os.environ.get("HERMES_HOME", Path(__file__).resolve().parents[1]))
 for p in [
-    Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent"),
+    _hermes_dir / "hermes-agent",
     Path.home() / ".hermes" / "hermes-agent",
 ]:
     if p.is_dir() and str(p) not in sys.path:

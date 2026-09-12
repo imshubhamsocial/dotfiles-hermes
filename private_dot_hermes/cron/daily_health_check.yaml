@@ -2,7 +2,7 @@ job:
   name: daily_health_check
   schedule: "30 0 * * *" # 06:00 IST (Asia/Kolkata)
   timezone: "Asia/Kolkata"
-  command: "bash /var/home/imshubhamsocial/.hermes/cron/daily_health_check.sh"
+  command: "bash ~/.hermes/cron/daily_health_check.sh"
   description: "Daily self-monitoring agent checking contract test regressions, storage footprint, and experiential memory growth."
   enabled: true
   retries: 2

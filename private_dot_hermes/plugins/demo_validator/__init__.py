@@ -30,7 +30,6 @@ def _find_biome_binary() -> Optional[str]:
         return which_biome
     candidates = [
         Path.home() / ".local/bin/biome",
-        Path("/var/home/imshubhamsocial/.local/bin/biome"),
         Path("/usr/local/bin/biome"),
     ]
     for c in candidates:

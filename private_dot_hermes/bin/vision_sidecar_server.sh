@@ -5,14 +5,15 @@
 set -euo pipefail
 
 HERMES_ROOT="${HERMES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SITE_PACKAGES="$(python3 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.14/site-packages")"
-LLAMA_LIB_DIR="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib"
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-$(cd "${HERMES_ROOT}/.." && pwd)}"
+SITE_PACKAGES="$(python3 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.13/site-packages")"
+LLAMA_LIB_DIR="${HOME}/.local/lib:${WORKSPACE_ROOT}/.local/lib"
 
-export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cu13/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cublas/lib:/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/lib/python3.13/site-packages/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${WORKSPACE_ROOT}/.local/lib/python3.13/site-packages/nvidia/cu13/lib:${WORKSPACE_ROOT}/.local/lib/python3.13/site-packages/nvidia/cublas/lib:${WORKSPACE_ROOT}/.local/lib/python3.13/site-packages/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
 
-SERVER_BIN="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.local/bin/llama-server.bin"
+SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
 if [[ ! -x "$SERVER_BIN" ]]; then
-    SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
+    SERVER_BIN="${WORKSPACE_ROOT}/.local/bin/llama-server.bin"
 fi
 
 MODEL_DIR="${HERMES_ROOT}/models/vision"

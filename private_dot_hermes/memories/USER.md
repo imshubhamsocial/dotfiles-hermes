@@ -2,7 +2,7 @@
 
 § Environment
 Operating System: Linux (Fedora Silverblue with Distrobox container `ws-hermes`).
-Workspace Path: `/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes`.
+Workspace Path: Dedicated project workspace (mapped to `$HOME` inside `ws-hermes`).
 Primary Container: `ws-hermes` with NVIDIA GPU access, where `$HOME` is configured to the Hermes workspace root.
 
 § Preferences & Standards

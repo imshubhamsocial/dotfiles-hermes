@@ -157,7 +157,7 @@ def test_gate5_daily_health_script_integration() -> bool:
 def test_gate6_zero_test_folder_and_chezmoi_invariant() -> bool:
     """Gate 6: Zero-Test-Folder Architecture & System Invariants."""
     # Verify no test folder exists in active workspace
-    workspace = Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
+    workspace = Path(os.environ.get("HERMES_WORKSPACE", hermes_root.parent))
     tests_dir = workspace / "tests"
     if tests_dir.exists():
         # Check if tests dir is empty or removed as required

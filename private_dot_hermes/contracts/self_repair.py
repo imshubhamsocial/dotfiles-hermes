@@ -18,9 +18,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add active hermes-agent paths
+# Resolve hermes-agent path dynamically
+_hermes_dir = Path(os.environ.get("HERMES_HOME", Path(__file__).resolve().parents[1]))
 for p in [
-    Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/hermes-agent"),
+    _hermes_dir / "hermes-agent",
     Path.home() / ".hermes" / "hermes-agent",
 ]:
     if p.is_dir() and str(p) not in sys.path:
@@ -44,9 +45,9 @@ def verify_traceback_parsing_and_divergence() -> None:
 Traceback (most recent call last):
   File "/usr/lib64/python3.14/site-packages/urllib3/connectionpool.py", line 467, in _make_request
     six.reraise(*sys.exc_info())
-  File "/var/home/imshubhamsocial/.hermes/hermes-agent/plugins/custom_gateway/__init__.py", line 42, in connect
+  File "/home/hermes/.hermes/hermes-agent/plugins/custom_gateway/__init__.py", line 42, in connect
     result = execute_gateway_rpc(target_host, timeout=30)
-  File "/var/home/imshubhamsocial/.hermes/hermes-agent/agent/core/rpc_bridge.py", line 88, in execute_gateway_rpc
+  File "/home/hermes/.hermes/hermes-agent/agent/core/rpc_bridge.py", line 88, in execute_gateway_rpc
     raise ConnectionRefusedError("Connection refused by peer port 8138")
 ConnectionRefusedError: Connection refused by peer port 8138
 """
@@ -64,7 +65,7 @@ def verify_failure_mode_categorization() -> None:
     print("[2/6] Verifying failure mode categorization (Syntax, Import, Plugin)...")
     syntax_tb = """
 Traceback (most recent call last):
-  File "/var/home/imshubhamsocial/.hermes/hermes-agent/plugins/broken_plugin/__init__.py", line 15
+  File "/home/hermes/.hermes/hermes-agent/plugins/broken_plugin/__init__.py", line 15
     def initialize_plugin()
                           ^
 SyntaxError: expected ':'
@@ -74,7 +75,7 @@ SyntaxError: expected ':'
 
     import_tb = """
 Traceback (most recent call last):
-  File "/var/home/imshubhamsocial/.hermes/hermes-agent/agent/core/router.py", line 4, in <module>
+  File "/home/hermes/.hermes/hermes-agent/agent/core/router.py", line 4, in <module>
     from agent.core.missing_module import non_existent_function
 ImportError: cannot import name 'non_existent_function' from 'agent.core.missing_module'
 """

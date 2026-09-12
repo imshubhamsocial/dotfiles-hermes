@@ -44,7 +44,7 @@ tags:
 # Hermes Agent OS & Living Harness (Era 10)
 
 > **Google AGY-Ready Self-Learning Superintelligence Harness on Consumer Silicon**  
-> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, Antigravity 2.0 Bridge, Magentic-One Dual Ledgers, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (**266/266 Contract Tests Passing**).
+> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, Antigravity 2.0 Bridge, Magentic-One Dual Ledgers, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (**10/10 In-Process Verification Contracts Passing**).
 
 ---
 
@@ -194,37 +194,31 @@ exec "$SERVER_BIN" \
 ## 5. Repository Structure & Canonical Upstream Layout
 
 ```
-~ (Host $HOME)
-├── ~/.local/
-│   ├── bin/                            # Standalone CLI executables (hermes, llama-server, llama-server.bin)
-│   └── lib/                            # Upstream shared libraries (libggml*.so, libllama*.so, libmtmd*.so)
+hermes/ (workspace root)
+├── AGENTS.md                  # Definitive operating standard for AI coding agents
+├── README.md                  # Project overview, quickstart, and feature matrix
+├── Makefile                   # Unified developer targets (sys-deps, py-deps, node-deps)
+├── pyproject.toml             # Single canonical Python manifest (PEP 621 dependencies, ruff, pytest)
+├── package.json               # Node.js devDependencies (ast-grep, Biome, prettier, pyright)
+├── requirements.txt           # Minimal pointer (-e .[dev,benchmark,vision]) linking to pyproject.toml
 │
-├── ~/.cache/
-│   ├── huggingface/hub/                # Standard model weight cache (Gemma-4 + MTP drafter)
-│   └── cpython/                        # Centralized bytecode cache (zero repository pollution)
+├── docs/                      # Consolidated, single-source-of-truth documentation suite
+│   ├── README.md              # Documentation index and quickstart guide
+│   ├── architecture.md        # System architecture, C4 diagrams, 28 plugins, flow, filesystem
+│   ├── research.md            # Master chronological research register (62 items & 8 ADRs)
+│   ├── verification.md        # 10 in-process verification harnesses, benchmarks, cron daemons
+│   └── integrations.md        # FastMCP Open-Notebook, Port 8139 Vision, CUA, Antigravity Bridge
 │
-├── ~/.hermes/                          # Canonical Upstream Hermes Runtime Substrate
-│   ├── config.yaml                     # Hardware configurations, context engine & plugin toggles
-│   ├── rules/                          # Two-tier immutable kernel & project behavioral standards
-│   ├── skills/                         # OpenSkills progressive context stubs (L0/L1/L2)
-│   ├── scripts/                        # Daemon scripts (start_server_daemon.sh)
-│   ├── bin/                            # Verification & gate scripts (observer_gate.py, verify_harness_integrity.py)
-│   ├── plugins/                        # Native standalone plugins (agent_os, cog_verifier, symbol_index)
-│   ├── src/hermes_core/                # Cognitive OS subsystems & Python engine sources
-│   └── hermes-agent/                   # Upstream Hermes Agent engine
+├── .hermes/                   # Complete encapsulated runtime substrate (mirrored to ~/.hermes)
+│   ├── bin/                   # 10 executable verification harnesses (Horizons 1–5, Phases 0–4)
+│   ├── cron/                  # Scheduled daemons (daily_health_check, weekly_evolution, weekly_sync)
+│   ├── plugins/               # 28 capability plugins
+│   ├── rules/                 # Inferred behavioral invariants & system prompt rules
+│   ├── scripts/               # Operational utility scripts
+│   ├── SOUL.md                # 176-line cognitive system identity prompt
+│   └── config.yaml            # Master configuration for models, plugins, and gateways
 │
-├── tests/                              # Comprehensive test suites & contract spikes
-│   ├── harness_contracts/              # 602 passed contract tests verifying all capabilities
-│   └── oracle_references/              # Gold-standard baseline benchmarks
-│
-├── docs/                               # Professional documentation hierarchy
-│   ├── roadmaps/                       # Architectural roadmaps (Roadmaps 1-5 completed)
-│   ├── operations/                     # Operational guides & environment context
-│   └── prompts/                        # System prompts & Claude evaluation prompts
-│
-├── pyproject.toml                      # Package build configuration
-├── packages.json                       # System package manifests for DNF, Python & Node CLI
-└── setup.sh                            # Turnkey installer (DNF, pip, Playwright, models, SearXNG)
+└── ~/.local/share/chezmoi/    # Chezmoi dotfiles git repository tracking private_dot_hermes/
 ```
 
 ---
@@ -307,14 +301,13 @@ python3.13 .hermes/bin/observer_gate.py src/main.js
 
 ---
 
-## 9. Documentation & Roadmaps
+## 9. Documentation Hub
 
-Detailed specifications are organized in the [`docs/`](./docs/README.md) directory:
+Comprehensive, single-source-of-truth documentation is consolidated in the [`docs/`](./docs/README.md) directory:
 
-* 🗺️ **[Master Plan & Living Architecture (Plan.md)](./Plan.md)**: Master sequential execution tracks, Google Env-Harness standard, and living validation register.
-* 🗺️ **[01. Master Verification Plan](./docs/roadmaps/01_master_verification_plan.md)**: Baseline capabilities U1–U20.
-* 🗺️ **[02. Agent System Foundation](./docs/roadmaps/02_agent_system_foundation.md)**: 7-Layer substrate U21–U35.
-* 🗺️ **[03. Production Engineering](./docs/roadmaps/03_production_engineering.md)**: Production parity U36–U44.
-* 🗺️ **[04. Cognitive Architecture](./docs/roadmaps/04_cognitive_architecture.md)**: Memory graphs, NVIDIA Skill Lift, DeepMind Recirculation U45–U60.
-* 🗺️ **[05. Web Intelligence & Swarms](./docs/roadmaps/05_web_intelligence_and_swarms.md)**: SearXNG grounding, Multi-Agent Swarm U61–U80.
+* 📚 **[Documentation Index & Quickstart (docs/README.md)](./docs/README.md)**: Getting started, common CLI commands, and system invariants.
+* 🏛️ **[System Architecture & Execution Flow (docs/architecture.md)](./docs/architecture.md)**: C4 diagrams, 5 closed-loop phases, 28-plugin catalog, and filesystem layout.
+* 🔬 **[Master Research Audit & ADRs (docs/research.md)](./docs/research.md)**: 62 chronological research papers, paradigms (Eras 1–8), and Architectural Decision Records.
+* 🧪 **[Verification, Benchmarks & Self-Evolution (docs/verification.md)](./docs/verification.md)**: 10 in-process contract verification suites, benchmarks, and scheduled cron jobs.
+* 🔌 **[Substrates, Sidecars & Integrations (docs/integrations.md)](./docs/integrations.md)**: FastMCP Open-Notebook RAG, Port 8139 Vision Sidecar, CUA Desktop driver, and Google ADK.
 

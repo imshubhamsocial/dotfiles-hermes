@@ -22,14 +22,13 @@ Hermes Agent OS is a local-first, autonomous agent operating system that elevate
 The repository is organized into a clean, minimal root with all runtime execution state encapsulated inside `.hermes/`:
 
 ```
-/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/
+hermes/ (workspace root)
 ├── AGENTS.md                  # <-- You Are Here: Definitive operating standard for AI coding agents
 ├── README.md                  # Project overview, quickstart, and feature matrix
 ├── Makefile                   # Unified developer targets (sys-deps, py-deps, node-deps)
 ├── pyproject.toml             # Single canonical Python manifest (PEP 621 dependencies, ruff, pytest)
 ├── package.json               # Node.js devDependencies (ast-grep, Biome, prettier, pyright)
 ├── requirements.txt           # Minimal pointer (-e .[dev,benchmark,vision]) linking to pyproject.toml
-├── setup.sh                   # Environment provisioning and first-time setup script
 │
 ├── docs/                      # Consolidated, single-source-of-truth documentation suite
 │   ├── README.md              # Documentation index and quickstart guide
@@ -74,9 +73,9 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 * Always use `tempfile.TemporaryDirectory()` for tests, or explicitly clean up any synthetic test rules (`rule_*test_pre*.md`) immediately after assertion.
 
 ### Law 4: Isolated Container Environment (`ws-hermes`) & Zero Host Pollution
-* Hermes runs in a dedicated Distrobox container named `ws-hermes` with `--home /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes` to emulate an isolated, fresh PC setup.
+* Hermes runs in a dedicated Distrobox container named `ws-hermes` with its home mapped to the workspace root directory (`--home <workspace_dir>`) to emulate an isolated, fresh PC setup.
 * Inside `ws-hermes`, `$HOME` is the workspace root itself; thus `$HOME/.hermes` resolves directly to `./.hermes` and `$HOME/.local/bin` resolves to `./.local/bin`.
-* **Host Home Invariant**: Never execute commands or generate files in the host home (`/var/home/imshubhamsocial`). The host environment must remain 100% clean and unpolluted.
+* **Host Home Invariant**: Never execute commands or generate files in the host user's home directory. The host environment must remain 100% clean and unpolluted.
 * **Core Code vs `.local/bin` Invariant**: Never place prototype python scripts, experimental CLI wrappers, or alias symlinks into `.local/bin` (e.g. legacy `observer-gate` or `hypothesis-tree`). All agent features, verification gates, and AST checks belong canonically in `.hermes/plugins/` or `agent/core/`. The directory `.local/bin/` is strictly reserved for standard package executables (`pip`, `uv`), compiled daemon runtimes (`llama-server`, `tirith`), and the `hermes` CLI entrypoint.
 * Always execute verification, tests, and agent commands inside the container via:
   ```bash
@@ -99,7 +98,7 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 
 ### Law 8: Canonical Packaging via `pyproject.toml`
 * Do not create separate requirements files or ad-hoc pip dependencies.
-* All Python dependencies, test dependencies, and tools are declared canonically in [`pyproject.toml`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/pyproject.toml).
+* All Python dependencies, test dependencies, and tools are declared canonically in [`pyproject.toml`](pyproject.toml).
 
 ---
 
@@ -131,9 +130,14 @@ npm run format
 ruff check .
 ```
 
-### Checking System & GPU Health:
+### Running Native Benchmarks:
 ```bash
-# Verify GPU VRAM headroom and system dependencies
+hermes benchmark skills
+hermes exam
+```
+
+### Checking Daemon Health:
+```bash
 hermes doctor
 ```
 
@@ -141,10 +145,10 @@ hermes doctor
 
 ## 5. Where to Find In-Depth Documentation
 
-For deeper architectural, theoretical, and operational details, refer to the consolidated guides in [`docs/`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs):
+For deeper architectural, theoretical, and operational details, refer to the consolidated guides in [`docs/`](docs/):
 
-* 📚 **[`docs/README.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/README.md)** — Master documentation index and CLI command cheat sheet.
-* 🏛️ **[`docs/architecture.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/architecture.md)** — C4 architecture diagrams, 5 runtime phases, 28-plugin catalog, and hardware invariants.
-* 🔬 **[`docs/research.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/research.md)** — Master chronological research register (62 items & 8 ADRs).
-* 🧪 **[`docs/verification.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/verification.md)** — Detailed specification of all 10 in-process harnesses, benchmarks, and cron daemons.
-* 🔌 **[`docs/integrations.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/docs/integrations.md)** — FastMCP Open-Notebook RAG, Port 8139 Vision Sidecar, CUA Desktop driver, and Google ADK.
+* 📚 **[`docs/README.md`](docs/README.md)** — Master documentation index and CLI command cheat sheet.
+* 🏛️ **[`docs/architecture.md`](docs/architecture.md)** — C4 architecture diagrams, 5 runtime phases, 28-plugin catalog, and hardware invariants.
+* 🔬 **[`docs/research.md`](docs/research.md)** — Master chronological research register (62 items & 8 ADRs).
+* 🧪 **[`docs/verification.md`](docs/verification.md)** — Detailed specification of all 10 in-process harnesses, benchmarks, and cron daemons.
+* 🔌 **[`docs/integrations.md`](docs/integrations.md)** — FastMCP Open-Notebook RAG, Port 8139 Vision Sidecar, CUA Desktop driver, and Google ADK.

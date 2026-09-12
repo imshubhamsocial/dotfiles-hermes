@@ -3,8 +3,8 @@
 # Runs daily at 06:00 IST
 set -euo pipefail
 
-WORKSPACE="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
-HERMES_DIR="${HOME}/.hermes"
+WORKSPACE="${WORKSPACE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+HERMES_DIR="${HERMES_DIR:-${HOME}/.hermes}"
 LOGS_DIR="${HERMES_DIR}/logs"
 DATE_STR="$(date +%Y-%m-%d)"
 LOG_FILE="${LOGS_DIR}/daily_health_${DATE_STR}.log"

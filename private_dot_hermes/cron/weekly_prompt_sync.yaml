@@ -1,0 +1,9 @@
+job:
+  name: weekly_prompt_sync
+  schedule: "0 2 * * 0" # Every Sunday at 02:00 UTC
+  timezone: "UTC"
+  command: "python3 /var/home/imshubhamsocial/.hermes/scripts/sync_prompt_library.py"
+  description: "Weekly autonomous sync script fetching Claude Code and Gemini prompt documentation and diffing against local skills."
+  enabled: true
+  retries: 2
+  timeout: 180

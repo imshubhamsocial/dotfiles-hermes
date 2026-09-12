@@ -126,6 +126,18 @@ class LoopReceipt:
             "step_records": [r.to_dict() for r in self.records],
         }
 
+    @property
+    def step_count(self) -> int:
+        return self.total_steps
+
+    @property
+    def context_flushes(self) -> int:
+        return self.clear_flushes_count
+
+    @property
+    def deliverables(self) -> List[str]:
+        return [f"task:{tid}" for tid in self.completed_task_ids]
+
 
 def estimate_tokens(text: str) -> int:
     """Standard ~4 chars per token approximation."""
@@ -541,6 +553,13 @@ class LoopOrchestrator:
             records=records,
         )
 
+    def run_autonomous_loop(self, goal: str) -> LoopReceipt:
+        """High-level entrypoint to plan and execute an autonomous loop for a goal."""
+        from agent.core.mrp_planner import get_arkon_mrp_planner
+        planner = get_arkon_mrp_planner(self.workspace_root)
+        plan = planner.plan(goal)
+        return self.execute_plan(plan)
+
 
 def execute_autonomous_loop(
     plan: MRPPlan,
@@ -555,3 +574,22 @@ def execute_autonomous_loop(
         contract_gate=contract_gate,
     )
     return orchestrator.execute_plan(plan)
+
+
+_loop_orchestrator: Optional[LoopOrchestrator] = None
+
+
+def get_loop_orchestrator(
+    max_steps: int = DEFAULT_MAX_STEPS,
+    workspace_root: Optional[Path] = None,
+    contract_gate: Optional[NativeContractGate] = None,
+) -> LoopOrchestrator:
+    """Singleton getter for LoopOrchestrator."""
+    global _loop_orchestrator
+    if _loop_orchestrator is None:
+        _loop_orchestrator = LoopOrchestrator(
+            max_steps=max_steps,
+            workspace_root=workspace_root,
+            contract_gate=contract_gate,
+        )
+    return _loop_orchestrator

@@ -122,7 +122,7 @@ flowchart TD
 | **P1-02** | **Arkon MRP Knowledge Pipeline** (Map $\to$ Reduce $\to$ Plan $\to$ Refine $\to$ Verify) | H3 | Critical | `agent/core/mrp_planner.py` | ✅ Completed |
 | **P1-03** | **Hermes Self-Repair Diagnostic Loop** (Inspect logs, patch core, auto-rollback) | H4 | Critical | `agent/core/self_healer.py` & `meta_harness.py` | 🟢 Queued |
 | **P1-04** | **Autonomous In-The-Loop Learner** (Auto-reflection on low reward $\to$ `/learn`) | H5 | High | `agent/core/autonomous_learner.py` | 🟢 Queued |
-| **P1-05** | **Native Loop & Context Flush Bridge** (Automated `/loop` & `/clear` lifecycle) | H1 | High | `agent/core/loop_orchestrator.py` | 🟢 Queued |
+| **P1-05** | **Native Loop & Context Flush Bridge** (Automated `/loop` & `/clear` lifecycle) | H1 | High | `agent/core/loop_orchestrator.py` | ✅ Completed |
 
 ---
 
@@ -145,7 +145,7 @@ flowchart TD
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_phase1_mrp_planner.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon3_self_heal.py` | ⏳ PENDING |
 | **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_horizon4_autonomous_learn.py` | ⏳ PENDING |
-| **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_horizon5_loop_engine.py` | ⏳ PENDING |
+| **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_phase2_autonomous_loop.py` | ✅ PASSED |
 
 ---
 
@@ -161,6 +161,7 @@ flowchart TD
 | 2026-09-12 | Hermes Upstream Engine Synchronized | Updated from `v0.21.1` to `v0.21.2` (`main @ 31d0a24`), rebuilt Web UI, synced bundled skills across 19 profiles, upgraded `cua-driver` 0.28.0 |
 | 2026-09-12 | Patched `llama-server` Wrapper Calibrated | Repaired Python 3.14 dynamic site-packages CUDA 13/cuBLAS/NCCL runtime injection; verified dual library paths, MTP speculative decoding (3-token draft), Flash-Attention, Jinja DSL, 128k context, and slot persistence |
 | 2026-09-12 | Phase 1 Implemented (MRP Planning & Ponytail YAGNI Ladder) | Implemented `agent/core/ponytail_ladder.py`, `agent/core/mrp_planner.py`, Directive 24 in `SOUL.md`. Verified Kahn's topological sort, CycleDetectedError, parallel waves, AST over-engineering pruner, and Arkon Map-Reduce-Plan lifecycle. 100% verified via `verify_phase1_mrp_planner.py`. |
+| 2026-09-12 | Phase 2 Implemented (Autonomous Loop & /clear Context Flush Engine) | Implemented `agent/core/loop_orchestrator.py` with multi-modality tool dispatch (Bubblewrap sandbox shell, keyless web grounding, SmolVLM2 port 8139 multimodal vision, CUA), ContextFlushBridge (/clear at 80% / 52,428 tokens), StateCheckpointManager (SQLite state.db persistence), and bounded loop termination invariants (DONE, BLOCKED, STEP_LIMIT_EXCEEDED). 100% verified via `verify_phase2_autonomous_loop.py`. |
 
 ---
 

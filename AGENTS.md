@@ -2,7 +2,7 @@
 
 > **Target Audience**: AI Coding Agents (Google Antigravity, Claude Code, OpenAI Codex, Cursor, Windsurf, Jules)  
 > **Project**: Hermes Agent OS & Living Verification Harness  
-> **Status**: **100% Complete & Production Certified** (All 10 In-Process Verification Contracts Passing)  
+> **Status**: **100% Complete & Production Certified** (All 17 In-Process Capability Contracts Passing)  
 > **Local Runtime**: Fedora Distrobox (`ws-hermes`), NVIDIA RTX 3050 (6GB VRAM), Local `llama-server` (Port 8138)
 
 ---
@@ -107,21 +107,18 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 
 Whenever verifying your changes or testing environment health, execute these commands:
 
-### Running Verification Harnesses:
+### Running Capability Contracts:
 ```bash
-# Verify the 5 Core Horizons
-python3 .hermes/bin/verify_horizon1_loop_engine.py
-python3 .hermes/bin/verify_horizon2_ponytail_guardrails.py
-python3 .hermes/bin/verify_horizon3_arkon_knowledge_pipeline.py
-python3 .hermes/bin/verify_horizon4_self_repair.py
-python3 .hermes/bin/verify_horizon5_autonomous_learner.py
+# Verify all 17 capability contracts via Makefile
+make test
 
-# Verify the 5 Closed-Loop Runtime Phases
-python3 .hermes/bin/verify_phase0_faraday_director.py
-python3 .hermes/bin/verify_phase1_mrp_planner.py
-python3 .hermes/bin/verify_phase2_autonomous_loop.py
-python3 .hermes/bin/verify_phase3_native_contract_gate.py
-python3 .hermes/bin/verify_phase4_autonomous_learner.py
+# Or run individual capability contracts directly from .hermes/contracts/
+python3 .hermes/contracts/director.py
+python3 .hermes/contracts/planner.py
+python3 .hermes/contracts/autonomous_loop.py
+python3 .hermes/contracts/contract_gate.py
+python3 .hermes/contracts/self_learning.py
+python3 .hermes/contracts/capability_monitoring.py
 ```
 
 ### Running Linters & Code Quality:

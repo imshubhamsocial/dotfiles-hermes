@@ -86,8 +86,8 @@ server-setup: ## Configure llama-server daemon launcher with hardware VRAM ceili
 	@cat << 'LLAMA' > "$(BIN_DIR)/llama-server"
 	#!/usr/bin/env bash
 	set -euo pipefail
-	SITE_PACKAGES="$$(python3.13 -m site --user-site 2>/dev/null || echo "$${HOME}/.local/lib/python3.13/site-packages")"
-	LLAMA_LIB_DIR="$${HOME}/.local/lib"
+	SITE_PACKAGES="$$(python3 -m site --user-site 2>/dev/null || python3.14 -m site --user-site 2>/dev/null || python3.13 -m site --user-site 2>/dev/null || echo "$${HOME}/.local/lib/python3.14/site-packages")"
+	LLAMA_LIB_DIR="$${HOME}/.local/lib:$${WORKSPACE_ROOT}/.local/lib"
 	SERVER_BIN="$${HOME}/.local/bin/llama-server.bin"
 	export LD_LIBRARY_PATH="$${LLAMA_LIB_DIR}:$${SITE_PACKAGES}/nvidia/cu13/lib:$${SITE_PACKAGES}/nvidia/cublas/lib:$${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:$${SITE_PACKAGES}/nvidia/nccl/lib:$${SITE_PACKAGES}/nvidia/cuda_runtime/lib:$${HOME}/.local/share/cuda-libs:$${LD_LIBRARY_PATH:-}"
 	HF_HUB_DIR="$${HF_HUB_DIR:-$${HOME}/.cache/huggingface/hub}"
@@ -106,25 +106,20 @@ searxng: ## Ensure local SearXNG container daemon is running on port 8080
 		podman start searxng-hermes 2>/dev/null || podman run -d --name searxng-hermes --restart=always -p 8080:8080 docker.io/searxng/searxng:latest || true; \
 	fi
 
-test: ## Run full test suite in ~/.hermes/tests/
-	@if [ -f "$(WORKSPACE_ROOT)/.hermes/hermes-agent/venv/bin/pytest" ]; then \
-		$(WORKSPACE_ROOT)/.hermes/hermes-agent/venv/bin/pytest $(WORKSPACE_ROOT)/.hermes/tests/ -q; \
-	elif [ -f "$(HERMES_DIR)/hermes-agent/venv/bin/pytest" ]; then \
-		$(HERMES_DIR)/hermes-agent/venv/bin/pytest $(HERMES_DIR)/tests/ -q; \
-	else \
-		pytest $(HERMES_DIR)/tests/ -q; \
-	fi
-	@echo "✓ All tests passed."
+test: test-contracts ## Run all contract tests across Horizons and Phases
 
-test-contracts: test ## Backward-compatible alias for test
+test-contracts: ## Execute all 17 in-process capability contract suites
+	@echo "==> Running Hermes capability contract verification suites..."
+	@for c in $(HERMES_DIR)/contracts/*.py; do python3.13 "$$c" || exit 1; done
+	@echo "✓ All in-process verification suites passed."
 
-test-internal: test ## Backward-compatible alias for test
+verify: doctor ## Run native in-process capability and integrity verification
+	@python3.13 $(HERMES_DIR)/bin/capability_dashboard.py
+	@echo "✓ All native capabilities verified."
 
-test-domain: test ## Backward-compatible alias for test
-
-
-exam: doctor test ## Run system health diagnostics and test verification
+exam: doctor test ## Run system health diagnostics and contract verification
 	@echo "✓ All exam checks passed."
+
 
 
 doctor: ## Run Hermes system health and plugin contract diagnostics

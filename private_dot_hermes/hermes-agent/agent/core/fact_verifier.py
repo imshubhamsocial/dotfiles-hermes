@@ -73,6 +73,9 @@ class RealTimeFactVerifier:
         # 1. Dispatch multi-source query
         search_query = f"{claim.strip()}"
         sources = self.reasoner.dispatch_search(search_query, max_results=6)
+        if not sources:
+            time.sleep(0.5)
+            sources = self.reasoner.dispatch_search(search_query, max_results=6)
 
         # If sparse, try searching the primary anchor keywords
         if len(sources) < 2 and anchors:

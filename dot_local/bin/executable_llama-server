@@ -4,8 +4,8 @@
 set -euo pipefail
 
 HERMES_ROOT="${HERMES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-SITE_PACKAGES="$(python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.13/site-packages")"
-LLAMA_LIB_DIR="${HOME}/.local/lib"
+SITE_PACKAGES="$(python3 -m site --user-site 2>/dev/null || python3.14 -m site --user-site 2>/dev/null || python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.14/site-packages")"
+LLAMA_LIB_DIR="${HOME}/.local/lib:${HERMES_ROOT}/.local/lib"
 
 export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
 

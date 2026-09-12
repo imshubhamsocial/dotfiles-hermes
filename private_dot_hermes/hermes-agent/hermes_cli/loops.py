@@ -690,9 +690,8 @@ def dispatch_loop_command(
         try:
             from agent.core.self_healer import get_self_healer
             healer = get_self_healer()
-            target = arg[9:].strip() if arg.startswith("rollback ") else None
-            ok = healer.rollback_patch(target)
-            return {"output": f"[Rollback] {'restored' if ok else 'failed'}", "created": False}
+            ok = healer.rollback_last() if hasattr(healer, "rollback_last") else False
+            return {"output": f"[Rollback] {'restored' if ok else 'no active patch to rollback'}", "created": False}
         except Exception as exc:
             return {"output": f"[Rollback Failed] {exc}", "created": False}
 

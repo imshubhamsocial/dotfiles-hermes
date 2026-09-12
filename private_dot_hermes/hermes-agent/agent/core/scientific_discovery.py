@@ -52,8 +52,16 @@ except (ImportError, ModuleNotFoundError):
 
 logger = logging.getLogger("hermes.core.scientific_discovery")
 
-DEFAULT_PAPERS_DIR = Path.home() / ".hermes/knowledge/papers"
-DEFAULT_CONCEPTS_DIR = Path.home() / ".hermes/knowledge/concepts"
+DEFAULT_PAPERS_DIR = (
+    Path.home() / ".hermes/memories/knowledge/papers"
+    if (Path.home() / ".hermes/memories/knowledge").exists()
+    else Path.home() / ".hermes/knowledge/papers"
+)
+DEFAULT_CONCEPTS_DIR = (
+    Path.home() / ".hermes/memories/knowledge/concepts"
+    if (Path.home() / ".hermes/memories/knowledge").exists()
+    else Path.home() / ".hermes/knowledge/concepts"
+)
 
 
 @dataclass

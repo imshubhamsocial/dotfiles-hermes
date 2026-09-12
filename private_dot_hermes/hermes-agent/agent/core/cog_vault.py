@@ -25,11 +25,16 @@ import yaml
 # =============================================================================
 
 KNOWLEDGE_ROOTS = [
+    Path.home() / ".hermes" / "memories" / "knowledge",
     Path.home() / ".hermes" / "knowledge",
     Path("/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes") / "docs" / "knowledge",
 ]
 
-EVIDENCE_DIR = Path(".hermes") / "knowledge" / "evidence"
+EVIDENCE_DIR = (
+    Path.home() / ".hermes" / "memories" / "knowledge" / "evidence"
+    if (Path.home() / ".hermes" / "memories" / "knowledge").exists()
+    else Path.home() / ".hermes" / "knowledge" / "evidence"
+)
 ADR_DIR = "adrs"
 CONTRACTS_DIR = "contracts"
 EVIDENCE_DIR_NAME = "evidence"

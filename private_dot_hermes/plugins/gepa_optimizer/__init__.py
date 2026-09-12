@@ -37,10 +37,13 @@ def register(ctx=None):
         def handle_benchmark(args):
             subcmd = getattr(args, "subcommand", None) or "skills"
             if subcmd == "skills":
-                hermes_home = str(get_hermes_home())
-                if hermes_home not in sys.path:
-                    sys.path.insert(0, hermes_home)
-                from benchmarks.skill_lift.runner import run_full_benchmark
+                bench_path = Path(__file__).resolve().parent / "benchmarks"
+                if str(bench_path) not in sys.path:
+                    sys.path.insert(0, str(bench_path))
+                try:
+                    from skill_lift.runner import run_full_benchmark
+                except ImportError:
+                    from benchmarks.skill_lift.runner import run_full_benchmark
 
                 print("Running NVIDIA SkillEvaluator benchmark suite...")
                 report = run_full_benchmark()
@@ -65,10 +68,13 @@ def register(ctx=None):
     # 3. Native Slash command: /benchmark
     if hasattr(ctx, "register_command"):
         def slash_benchmark(raw_args: str) -> str:
-            hermes_home = str(get_hermes_home())
-            if hermes_home not in sys.path:
-                sys.path.insert(0, hermes_home)
-            from benchmarks.skill_lift.runner import run_full_benchmark
+            bench_path = Path(__file__).resolve().parent / "benchmarks"
+            if str(bench_path) not in sys.path:
+                sys.path.insert(0, str(bench_path))
+            try:
+                from skill_lift.runner import run_full_benchmark
+            except ImportError:
+                from benchmarks.skill_lift.runner import run_full_benchmark
 
             report = run_full_benchmark()
             lines = [

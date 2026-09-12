@@ -280,7 +280,10 @@ class ImmutableAuditTrail:
         else:
             hermes_home = os.environ.get("HERMES_HOME")
             base = Path(hermes_home) if hermes_home else Path.home() / ".hermes"
-            self.db_path = base / "verification_evidence.db"
+            cand = base / "memories" / "verification_evidence.db"
+            if not cand.exists() and (base / "verification_evidence.db").exists():
+                cand = base / "verification_evidence.db"
+            self.db_path = cand
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

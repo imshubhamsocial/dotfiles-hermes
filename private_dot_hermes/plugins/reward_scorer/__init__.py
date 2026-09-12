@@ -29,7 +29,9 @@ from typing import Any, Dict, List, Optional, Tuple
 def get_training_buffer_dir() -> Path:
     hermes_home = os.environ.get("HERMES_HOME")
     base = Path(hermes_home) if hermes_home else Path.home() / ".hermes"
-    buf = base / "training_buffer"
+    buf = base / "memories" / "training_buffer"
+    if not buf.exists() and (base / "training_buffer").exists():
+        buf = base / "training_buffer"
     buf.mkdir(parents=True, exist_ok=True)
     return buf
 

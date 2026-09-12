@@ -25,7 +25,7 @@ thinking_budget:
   min_confidence: 0.85
   max_critique_rounds: 3
   hide_thinking_tokens: true
-  cot_buffer_path: /var/home/imshubhamsocial/.hermes/evolution/cot_rl_buffer.jsonl
+  cot_buffer_path: /var/home/imshubhamsocial/.hermes/memories/evolution/cot_rl_buffer.jsonl
 plugins:
   enabled:
   - adk_orchestrator

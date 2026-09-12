@@ -19,7 +19,11 @@ from hermes_constants import get_hermes_home
 
 def get_concepts_dir() -> Path:
     """Returns the default concept vault directory."""
-    return get_hermes_home() / "knowledge" / "concepts"
+    home = get_hermes_home()
+    c = home / "memories" / "knowledge" / "concepts"
+    if not c.exists() and (home / "knowledge" / "concepts").exists():
+        c = home / "knowledge" / "concepts"
+    return c
 
 
 def parse_frontmatter(content: str) -> Tuple[Optional[Dict[str, Any]], str]:

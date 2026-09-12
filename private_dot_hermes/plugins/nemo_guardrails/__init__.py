@@ -70,9 +70,13 @@ def get_guardrails_config_path() -> Path:
         return Path(override)
 
     candidate_paths = [
+        Path(__file__).resolve().parent / "config",
         Path(__file__).resolve().parents[2] / "guardrails",
+        Path.home() / ".hermes" / "plugins" / "nemo_guardrails" / "config",
         Path.home() / ".hermes" / "guardrails",
+        Path.cwd() / ".hermes" / "plugins" / "nemo_guardrails" / "config",
         Path.cwd() / ".hermes" / "guardrails",
+        Path.cwd() / ".local" / "share" / "chezmoi" / "private_dot_hermes" / "plugins" / "nemo_guardrails" / "config",
         Path.cwd() / ".local" / "share" / "chezmoi" / "private_dot_hermes" / "guardrails",
     ]
     for p in candidate_paths:

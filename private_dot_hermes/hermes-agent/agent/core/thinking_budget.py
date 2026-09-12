@@ -36,7 +36,11 @@ DEFAULT_BUDGETS: Dict[int, int] = {
     TaskComplexity.RESEARCH: 8192,
 }
 
-DEFAULT_BUFFER_PATH = Path.home() / ".hermes/evolution/cot_rl_buffer.jsonl"
+DEFAULT_BUFFER_PATH = (
+    Path.home() / ".hermes/memories/evolution/cot_rl_buffer.jsonl"
+    if (Path.home() / ".hermes/memories/evolution").exists()
+    else Path.home() / ".hermes/evolution/cot_rl_buffer.jsonl"
+)
 
 
 @dataclass

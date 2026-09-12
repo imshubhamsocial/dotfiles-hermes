@@ -33,12 +33,12 @@ import sqlite3
 
 
 def get_bpe_root() -> Path:
-    """Returns the canonical root directory for BPE workspace."""
+    """Returns the canonical root directory for BPE workspace (memories/bpe)."""
     hermes_home = os.environ.get("HERMES_HOME")
-    if hermes_home:
-        root = Path(hermes_home) / "bpe"
-    else:
-        root = Path.home() / ".hermes" / "bpe"
+    base = Path(hermes_home) if hermes_home else Path.home() / ".hermes"
+    root = base / "memories" / "bpe"
+    if not root.exists() and (base / "bpe").exists():
+        root = base / "bpe"
     root.mkdir(parents=True, exist_ok=True)
     return root
 
@@ -88,7 +88,8 @@ class BPEWorkspaceEngine:
         if DUCKDB_AVAILABLE:
             return duckdb.connect(str(self.db_file))
         else:
-            return sqlite3.connect(str(self.db_file))
+            sqlite_file = self.root / "experience_sqlite.db"
+            return sqlite3.connect(str(sqlite_file))
 
     def _init_db(self):
         """Initializes database schema for experiences, access logs, and annealing."""

@@ -31,7 +31,10 @@ from .trajectory import (
 
 def get_nora_status() -> Dict[str, Any]:
     """Inspects the NoRA online adaptation training buffer."""
-    buf_file = get_hermes_home() / "training_buffer" / "samples.jsonl"
+    buf_dir = get_hermes_home() / "memories" / "training_buffer"
+    if not buf_dir.exists() and (get_hermes_home() / "training_buffer").exists():
+        buf_dir = get_hermes_home() / "training_buffer"
+    buf_file = buf_dir / "samples.jsonl"
     if not buf_file.exists():
         return {
             "total_samples": 0,

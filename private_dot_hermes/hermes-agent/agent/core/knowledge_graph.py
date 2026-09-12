@@ -210,7 +210,11 @@ class HierarchicalSemanticMemory:
     cross-session architectural knowledge.
     """
 
-    DEFAULT_DB = Path.home() / ".hermes/knowledge/semantic_triples.db"
+    DEFAULT_DB = (
+        Path.home() / ".hermes/memories/knowledge/semantic_triples.db"
+        if (Path.home() / ".hermes/memories/knowledge").exists()
+        else Path.home() / ".hermes/knowledge/semantic_triples.db"
+    )
 
     def __init__(self, db_path: Optional[Path] = None):
         self.db_path = db_path or self.DEFAULT_DB

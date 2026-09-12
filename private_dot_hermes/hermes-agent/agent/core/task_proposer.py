@@ -43,7 +43,11 @@ except (ImportError, ModuleNotFoundError):
         from quorum_moa import _call_llama_server
 
 logger = logging.getLogger("hermes.core.task_proposer")
-RL_BUFFER_PATH = Path.home() / ".hermes/evolution/rl_buffer.jsonl"
+RL_BUFFER_PATH = (
+    Path.home() / ".hermes/memories/evolution/rl_buffer.jsonl"
+    if (Path.home() / ".hermes/memories/evolution").exists()
+    else Path.home() / ".hermes/evolution/rl_buffer.jsonl"
+)
 
 
 @dataclass

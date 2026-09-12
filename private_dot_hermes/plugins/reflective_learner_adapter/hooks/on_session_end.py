@@ -68,8 +68,11 @@ def append_nora_training_sample(
     messages: list[dict[str, Any]] | None = None,
     buffer_dir: Path | None = None,
 ) -> Path:
-    """Appends verified task trajectory sample to NoRA training buffer."""
-    target_dir = buffer_dir or (get_hermes_home() / "training_buffer")
+    target_dir = buffer_dir
+    if not target_dir:
+        target_dir = get_hermes_home() / "memories" / "training_buffer"
+        if not target_dir.exists() and (get_hermes_home() / "training_buffer").exists():
+            target_dir = get_hermes_home() / "training_buffer"
     target_dir.mkdir(parents=True, exist_ok=True)
     buf_file = target_dir / "samples.jsonl"
 

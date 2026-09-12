@@ -27,7 +27,9 @@ from .meta_harness import TraceFailureAnalyzer, HarnessProposalEngine, SpecVerif
 def get_evolution_root() -> Path:
     hermes_home = os.environ.get("HERMES_HOME")
     base = Path(hermes_home) if hermes_home else Path.home() / ".hermes"
-    root = base / "evolution"
+    root = base / "memories" / "evolution"
+    if not root.exists() and (base / "evolution").exists():
+        root = base / "evolution"
     root.mkdir(parents=True, exist_ok=True)
     (root / "hypotheses").mkdir(parents=True, exist_ok=True)
     (root / "baselines").mkdir(parents=True, exist_ok=True)

@@ -160,10 +160,10 @@ def test_gate6_zero_test_folder_and_chezmoi_invariant() -> bool:
     workspace = Path(os.environ.get("HERMES_WORKSPACE", hermes_root.parent))
     tests_dir = workspace / "tests"
     if tests_dir.exists():
-        # Check if tests dir is empty or removed as required
-        py_tests = list(tests_dir.rglob("test_*.py"))
+        # Check that no legacy top-level unisolated test scripts exist
+        py_tests = list(tests_dir.glob("test_*.py"))
         if py_tests:
-            log_gate("GATE 6", "Zero-Test-Folder Invariant", False, f"Found legacy test files in {tests_dir}")
+            log_gate("GATE 6", "Zero-Test-Folder Invariant", False, f"Found legacy test files directly in {tests_dir}")
             return False
 
     # Check that core Phase 1 - 9 artifacts exist

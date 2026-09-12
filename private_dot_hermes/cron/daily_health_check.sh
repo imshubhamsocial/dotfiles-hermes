@@ -48,5 +48,10 @@ echo "" >> "${LOG_FILE}"
 echo "--- 4. Live Capability Dashboard & Telemetry Audit ---" >> "${LOG_FILE}"
 python3 "${HERMES_DIR}/bin/capability_dashboard.py" --append-log >> "${LOG_FILE}" 2>&1 || true
 
+# Step 5: Meta-Harness Weakness Mining & Trajectory Analysis
+echo "" >> "${LOG_FILE}"
+echo "--- 5. Meta-Harness Weakness Mining ---" >> "${LOG_FILE}"
+hermes evolve analyze >> "${LOG_FILE}" 2>&1 || true
+
 echo "" >> "${LOG_FILE}"
 echo "Health check complete. Log saved to: ${LOG_FILE}" >> "${LOG_FILE}"

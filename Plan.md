@@ -145,7 +145,7 @@ flowchart TD
 | **Gate X.1** | Ponytail ladder halts over-engineering and minimizes code diffs | `verify_horizon2_ponytail_guardrails.py` | ✅ PASSED |
 | **Gate X.2** | Arkon MRP pipeline compiles multi-source research into verifiable wiki | `verify_horizon3_arkon_knowledge_pipeline.py` | ✅ PASSED |
 | **Gate X.3** | Hermes self-heals an intentionally broken internal plugin with zero regression | `verify_horizon4_self_repair.py` | ✅ PASSED |
-| **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_phase4_autonomous_learner.py` | ✅ PASSED |
+| **Gate X.4** | Autonomous `/learn` loop diagnoses a failure and transfers rule without human aid | `verify_horizon5_autonomous_learner.py` | ✅ PASSED |
 | **Gate X.5** | Multi-step autonomous `/loop` executes end-to-end task with `/clear` flushes | `verify_horizon1_loop_engine.py` | ✅ PASSED |
 | **Gate X.6** | Native Contract Gate enforces ProcessVerifier, SymPy invariance, and AST simplicity | `verify_phase3_native_contract_gate.py` | ✅ PASSED |
 
@@ -171,6 +171,7 @@ flowchart TD
 | 2026-09-12 | Horizon 2 Implemented (Ponytail Minimalist Engineering & Anti-Overengineering Guardrails) | Injected 7-Rung YAGNI Ladder & Root-Cause Remediation Invariant into core system prompt, implemented `pre_commit_observer_gate` with AST diff size computation (>3x bloat rejection), redundant helper pruning, unrequested dependency rejection, and call-graph divergence analysis. 100% verified via `verify_horizon2_ponytail_guardrails.py`. |
 | 2026-09-12 | Horizon 3 Implemented (Arkon MRP Knowledge Pipeline & Traceable Graph Memory) | Implemented full 6-phase Arkon MRP knowledge engine (Map -> Reduce -> Plan-Review -> Refine -> Verify -> Commit) in `agent/core/mrp_planner.py` with SQLite `semantic_triples.db` persistence, concept markdown generation with YAML frontmatter, `[[wikilinks]]`, provenance auditing, and `WikiGraphNavigator` for multi-hop bidirectional graph traversal. 100% verified via `verify_horizon3_arkon_knowledge_pipeline.py`. |
 | 2026-09-12 | Horizon 4 Implemented (Autonomous Internal Self-Diagnosis & Hermes Self-Repair) | Implemented `LogDiagnosticEngine` (traceback call-stack parser & earliest point of divergence isolation), `TraceFailureAnalyzer` (categorization of syntax drift, broken imports, and plugin collisions), `AtomicPatcher` with mandatory `.bak` backup creation, `HarnessIntegrityGate`, and automatic `/rollback` on post-patch regression. Wired `/loop repair` and `/loop rollback`. 100% verified via `verify_horizon4_self_repair.py` (Gate X.3). |
+| 2026-09-12 | Horizon 5 Implemented (Continuous Autonomous In-The-Loop Learning /learn) | Enhanced `agent/core/autonomous_learner.py` with expanded failure taxonomy (API contracts, sandbox boundaries, cyclic divergence), dual-path workspace rule mirroring, turnkey `learn_and_verify_transfer()` lifecycle, and integrated `/loop learn` & `/learn --rule` into `hermes_cli/loops.py` & `hermes_cli/cli_commands_mixin.py`. 100% verified via `verify_horizon5_autonomous_learner.py` (Gate X.4). |
 
 ---
 

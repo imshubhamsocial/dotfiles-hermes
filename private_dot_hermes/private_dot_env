@@ -495,3 +495,10 @@ IMAGE_TOOLS_DEBUG=false
 # GOOGLE_CHAT_HOME_CHANNEL_NAME=                # Display name for the home channel
 API_SERVER_ENABLED=true
 API_SERVER_KEY=bench-e20-local
+
+# =============================================================================
+# OPENVIKING MEMORY PROVIDER
+# =============================================================================
+OPENVIKING_ENDPOINT=http://127.0.0.1:1933
+OPENVIKING_ACCOUNT=default
+OPENVIKING_USER=default

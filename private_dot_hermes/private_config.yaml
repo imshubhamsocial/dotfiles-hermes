@@ -1,27 +1,30 @@
-database:
-  journal_mode: wal
-runtime:
-  nofile_soft_limit: 4096
 model:
   default: gemma-4-4b
   provider: custom
   base_url: http://127.0.0.1:8138/v1
   context_length: 131072
-kanban:
-  review_dispatch: true
-cron:
-  catch_up_missed: true
+database:
+  journal_mode: wal
+runtime:
+  nofile_soft_limit: 4096
+agent:
+  max_turns: 500
+  service_tier: ''
+  fast_auto_seconds: 60
+  verbose: false
+  reasoning_effort: medium
+  personalities: {}
 terminal:
   backend: local
   cwd: .
   timeout: 180
   home_mode: auto
-  docker_mount_cwd_to_workspace: false
-  lifetime_seconds: 300
   container_cpu: 1
   container_memory: 5120
   container_disk: 51200
   container_persistent: true
+  docker_mount_cwd_to_workspace: false
+  lifetime_seconds: 300
 browser:
   inactivity_timeout: 120
   extension_control:
@@ -43,39 +46,93 @@ compression:
   checkpoint_required: false
   progress_notices: false
   threshold: 0.5
-  codex_gpt55_autoraise: true
   target_ratio: 0.2
   protect_last_n: 20
   min_tail_user_messages: 1
   max_attempts: 3
-  codex_app_server_auto: native
-  codex_responses_native: false
-  protect_first_n: 3
-  idle_compact_after_seconds: 0
-  hygiene_max_turn_hold_seconds: 10
   proactive_prune_tokens: 0
   proactive_prune_min_result_chars: 8000
   proactive_prune_min_reclaim_tokens: 4096
+  hygiene_max_turn_hold_seconds: 10
+  protect_first_n: 3
+  codex_gpt55_autoraise: true
+  codex_app_server_auto: native
+  codex_responses_native: false
+  idle_compact_after_seconds: 0
 prompt_caching:
   cache_ttl: 5m
+display:
+  compact: false
+  busy_input_mode: interrupt
+  bell_on_complete: false
+  bell_on_prompt: false
+  show_reasoning: false
+  background_process_notifications: concise
+  streaming: true
+  skin: default
+  interim_assistant_messages: true
+  tool_progress: all
+  cleanup_progress: false
+  long_running_notifications: true
+  busy_ack_detail: true
+stt:
+  enabled: true
+  language: en
+  local:
+    model: base
+  openai:
+    model: whisper-1
+    language: ''
 memory:
   memory_enabled: true
   user_profile_enabled: true
   memory_char_limit: 2200
   user_char_limit: 1375
   nudge_interval: 10
-group_sessions_per_user: true
+delegation:
+  max_iterations: 250
+skills:
+  trusted_project_dirs:
+    - /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes
+  creation_nudge_interval: 15
+plugins:
+  enabled: []
+cron:
+  catch_up_missed: true
+kanban:
+  review_dispatch: true
+code_execution:
+  timeout: 300
+  max_tool_calls: 50
+monitoring:
+  gateway_health_export:
+    enabled: true
+  export:
+    otlp:
+      enabled: true
+      endpoint: http://127.0.0.1:4318
 streaming:
   enabled: false
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false
+updates:
+  check: true
+  pre_update_backup: false
+  backup_keep: 5
+  non_interactive_local_changes: stash
+lsp:
+  enabled: true
+memory:
+  provider: openviking
+  openviking:
+    endpoint: http://127.0.0.1:1933
+    agent: hermes
 skills:
-  creation_nudge_interval: 15
-agent:
-  max_turns: 500
-  verbose: false
-  reasoning_effort: medium
-  service_tier: ''
-  fast_auto_seconds: 60
-  personalities: {}
+  auto_sync: true
+_config_version: 44
+group_sessions_per_user: true
 platform_toolsets:
   cli:
     - hermes-cli
@@ -99,54 +156,6 @@ platform_toolsets:
     - hermes-teams
   google_chat:
     - hermes-google_chat
-stt:
-  enabled: true
-  local:
-    model: base
-  language: en
-  openai:
-    model: whisper-1
-    language: ''
-code_execution:
-  timeout: 300
-  max_tool_calls: 50
-delegation:
-  max_iterations: 250
-display:
-  compact: false
-  tool_progress: all
-  cleanup_progress: false
-  interim_assistant_messages: true
-  long_running_notifications: true
-  busy_ack_detail: true
-  busy_input_mode: interrupt
-  background_process_notifications: concise
-  bell_on_complete: false
-  bell_on_prompt: false
-  show_reasoning: false
-  streaming: true
-  skin: default
-telemetry:
-  shared_metrics:
-    enabled: false
-    send: false
-updates:
-  check: true
-  pre_update_backup: false
-  backup_keep: 5
-  non_interactive_local_changes: stash
-plugins:
-  enabled: []
-monitoring:
-  gateway_health_export:
-    enabled: true
-  export:
-    otlp:
-      enabled: true
-      endpoint: http://127.0.0.1:4318
-lsp:
-  enabled: true
-_config_version: 44
 
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,

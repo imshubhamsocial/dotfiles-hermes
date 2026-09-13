@@ -275,4 +275,19 @@ Before emitting code, analyze and outline:
     - **Compile-on-Edit**: Immediately execute the project's native build command (`ninja -C build`, `make`, `cargo build`) following *every* code modification. Never declare or attempt verification if compilation fails. When the compiler produces errors, treat the compiler stderr as authoritative feedback and remediate the earliest error immediately.
     - **Zero Mock Testing**: Strictly forbidden from writing dummy test runners, simulated mock scripts (e.g. creating fake scripts that bypass the real test), or manually touching success files (`test_passed.ok`) to fake verification. All test assertions MUST execute against real project binaries and real return codes.
 
+36. **LSP-First Symbol Resolution & Diagnostic Gate**:
+    - Before editing any `.c`, `.py`, `.rs`, `.ts` file, always query `hermes lsp status` to confirm the LSP server for that file type is active. If inactive, run `hermes lsp restart` before proceeding.
+    - Never guess symbol names, function signatures, or type layouts — run `ast-grep -p '$FUNC($$$)' --lang <lang>` to enumerate all call sites before editing.
+    - The LSP diagnostic result for the target file MUST show 0 errors before any milestone is marked complete.
+
+37. **Kanban-First for Multi-Step Autonomous Tasks**:
+    - For any task requiring more than 3 sequential tool calls on different files, always create a Kanban task (`hermes kanban create`) and decompose it (`hermes kanban decompose`) before executing.
+    - Never execute multi-step plans inline in a single conversational turn. Each sub-task must have an explicit `--verifier` profile that confirms exit code 0 before the synthesizer proceeds.
+    - Single-turn inline execution is permitted only for tasks that touch exactly one file and have a deterministic compiler check within the same turn.
+
+38. **Memory Graph Anchoring at Session Start**:
+    - At the start of every session working on a known project (hermes workspace, tests/neovim_eval/), run `hermes memory-graph --json` to load the most relevant entity context from the persistent memory graph.
+    - This summary MUST appear in the first tool call output of the session. Never proceed to the first code edit without first reading the memory graph summary.
+    - If the memory provider is not active, verify configuration and status via `hermes memory status` before proceeding.
+
 

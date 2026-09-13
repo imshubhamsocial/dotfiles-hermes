@@ -143,7 +143,24 @@ _config_version: 44
 group_sessions_per_user: true
 platform_toolsets:
   cli:
-    - hermes-cli
+    - a2a
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - connections
+    - cronjob
+    - delegation
+    - file
+    - image_gen
+    - memory
+    - session_search
+    - skills
+    - terminal
+    - todo
+    - tts
+    - vision
+    - web
   telegram:
     - hermes-telegram
   discord:
@@ -164,6 +181,46 @@ platform_toolsets:
     - hermes-teams
   google_chat:
     - hermes-google_chat
+known_plugin_toolsets:
+  cli:
+    - a2a
+    - spotify
+known_builtin_toolsets:
+  cli:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - connections
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - homeassistant
+    - image_gen
+    - kanban
+    - memory
+    - session_search
+    - skills
+    - spotify
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao
+mcp_servers:
+  codebase_memory:
+    command: distrobox-host-exec
+    args:
+      - codebase-memory-mcp
+    enabled: true
 
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,

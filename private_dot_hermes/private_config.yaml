@@ -144,6 +144,8 @@ monitoring:
     otlp:
       enabled: true
       endpoint: http://127.0.0.1:4318
+lsp:
+  enabled: true
 _config_version: 44
 
 # ── Security ──────────────────────────────────────────────────────────

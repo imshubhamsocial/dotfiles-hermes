@@ -105,6 +105,7 @@ skills:
   auto_sync: true
 plugins:
   enabled:
+    - browser/browser_use
     - graph_context
   disabled: []
   entries:
@@ -139,7 +140,14 @@ updates:
   non_interactive_local_changes: stash
 lsp:
   enabled: true
+proxy:
+  enabled: true
 _config_version: 44
+platforms:
+  a2a:
+    enabled: true
+peer:
+  enabled: true
 group_sessions_per_user: true
 platform_toolsets:
   cli:

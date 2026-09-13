@@ -101,6 +101,19 @@ cron:
   catch_up_missed: true
 kanban:
   review_dispatch: true
+  auto_decompose: true
+  db_path: .hermes/kanban.db
+auxiliary:
+  kanban_decomposer:
+    provider: custom
+    model: gemma-4-4b
+    base_url: http://127.0.0.1:8138/v1
+    timeout: 180
+  triage_specifier:
+    provider: custom
+    model: gemma-4-4b
+    base_url: http://127.0.0.1:8138/v1
+    timeout: 120
 code_execution:
   timeout: 300
   max_tool_calls: 50

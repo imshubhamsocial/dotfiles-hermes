@@ -270,3 +270,9 @@ Before emitting code, analyze and outline:
     - When token count exceeds **48,000 tokens** ($\approx 87\%$ of effective token budget), trigger context compression immediately before continuing tool calls.
     - Never wait for empty responses or attention diffusion to indicate context saturation. Prefix cache must remain strictly byte-static across turns.
 
+35. **POSIX-First, Compile-on-Edit & Zero Mock Testing Mandates**:
+    - **POSIX First**: When searching, analyzing diffs, or compiling code, reach directly for native tools: `rg` for text search, `git diff` for change validation, `ast_search` for structural syntax search, and `search_replace` for unique diff surgery.
+    - **Compile-on-Edit**: Immediately execute the project's native build command (`ninja -C build`, `make`, `cargo build`) following *every* code modification. Never declare or attempt verification if compilation fails. When the compiler produces errors, treat the compiler stderr as authoritative feedback and remediate the earliest error immediately.
+    - **Zero Mock Testing**: Strictly forbidden from writing dummy test runners, simulated mock scripts (e.g. creating fake scripts that bypass the real test), or manually touching success files (`test_passed.ok`) to fake verification. All test assertions MUST execute against real project binaries and real return codes.
+
+

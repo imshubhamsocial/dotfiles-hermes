@@ -1,0 +1,4 @@
+function e(e, t) {
+  return e || t;
+}
+export { e as t };

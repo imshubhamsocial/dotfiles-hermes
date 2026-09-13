@@ -104,7 +104,12 @@ delegation:
 skills:
   auto_sync: true
 plugins:
-  enabled: []
+  enabled:
+    - graph_context
+  disabled: []
+  entries:
+    graph_context:
+      allow_tool_override: false
 cron:
   catch_up_missed: true
 kanban:

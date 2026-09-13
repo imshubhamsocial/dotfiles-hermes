@@ -159,25 +159,6 @@ platform_toolsets:
     - hermes-teams
   google_chat:
     - hermes-google_chat
-mcp_servers:
-  python_eval:
-    command: fastmcp
-    args:
-      - run
-      - ${userHome}/.hermes/plugins/mcp_servers/smolagents_mcp.py
-    enabled: true
-  web_extract_local:
-    command: fastmcp
-    args:
-      - run
-      - ${userHome}/.hermes/plugins/mcp_servers/crawl4ai_mcp.py
-    enabled: true
-  symbolic_solver:
-    command: fastmcp
-    args:
-      - run
-      - ${userHome}/.hermes/plugins/mcp_servers/symbolic_solver_mcp.py
-    enabled: true
 
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,

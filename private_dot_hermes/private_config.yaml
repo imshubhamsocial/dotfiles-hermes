@@ -61,6 +61,17 @@ compression:
   idle_compact_after_seconds: 0
 prompt_caching:
   cache_ttl: 5m
+auxiliary:
+  triage_specifier:
+    provider: custom
+    model: gemma-4-4b
+    base_url: http://127.0.0.1:8138/v1
+    timeout: 120
+  kanban_decomposer:
+    provider: custom
+    model: gemma-4-4b
+    base_url: http://127.0.0.1:8138/v1
+    timeout: 180
 display:
   compact: false
   busy_input_mode: interrupt
@@ -84,17 +95,14 @@ stt:
     model: whisper-1
     language: ''
 memory:
-  memory_enabled: true
-  user_profile_enabled: true
-  memory_char_limit: 2200
-  user_char_limit: 1375
-  nudge_interval: 10
+  provider: openviking
+  openviking:
+    endpoint: http://127.0.0.1:1933
+    agent: hermes
 delegation:
   max_iterations: 250
 skills:
-  trusted_project_dirs:
-    - /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes
-  creation_nudge_interval: 15
+  auto_sync: true
 plugins:
   enabled: []
 cron:
@@ -103,17 +111,6 @@ kanban:
   review_dispatch: true
   auto_decompose: true
   db_path: .hermes/kanban.db
-auxiliary:
-  kanban_decomposer:
-    provider: custom
-    model: gemma-4-4b
-    base_url: http://127.0.0.1:8138/v1
-    timeout: 180
-  triage_specifier:
-    provider: custom
-    model: gemma-4-4b
-    base_url: http://127.0.0.1:8138/v1
-    timeout: 120
 code_execution:
   timeout: 300
   max_tool_calls: 50
@@ -137,13 +134,6 @@ updates:
   non_interactive_local_changes: stash
 lsp:
   enabled: true
-memory:
-  provider: openviking
-  openviking:
-    endpoint: http://127.0.0.1:1933
-    agent: hermes
-skills:
-  auto_sync: true
 _config_version: 44
 group_sessions_per_user: true
 platform_toolsets:
@@ -169,6 +159,25 @@ platform_toolsets:
     - hermes-teams
   google_chat:
     - hermes-google_chat
+mcp_servers:
+  python_eval:
+    command: fastmcp
+    args:
+      - run
+      - ${userHome}/.hermes/plugins/mcp_servers/smolagents_mcp.py
+    enabled: true
+  web_extract_local:
+    command: fastmcp
+    args:
+      - run
+      - ${userHome}/.hermes/plugins/mcp_servers/crawl4ai_mcp.py
+    enabled: true
+  symbolic_solver:
+    command: fastmcp
+    args:
+      - run
+      - ${userHome}/.hermes/plugins/mcp_servers/symbolic_solver_mcp.py
+    enabled: true
 
 # ── Security ──────────────────────────────────────────────────────────
 # Secret redaction is ON by default — strings that look like API keys,

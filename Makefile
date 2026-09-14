@@ -13,7 +13,10 @@ HF_HUB_DIR     := $(HOME)/.cache/huggingface/hub
 
 .PHONY: help install sys-deps py-deps node-deps playwright \
         plugins-sync apply-chezmoi models-download server-setup \
-        searxng test test-contracts test-domain exam doctor clean
+        searxng test test-contracts test-domain exam doctor clean run-eval \
+        chezmoi-sync checkpoint-status checkpoint-prune security guardrails-test \
+        codebase-nav-bench memory-graph skills-status \
+        plan critique cron-status
 
 help: ## Display this help message
 	@echo "Hermes Agent OS — Developer Targets:"
@@ -26,7 +29,7 @@ sys-deps: ## Install system compilers, sandbox, and container utilities via DNF
 	@echo "==> Installing base system packages..."
 	@sudo dnf install -y gcc gcc-c++ make cmake clang ripgrep fd-find fzf tree htop nvtop \
 		bubblewrap e2fsprogs nodejs22 clang-tools-extra gdb valgrind \
-		python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs chezmoi jq curl wget ksshaskpass
+		python3.13 python3.13-devel openssl-devel libffi-devel git git-lfs gh chezmoi jq curl wget ksshaskpass
 
 py-deps: ## Install Python dependencies & upstream hermes engine
 	@echo "==> Installing Python dependencies..."
@@ -76,29 +79,35 @@ plugins-sync: apply-chezmoi ## Synchronize all plugins declared in hermes-pack.y
 	done
 	@hermes plugins list --no-bundled
 
-models-download: ## Download Gemma-4 Q4_K_M & MTP speculative draft models
+models-download: ## Download Google Gemma-4 QAT Q4_0 & MTP speculative draft models
 	@echo "==> Verifying models in standard cache..."
-	@python3.13 -c "import os; from huggingface_hub import hf_hub_download; target_dir = os.path.expanduser('~/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main'); os.makedirs(target_dir, exist_ok=True); [hf_hub_download(repo_id=repo, filename=fn, local_dir=target_dir) for fn, repo in [('gemma-4-E4B-it-Q4_K_M.gguf', 'bartowski/gemma-4-E4B-it-GGUF'), ('mtp-gemma-4-E4B-it-Q4_0.gguf', 'bartowski/gemma-4-E4B-it-GGUF')] if not os.path.exists(os.path.join(target_dir, fn))]"
+	@python3.13 -c "import os; from huggingface_hub import hf_hub_download; qat_dir = os.path.expanduser('~/.cache/huggingface/hub/models--google--gemma-4-E4B-it-qat-q4_0-gguf/snapshots/main'); mtp_dir = os.path.expanduser('~/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main'); os.makedirs(qat_dir, exist_ok=True); os.makedirs(mtp_dir, exist_ok=True); [hf_hub_download(repo_id='google/gemma-4-E4B-it-qat-q4_0-gguf', filename='gemma-4-E4B_q4_0-it.gguf', local_dir=qat_dir) if not os.path.exists(os.path.join(qat_dir, 'gemma-4-E4B_q4_0-it.gguf')) else None]; [hf_hub_download(repo_id='bartowski/gemma-4-E4B-it-GGUF', filename='mtp-gemma-4-E4B-it-Q4_0.gguf', local_dir=mtp_dir) if not os.path.exists(os.path.join(mtp_dir, 'mtp-gemma-4-E4B-it-Q4_0.gguf')) else None]"
+
+define LLAMA_SERVER_SCRIPT
+#!/usr/bin/env bash
+set -euo pipefail
+SITE_PACKAGES="$$(python3 -m site --user-site 2>/dev/null || python3.14 -m site --user-site 2>/dev/null || python3.13 -m site --user-site 2>/dev/null || echo "$${HOME}/.local/lib/python3.14/site-packages")"
+LLAMA_LIB_DIR="$${HOME}/.local/lib:$${WORKSPACE_ROOT:-$$(pwd)}/.local/lib"
+SERVER_BIN="$${HOME}/.local/bin/llama-server.bin"
+export LD_LIBRARY_PATH="$${LLAMA_LIB_DIR}:$${SITE_PACKAGES}/nvidia/cu13/lib:$${SITE_PACKAGES}/nvidia/cublas/lib:$${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:$${SITE_PACKAGES}/nvidia/nccl/lib:$${SITE_PACKAGES}/nvidia/cuda_runtime/lib:$${HOME}/.local/share/cuda-libs:$${LD_LIBRARY_PATH:-}"
+HF_HUB_DIR="$${HF_HUB_DIR:-$${WORKSPACE_ROOT:-$$(pwd)}/.cache/huggingface/hub}"
+if [[ ! -d "$$HF_HUB_DIR" && -d "$${HOME}/.cache/huggingface/hub" ]]; then
+    HF_HUB_DIR="$${HOME}/.cache/huggingface/hub"
+fi
+MODEL_MAIN="$${HF_HUB_DIR}/models--google--gemma-4-E4B-it-qat-q4_0-gguf/snapshots/main/gemma-4-E4B_q4_0-it.gguf"
+MODEL_DRAFT="$${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
+DRAFT_FLAGS=()
+if [[ -f "$$MODEL_DRAFT" ]]; then
+    DRAFT_FLAGS=(--model-draft "$$MODEL_DRAFT" --spec-draft-ngl 99 --spec-draft-n-max 2 --spec-draft-p-min 0.75)
+fi
+exec "$$SERVER_BIN" --model "$$MODEL_MAIN" "$${DRAFT_FLAGS[@]}" -ngl 99 --flash-attn on --jinja --reasoning-format none -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 1 --slot-save-path "$${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$$@"
+endef
+export LLAMA_SERVER_SCRIPT
 
 server-setup: ## Configure llama-server daemon launcher with hardware VRAM ceiling
 	@echo "==> Provisioning llama-server launcher..."
 	@mkdir -p "$(BIN_DIR)" "$(HERMES_DIR)/cache/slots"
-	@cat << 'LLAMA' > "$(BIN_DIR)/llama-server"
-	#!/usr/bin/env bash
-	set -euo pipefail
-	SITE_PACKAGES="$$(python3 -m site --user-site 2>/dev/null || python3.14 -m site --user-site 2>/dev/null || python3.13 -m site --user-site 2>/dev/null || echo "$${HOME}/.local/lib/python3.14/site-packages")"
-	LLAMA_LIB_DIR="$${HOME}/.local/lib:$${WORKSPACE_ROOT}/.local/lib"
-	SERVER_BIN="$${HOME}/.local/bin/llama-server.bin"
-	export LD_LIBRARY_PATH="$${LLAMA_LIB_DIR}:$${SITE_PACKAGES}/nvidia/cu13/lib:$${SITE_PACKAGES}/nvidia/cublas/lib:$${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:$${SITE_PACKAGES}/nvidia/nccl/lib:$${SITE_PACKAGES}/nvidia/cuda_runtime/lib:$${HOME}/.local/share/cuda-libs:$${LD_LIBRARY_PATH:-}"
-	HF_HUB_DIR="$${HF_HUB_DIR:-$${HOME}/.cache/huggingface/hub}"
-	MODEL_MAIN="$${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/gemma-4-E4B-it-Q4_K_M.gguf"
-	MODEL_DRAFT="$${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
-	DRAFT_FLAGS=()
-	if [[ -f "$$MODEL_DRAFT" ]]; then
-	    DRAFT_FLAGS=(--model-draft "$$MODEL_DRAFT" --spec-draft-ngl 99 --spec-draft-n-max 3)
-	fi
-	exec "$$SERVER_BIN" --model "$$MODEL_MAIN" "$${DRAFT_FLAGS[@]}" -ngl 99 --flash-attn on --jinja -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 2 --slot-save-path "$${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$$@"
-	LLAMA
+	@printf '%s\n' "$$LLAMA_SERVER_SCRIPT" > "$(BIN_DIR)/llama-server"
 	@chmod +x "$(BIN_DIR)/llama-server"
 
 searxng: ## Ensure local SearXNG container daemon is running on port 8080
@@ -128,7 +137,50 @@ doctor: ## Run Hermes system health and plugin contract diagnostics
 		hermes plugins doctor "$$p" 2>/dev/null || true; \
 	done
 
+security: ## Run OSV.dev supply-chain vulnerability scan across installed components
+	@distrobox enter ws-hermes -- hermes security audit
+
+guardrails-test: ## Verify upstream NVIDIA NeMo Guardrails library actions
+	@distrobox enter ws-hermes -- python3 -c 'from nemoguardrails.library.sensitive_data_detection.actions import detect_sensitive_data; from nemoguardrails.library.jailbreak_detection.actions import jailbreak_detection_heuristics; print("✓ NVIDIA NeMo Guardrails upstream modules active.")'
+
+run-eval: ## Launch autonomous testbed evaluation in TUI mode (default: neovim_eval)
+	@python3 tests/run_testbed.py
+
 clean: ## Clean up temporary bytecode and pytest caches
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✓ Clean complete."
+
+chezmoi-sync: ## Synchronize ~/.hermes configuration into Chezmoi repository
+	@distrobox enter ws-hermes -- chezmoi re-add .hermes
+	@echo "✓ Chezmoi parity synchronized."
+
+checkpoint-status: ## Show filesystem checkpoint store status and size
+	@distrobox enter ws-hermes -- hermes checkpoints status
+
+checkpoint-prune: ## Delete orphan/stale checkpoints and GC the store
+	@distrobox enter ws-hermes -- hermes checkpoints prune
+
+codebase-nav-bench: ## Run upstream codebase navigability benchmark
+	@mkdir -p .hermes/evals/nav_bench
+	@distrobox enter ws-hermes -- .hermes/hermes-agent/venv/bin/python3 .hermes/hermes-agent/evals/codebase_navigability/bench.py .hermes/hermes-agent baseline --out .hermes/evals/nav_bench
+	@echo "✓ Navigability benchmark complete."
+
+memory-graph: ## Visualize entity-relationship memory graph
+	@distrobox enter ws-hermes -- hermes memory-graph --json
+
+skills-status: ## List installed skills and trust status
+	@distrobox enter ws-hermes -- hermes skills list
+
+plan: ## Decompose a task into specialist subtasks via Kanban
+	@distrobox enter ws-hermes -- hermes kanban decompose
+
+critique: ## Run deterministic diff-aware critique via reviewdog and linters
+	@distrobox enter ws-hermes -- bash -c 'PATH=$$HOME/.local/bin:$$PATH reviewdog -diff="git diff" -reporter=local'
+
+cron-status: ## Show all scheduled jobs and their health status
+	@distrobox enter ws-hermes -- hermes cron list
+
+mcp-status: ## List configured MCP servers and tool counts
+	@distrobox enter ws-hermes -- hermes mcp list
+

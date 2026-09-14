@@ -14,4 +14,4 @@ DRAFT_FLAGS=()
 if [[ -f "$MODEL_DRAFT" ]]; then
     DRAFT_FLAGS=(--model-draft "$MODEL_DRAFT" --spec-draft-ngl 99 --spec-draft-n-max 2 --spec-draft-p-min 0.75)
 fi
-exec "$SERVER_BIN" --model "$MODEL_MAIN" "${DRAFT_FLAGS[@]}" -ngl 99 --flash-attn on --jinja --reasoning-format none -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 1 --slot-save-path "${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$@"
+exec "$SERVER_BIN" --model "$MODEL_MAIN" "${DRAFT_FLAGS[@]}" -ngl 99 --flash-attn on --jinja --reasoning-format auto -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 1 --slot-save-path "${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$@"

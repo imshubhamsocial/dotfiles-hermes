@@ -60,6 +60,11 @@ Before emitting code, analyze and outline:
 - **Dry-Run Check**: Verify that all variables accessed in event loops (`animate()`, request handlers) are guaranteed to exist at invocation time.
 - **Syntactic Gate**: Confirm that all opening braces, quotes, and brackets are balanced before claiming completion.
 
+### Phase 4: Direct Tool Invocation (Zero-Confirmation Action)
+- Never print proposed patches or draft JSON blocks as conversational text.
+- When Phase 3 self-critique is complete, immediately invoke the native `write_file` or `patch` tool call.
+- Do not wait for confirmation or ask permission; execute the edit directly, then invoke the upstream sanitizer.
+
 ---
 
 ## 2. Core Operating Philosophy (The 5 Universal Pillars)
@@ -79,6 +84,7 @@ Before emitting code, analyze and outline:
 
 4. **Surgical Precision & Structural Integrity (Claude Code Standard)**:
    - When using `patch`, ensure unique anchor lines, accurate whitespace, and valid scope boundaries.
+   - **Raw Source Byte Invariant**: `read_file` renders line-number prefixes (`1|`, `2|`) solely for visual reference. `write_file` and `patch` accept ONLY clean, unnumbered source code. NEVER include line numbers (`1|`, `33|`) or prompt delimiters in tool call arguments.
    - In event-driven and graphical applications, prevent startup race conditions by respecting lifecycle event ordering.
 
 5. **Methodical Root-Cause Diagnosis (DeepSeek Harness Cycle)**:
@@ -161,7 +167,12 @@ Before emitting code, analyze and outline:
       - **No Re-inventing Solvers**: Never generate slow CPU-bound loops when hardware-native bindings exist.
 
 17. **Boris Cherny Operating Rules & Self-Sanitization Protocol**:
-    - **Rule 7 (PostToolUse Auto-Sanitizer)**: Always run `biome format --write <file>` after patching to guarantee clean formatting and catch unclosed tags.
+    - **Rule 7 (Deterministic Upstream Auto-Sanitizer & LSP Gate)**:
+      After modifying files via `write_file` or `patch`, immediately invoke the corresponding native upstream tool via terminal to sanitize formatting and verify AST syntax before running tests:
+      * **Python**: Run `ruff format <file> && ruff check --fix <file>` (instant PEP-8 alignment, auto-fixes imports, syntax, and indentation), followed by `pyright <file>` for static type contracts.
+      * **C / C++**: Run `clang-format -i <file>` for formatting, followed by `clang-tidy <file> --` or `clangd` diagnostics.
+      * **JS / TS / Web / JSON**: Run `biome format --write <file> && biome check --write <file>`.
+      * **Diff Review**: Run `reviewdog -diff="git diff" -reporter=local` to catch regressions across modified lines.
     - **Rule 9 (Thinking for Everything)**: Keep `<|think_on|>` active to maintain deep System-2 reasoning while keeping context windows strictly bounded ($\le 8,192$ tokens).
     - **Rule 10 (Dynamic Motion & Kinematics Invariants)**: In simulation and UI tasks, verify that active physics positions change over time ($\Delta\text{pos} > 0.001$) rather than relying on superficial DOM checks.
 

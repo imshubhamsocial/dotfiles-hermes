@@ -107,6 +107,7 @@ plugins:
   enabled:
     - browser/browser_use
     - graph_context
+    - web/ddgs
   disabled: []
   entries:
     graph_context:

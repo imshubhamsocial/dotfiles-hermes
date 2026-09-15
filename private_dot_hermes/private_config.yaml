@@ -1,6 +1,9 @@
 database:
   journal_mode: wal
+display:
+  interface: tui
 runtime:
+
   nofile_soft_limit: 4096
 model:
   default: "google/gemma-4-E4B_q4_0-it"
@@ -28,7 +31,7 @@ browser:
     enabled: false
 tool_loop_guardrails:
   warnings_enabled: true
-  hard_stop_enabled: false
+  hard_stop_enabled: true
   non_interactive_hard_stop_enabled: true
   warn_after:
     exact_failure: 2
@@ -60,8 +63,10 @@ prompt_caching:
   cache_ttl: 5m
 memory:
   memory_enabled: true
+  session_search: true
   user_profile_enabled: true
   memory_char_limit: 2200
+
   user_char_limit: 1375
   nudge_interval: 10
 group_sessions_per_user: true
@@ -176,3 +181,26 @@ _config_version: 44
 # fallback_model:
 #   provider: openrouter
 #   model: anthropic/claude-sonnet-4
+
+monitoring:
+  gateway_health_export:
+    enabled: true
+  export:
+    otlp:
+      enabled: true
+      endpoint: "http://127.0.0.1:4318"
+
+telemetry:
+  otlp_endpoint: "http://127.0.0.1:4318"
+
+guardrails:
+  enabled: true
+  config_path: ".hermes/guardrails/config.co"
+
+tools:
+  semgrep:
+    enabled: true
+  reviewdog:
+    enabled: true
+
+

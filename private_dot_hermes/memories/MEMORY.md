@@ -17,3 +17,8 @@ Every session adheres to the BPE memory model (belief.md for environmental facts
 
 § Invariant 6: Cryptographic Audit Trail & Security Boundary
 All filesystem mutations, role security checks (@architect, @coder, @tester), and Shannon entropy validations are chained into an append-only SHA256 cryptographic audit ledger.
+§ Invariant 7: Kernel Namespace Isolation & Bwrap Evaluation Sandbox
+Evaluations must execute in a Bubblewrap kernel sandbox (`bwrap_eval_runner.sh`) masking root repository files from `/workspace` to prevent build hijacking and scope drift.
+
+§ Resolution Pattern: Pydantic v2 Migration & External Library Deprecations
+In Pydantic v2+, `BaseSettings` was moved from `pydantic` to the dedicated `pydantic-settings` package. When encountering `ImportError: cannot import name 'BaseSettings' from 'pydantic'`, ground via live web search (`web_search`), install `pydantic-settings`, and update imports surgically: `from pydantic_settings import BaseSettings`. Verified via autonomous pytest execution (exit code 0).

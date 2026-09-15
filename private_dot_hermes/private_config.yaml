@@ -6,10 +6,10 @@ runtime:
 
   nofile_soft_limit: 4096
 model:
-  default: "Nanbeige/Nanbeige4.1-3B"
+  default: "google/gemma-4-E4B_q4_0-it"
   provider: "custom"
   base_url: "http://127.0.0.1:8138/v1"
-  context_length: 98304
+  context_length: 131072
 kanban:
   review_dispatch: true
 cron:

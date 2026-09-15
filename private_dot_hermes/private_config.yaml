@@ -71,12 +71,12 @@ memory:
   nudge_interval: 10
 group_sessions_per_user: true
 streaming:
-  enabled: false
+  enabled: true
 skills:
   creation_nudge_interval: 15
 agent:
   max_turns: 500
-  verbose: false
+  verbose: true
   reasoning_effort: medium
   service_tier: ''
   fast_auto_seconds: 60
@@ -128,7 +128,7 @@ display:
   background_process_notifications: concise
   bell_on_complete: false
   bell_on_prompt: false
-  show_reasoning: false
+  show_reasoning: true
   streaming: true
   skin: default
 telemetry:

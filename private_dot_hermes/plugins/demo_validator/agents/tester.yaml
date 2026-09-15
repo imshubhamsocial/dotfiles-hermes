@@ -1,5 +1,0 @@
-role: tester
-description: "Plugin-provided tester subagent for AST validation tasks"
-reasoning_effort: medium
-tools_allowed: [run_test_suite, read_file, grep_codebase]
-tools_denied: [write_file, patch_file]

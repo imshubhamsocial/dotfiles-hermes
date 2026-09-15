@@ -52,9 +52,6 @@ benchmark = ["numpy>=1.24.0", "matplotlib>=3.7.0"]
 Homepage = "https://github.com/nousresearch/hermes-agent"
 Repository = "https://github.com/nousresearch/hermes-agent"
 
-[tool.setuptools.packages.find]
-where = [".hermes"]
-include = ["plugins*"]
 
 [tool.ruff]
 line-length = 120

@@ -1,4 +1,0 @@
-name: skill-batching
-version: 1.0.0
-description: "Cluster-phase skill-guided batching (#4k)"
-kind: standalone

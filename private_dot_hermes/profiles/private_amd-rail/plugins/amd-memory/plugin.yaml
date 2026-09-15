@@ -1,4 +1,0 @@
-name: amd-memory
-version: 1.0.0
-description: "HILO AMD rail — isolated profile (Entry 72): only the memory middleware, no thinking/budget levers"
-kind: standalone

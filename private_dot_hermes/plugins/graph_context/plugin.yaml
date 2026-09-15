@@ -1,6 +1,0 @@
-name: graph_context
-version: 1.0.0
-description: "Temporal knowledge graph context injection via DuckDB and graphiti-core. Tracks and surfaces recently modified codebase entities."
-author: "NousResearch"
-hooks:
-  - pre_tool_call

@@ -1,7 +1,0 @@
-name: symbol_index
-version: "1.0.0"
-description: "AST Codebase Symbol Graph and Automated C4 Architecture Documentation Generator (Litho pattern)."
-author: "Hermes Core Engineering / Litho Pattern"
-kind: standalone
-tags: [ast, symbol-index, c4, documentation, diagrams, litho]
-enabled: true

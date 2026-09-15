@@ -1,6 +1,0 @@
-name: adk_orchestrator
-version: 1.0.0
-description: Google ADK 2.8.0 Pipeline & Hermes Multi-Agent Orchestrator.
-kind: standalone
-tags: [adk, multi-agent, swarm, orchestrator]
-enabled: true

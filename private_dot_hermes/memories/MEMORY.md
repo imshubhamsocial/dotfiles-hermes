@@ -24,10 +24,4 @@ Evaluations execute inside Bubblewrap sandbox (`tests/bwrap_eval_runner.sh`) mas
 § Invariant 8: SMART Design Docs & L5 Recursive Optimization
 Code is treated as ephemeral compilation of durable SMART markdown specs (`specs/*.md`). Telemetry-identified latency bottlenecks drive autonomous spec updates and concurrent dispatch refactors verified by pytest (`elapsed < 0.05s`).
 §
-System environment is ready: ninja, ast-grep, and gdb are available in PATH.
-Baseline build successful: `ninja -C ./neovim/build` exits cleanly (0).
-Issue #41883 failure confirmed: `./repro_undolist.sh` runs and fails as expected (exit 1).
-Target code `undo.c` contains expected functions (`u_save`, `ex_undolist`).
-Working directory contains tracked files like `AGENTS.md`, `repro_undolist.sh`, and source code. No accidental source code modifications detected.
-§
-Project 'hermes/phase3_autonomous_eval' requires using 'pydantic-settings' instead of Pydantic BaseSettings due to deprecation. Test command is './run_tests.sh'. Adhere to Karpathy U12, Aider SEARCH/REPLACE, and Zero Root Pollution.
+Phase 4 testbed: Runtime tool dispatch optimization. Test command is ./run_tests.sh. Baseline latency is ~0.60s (> 0.05s threshold) due to sequential unbatched dispatch. Enforce SMART spec precedence and Karpathy U12.

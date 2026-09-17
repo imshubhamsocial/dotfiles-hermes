@@ -1,32 +1,30 @@
-# SQL Injection Defense Rule: Parameterized Queries
+# AST Security Rule: Parameterized Query Defense
 
 ## Overview
-This rule enforces the use of parameterized queries to prevent SQL Injection (CWE-89) vulnerabilities in Python database interactions. SQL queries must use placeholders (e.g., `?` for SQLite) and pass user-supplied variables as a separate tuple/list to the execution method (e.g., `cursor.execute(query, (params,))`).
+This rule targets the use of f-strings or string concatenation to construct SQL queries, which is a primary cause of SQL injection (CWE-89).
 
-## Detection (AST-grep)
-This rule targets raw f-string interpolation within SQL query strings.
+## Detection Pattern
+The rule uses AST analysis to detect when a string literal, potentially containing variable names, is formatted (e.g., via f-strings) and then passed directly as the query argument to `cursor.execute()`.
 
-### Pattern (AST-grep)
-The following pattern detects an f-string used to build a SQL query:
-
-```yaml
-id: sql-injection-fstring-use
-language: python
-severity: error
-rules:
-  - pattern: |
-      cursor.execute(f"SELECT * FROM users WHERE username = '{username}'", )
-```
-
-## Fix
-The fix requires replacing the string interpolation with a parameterized query structure.
-
-### Correct Usage
+## Vulnerable Pattern (CWE-89)
 ```python
-# Use placeholders (?) and pass variables in the second argument
-query = "SELECT id, username, role FROM users WHERE username = ?"
-cursor.execute(query, (username,))
+# Vulnerable: Uses string formatting to inject user-controlled input into SQL
+query = f"SELECT * FROM users WHERE username = '{username}'"
+cursor.execute(query) # Input 'username' is not sanitized
 ```
 
-## Enforcement
-All database interactions identified by this rule must be audited and rewritten to utilize parameterized statements. Do not use string concatenation or f-strings for dynamic query parts.
+## Defense Mechanism
+All database interactions must utilize parameterized queries. This means using placeholders (like `?` or `%s`) in the query string and passing the user-controlled variables as a separate tuple or list in the second argument of `execute()`.
+
+## Correct Pattern
+```python
+# Safe: Parameterized query using placeholders
+query = "SELECT * FROM users WHERE username = ?"
+cursor.execute(query, (username,)) # Input is treated as data, not executable code
+```
+
+## Structural Requirements
+1. **Detect**: Look for string formatting operations applied to SQL strings before execution.
+2. **Remediate**: Rewrite the pattern to use database driver-specific placeholders and separate argument passing.
+3. **Verify**: Run `ast-grep scan -r rules/sqli_fstring.yml` and verify the fix.
+4. **Test**: Ensure existing unit tests cover the parameterized approach and that new tests fail when f-string injection is attempted.

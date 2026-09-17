@@ -148,6 +148,9 @@ Every plan, code change, or terminal command executed by an AI agent must strict
   - All multi-step workflows must execute within the autonomous `/loop` paradigm:
     $$\text{Substrate Recon} \longrightarrow \text{Hypothesis DAG} \longrightarrow \text{Surgical Diff} \longrightarrow \text{Compiler Gate} \longrightarrow \text{Test Verification} \longrightarrow \text{Invariant Distillation}$$
   - **Closed-Loop Distillation (`/loop learn` / `/learn`)**: Every successfully verified goal resolution must conclude with `/loop learn` (or `/learn` in the interactive TUI) to extract discovered build commands, tool caveats, and architectural invariants into `.hermes/rules/` and long-term memory.
+    - Invariant coding & security rules belong in `.hermes/rules/` (unbounded length, system-prompt loaded).
+    - Session notes & repo caveats belong in `.hermes/memories/` via `memory` tool.
+    - Multi-step toolchains belong in `.hermes/skills/` via `skill_manage` (with strict frontmatter description < 50 chars).
 * **Community & Production Parity**:
   Leading developers and frontier autonomous agent communities operate Hermes exclusively through this combined `/goal` + `/loop` paradigm. All evaluation scripts (`run_eval.sh`), launcher commands, and interactive developer sessions in this repository must enforce this standard.
 

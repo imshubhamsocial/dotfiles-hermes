@@ -1,9 +1,0 @@
-job:
-  name: weekly_evolution
-  schedule: "0 2 * * 0" # Every Sunday at 02:00 UTC
-  timezone: "UTC"
-  command: "bash ~/.hermes/cron/weekly_evolution.sh"
-  description: "Weekly self-evolution automation running skill benchmarks, failure audits, and evolution proposals."
-  enabled: true
-  retries: 2
-  timeout: 600

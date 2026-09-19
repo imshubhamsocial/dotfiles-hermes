@@ -2,10 +2,10 @@
 title: "Hermes Agent OS & Living Harness"
 version: "3.0.0-AGY-FRONTIER"
 runtime: "ws-hermes"
-model: "gemma-4-E4B-it-Q4_K_M.gguf"
+model: "gemma-4-E4B_q4_0-it.gguf"
 hardware_requirements:
-  gpu_vram_limit_mib: 4800
-  context_window_tokens: 65536
+  gpu_vram_limit_mib: 4812
+  context_window_tokens: 131072
   kv_cache: "q4_0"
 capabilities:
   - "google-antigravity-2.0-artifacts"
@@ -44,7 +44,7 @@ tags:
 # Hermes Agent OS & Living Harness (Era 10)
 
 > **Google AGY-Ready Self-Learning Superintelligence Harness on Consumer Silicon**  
-> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, Antigravity 2.0 Bridge, Magentic-One Dual Ledgers, BPE Workspaces, Trajectory DB, and Hardware-Hardened Sandboxing (**10/10 In-Process Verification Contracts Passing**).
+> Calibrated for 4B/8B Small Language Models (SLMs) with Zero-Bloat Prefix Caching, Realigned 4-Tier Clean Upstream Architecture, 128K Context, and Isolated Git Testbeds under `tests/`. See [`State.md`](State.md) for live state and [`Plan.md`](Plan.md) for realignment roadmap.
 
 ---
 

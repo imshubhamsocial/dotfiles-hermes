@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "test": "hermes doctor",
-    "lint": "biome check .",
-    "format": "biome format --write .",
+    "lint": "biome check --config-path .hermes/biome.json .",
+    "format": "biome format --write --config-path .hermes/biome.json .",
     "ast:search": "ast-grep scan"
   },
   "devDependencies": {

@@ -32,7 +32,15 @@
       "!**/runtime",
       "!**/desktop",
       "!**/*boot*.json",
-      "!**/spawn-trees"
+      "!**/spawn-trees",
+      "!**/.gemini",
+      "!**/.npm",
+      "!**/.openviking",
+      "!**/.crawl4ai",
+      "!**/.dspy_cache",
+      "!**/.mem0",
+      "!**/.ua",
+      "!**/.hermes/**"
     ]
   },
   "formatter": {

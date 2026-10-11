@@ -69,6 +69,7 @@ exclude = [
     ".hermes/skills",
     ".hermes/profiles",
     "tests",
+    "node_modules",
 ]
 
 [tool.ruff.lint]

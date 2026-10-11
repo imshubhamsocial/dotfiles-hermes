@@ -10,6 +10,31 @@ model:
   provider: "custom"
   base_url: "http://127.0.0.1:8138/v1"
   context_length: 131072
+custom_providers:
+  - name: omniroute
+    base_url: http://localhost:20128/v1
+    api_key: sk-nadia-master
+    display_name: OmniRoute Gateway
+    models: {}
+  - name: opencode
+    base_url: http://127.0.0.1:20129/v1
+    api_key: sk-opencode-local
+    display_name: OpenCode CLI Bridge
+    models: {}
+  - name: freellmapi
+    base_url: http://localhost:3001/v1
+    api_key: freellmapi-5b132111b512a8e8eb3b2d7c4ddb35f969f0484968cedd59
+    display_name: FreeLLMAPI Gateway
+    models: {}
+  - name: kaggle
+    base_url: http://127.0.0.1:20130/v1
+    api_key: sk-kaggle-local
+    display_name: Kaggle Cloud GPU (NVIDIA Tesla P100)
+    models:
+      "gemma4:A12B":
+        context_length: 65536
+      "gemma-4-12b":
+        context_length: 65536
 kanban:
   review_dispatch: true
 cron:
@@ -62,13 +87,15 @@ compression:
 prompt_caching:
   cache_ttl: 5m
 memory:
+  provider: openviking
   memory_enabled: true
   session_search: true
   user_profile_enabled: true
   memory_char_limit: 2200
-
   user_char_limit: 1375
   nudge_interval: 10
+  openviking:
+    agent: hermes-ws
 group_sessions_per_user: true
 streaming:
   enabled: true
@@ -204,3 +231,9 @@ tools:
     enabled: true
 
 
+
+mcp_servers:
+  openjev:
+    command: "python3.13"
+    args:
+      - "${userHome}/.hermes/mcp_openjev.py"

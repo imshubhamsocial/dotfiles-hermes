@@ -542,3 +542,6 @@ IMAGE_TOOLS_DEBUG=false
 # at https://www.reddit.com/prefs/apps and paste its id and secret here.
 # REDDIT_CLIENT_ID=
 # REDDIT_CLIENT_SECRET=
+
+# OpenViking Memory Provider
+OPENVIKING_ENDPOINT=http://127.0.0.1:1933

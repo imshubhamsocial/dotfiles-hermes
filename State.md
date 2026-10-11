@@ -43,41 +43,19 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 
 ---
 
-## 3. Active Isolated Testbeds (`tests/`)
+## 3. Canonical Isolated Testbeds (`tests/`)
 
-Per **Law 11** and **Law 12**, all prompt evaluations and synthetic scenarios execute in self-contained sub-repositories under `tests/` driven by `/goal` contracts:
+Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios execute in self-contained sub-repositories under `tests/` driven by `/goal` contracts:
 
-1. **[`tests/phase4_autonomous_eval/`](tests/phase4_autonomous_eval/)**:
-   - **Target**: Full Frontier Parity & L5 Recursive Self-Improvement (telemetry diagnosis, SMART design spec synchronization, concurrent tool dispatch refactoring, sub-0.05s performance gate, autonomous memory consolidation).
-   - **Current State**: **100% PASSED & CERTIFIED**.
-     - **Stage 1 (Claude Setup & Autonomous Memory Hygiene)**: Inspected telemetry traces, reproduced 0.601s unbatched bottleneck, created [`AGENTS.md`](tests/phase4_autonomous_eval/AGENTS.md), and autonomously consolidated [`MEMORY.md`](.hermes/memories/MEMORY.md) via native `memory` tool batch operation (1,717/2,200 chars).
-     - **Stage 2 (Autonomous RSI & Optimization Gate)**: Ingested SDD skills (`to-spec`, `tdd`, `verification-loop`), updated [`specs/runtime_optimization.md`](tests/phase4_autonomous_eval/specs/runtime_optimization.md), refactored [`src/runtime_engine.py`](tests/phase4_autonomous_eval/src/runtime_engine.py) to concurrent dispatch, passed pytest gate in **0.01s** (`elapsed < 0.05s`), committed patch `2c9ae31`, distilled invariant rule [`rule_runtime_tool_dispatch_optimization.md`](.hermes/rules/rule_runtime_tool_dispatch_optimization.md), and created reusable skill [`runtime-dispatch-optimization`](.hermes/skills/performance-engineering/runtime-dispatch-optimization/).
-
-2. **[`tests/phase2_autonomous_eval/`](tests/phase2_autonomous_eval/)**:
-   - **Target**: Complete 2-stage verification of Cognitive Scaffolding & Structural Code Surgery (`ast-grep` + Aider diff + Karpathy U12 limit) with closed-loop invariant learning.
-   - **Current State**: **100% PASSED & CERTIFIED**.
-     - **Stage 1 (Claude Setup)**: Inspected repository layout, verified `ast-grep`, ran `./run_tests.sh` to record baseline SQLi failure, scanned AST rules, and created [`AGENTS.md`](tests/phase2_autonomous_eval/AGENTS.md).
-     - **Stage 2 (AST Surgery & Learning)**: Pinpointed AST node with `ast-grep scan -r rules/sqli_fstring.yml`, applied surgical parameterized query patch (`(?, (username,))`), asserted `./run_tests.sh` exit 0 (2/2 tests OK), committed patch `a9423a6` to git, and distilled invariant rule [`.hermes/rules/rule_ast_parameterized_query_defense.md`](.hermes/rules/rule_ast_parameterized_query_defense.md).
-
-3. **[`tests/phase3_autonomous_eval/`](tests/phase3_autonomous_eval/)**:
-   - **Target**: Multi-turn autonomous web-grounding and API deprecation resolution (Pydantic v2 `BaseSettings` migration) with closed-loop skill & rule distillation.
-   - **Current State**: **100% PASSED & CERTIFIED**.
-     - **Stage 1 (Claude Setup)**: Inspected repository layout, executed `./run_tests.sh` to capture `PydanticImportError`, and generated [`AGENTS.md`](tests/phase3_autonomous_eval/AGENTS.md).
-     - **Stage 2 (Autonomous Web Grounding & Learning)**: Triggered live web search (`web_search via ddgs`), extracted Pydantic v2 migration pattern, surgically patched `src/app_config.py` with Aider block, verified pytest exit 0 (2/2 tests OK), distilled invariant rule [`.hermes/rules/rule_pydantic_settings_migration.md`](.hermes/rules/rule_pydantic_settings_migration.md), and authored reusable skill [`.hermes/skills/software-development/pydantic-settings-migration/`](.hermes/skills/software-development/pydantic-settings-migration/).
-
-3. **[`tests/ast_grep_eval/`](tests/ast_grep_eval/)**:
+1. **[`tests/ast_grep_eval/`](tests/ast_grep_eval/)**:
    - **Target**: Synthesize, search, and refactor polyglot codebases using structural AST patterns.
    - **Current State**: **PASSED**. Evaluated `ast-grep` pattern search on `sample_target.c` targeting `int $FN($VAR) { $$$ }`. Code compiled cleanly with `gcc`.
 
-4. **[`tests/neovim_eval/`](tests/neovim_eval/)**:
-   - **Target**: Enterprise C codebase verification (diagnosing and resolving Neovim issue #41883 where multicursor undolist is modified on no-op mode change).
-   - **Current State**: **READY & REPAIRED BASELINE**. Working tree in `neovim/` restored; `ninja -C ./neovim/build` compiles 49/49 targets cleanly; `./repro_undolist.sh` reproduces the bug deterministically.
-   - **3-Phase Protocol Codified**: Embedded into [`tests/neovim_eval/AGENTS.md`](tests/neovim_eval/AGENTS.md) and [`run_eval.sh`](tests/neovim_eval/run_eval.sh) (non-interactive GDB stack tracing, live web grounding, surgical Karpathy U12 diffs, Two-Strike Tabu rule, and post-verification `/learn` distillation).
-   - **Verification Gate**: `ninja -C ./neovim/build && ./repro_undolist.sh` asserting `PASS: undolist untouched on no-op mode change`.
-
-
-5. **[`tests/memory_eval/`](tests/memory_eval/)**:
+2. **[`tests/memory_eval/`](tests/memory_eval/)**:
    - **Target**: Verification of cross-session cognitive memory retrieval and invariant rule adherence without context saturation.
+   - **Current State**: **PASSED**. Validated SOP compliance and OpenViking hierarchical memory integration.
+
+> **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 
 ---
 

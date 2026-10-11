@@ -105,10 +105,7 @@ define VISION_SERVER_SCRIPT
 #!/usr/bin/env bash
 set -euo pipefail
 SERVER_BIN="$${HOME}/.local/bin/llama-server.bin"
-VISION_MODEL_DIR="$${HOME}/.cache/models/vision"
-if [[ ! -d "$$VISION_MODEL_DIR" ]]; then
-    VISION_MODEL_DIR="/var/home/imshubhamsocial/.cache/models/vision"
-fi
+VISION_MODEL_DIR="$${VISION_MODEL_DIR:-$${HOME}/.cache/models/vision}"
 exec "$$SERVER_BIN" \
     --model "$$VISION_MODEL_DIR/SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf" \
     --mmproj "$$VISION_MODEL_DIR/mmproj-SmolVLM2-256M-Video-Instruct-Q8_0.gguf" \
@@ -142,8 +139,8 @@ security: ## Run OSV.dev supply-chain vulnerability scan across installed compon
 guardrails-test: ## Verify upstream NVIDIA NeMo Guardrails library actions
 	@distrobox enter ws-hermes -- python3 -c 'from nemoguardrails.library.sensitive_data_detection.actions import detect_sensitive_data; from nemoguardrails.library.jailbreak_detection.actions import jailbreak_detection_heuristics; print("✓ NVIDIA NeMo Guardrails upstream modules active.")'
 
-run-eval: ## Launch autonomous testbed evaluation in TUI mode (default: neovim_eval)
-	@python3 tests/run_testbed.py
+run-eval: ## Launch canonical testbed evaluation (ast_grep_eval)
+	@distrobox enter ws-hermes -- hermes --in tests/ast_grep_eval "Search calculate_fibonacci using ast-grep and compile with gcc"
 
 clean: ## Clean up temporary bytecode and pytest caches
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

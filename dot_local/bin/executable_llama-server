@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SITE_PACKAGES="$(python3 -m site --user-site 2>/dev/null || python3.14 -m site --user-site 2>/dev/null || python3.13 -m site --user-site 2>/dev/null || echo "${HOME}/.local/lib/python3.14/site-packages")"
-LLAMA_LIB_DIR="${HOME}/.local/lib:${WORKSPACE_ROOT:-$(pwd)}/.local/lib"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-$SCRIPT_DIR}"
+LLAMA_LIB_DIR="${HOME}/.local/lib:${WORKSPACE_ROOT}/.local/lib"
 SERVER_BIN="${HOME}/.local/bin/llama-server.bin"
 export LD_LIBRARY_PATH="${LLAMA_LIB_DIR}:${SITE_PACKAGES}/nvidia/cu13/lib:${SITE_PACKAGES}/nvidia/cublas/lib:${SITE_PACKAGES}/nvidia/cuda_nvrtc/lib:${SITE_PACKAGES}/nvidia/nccl/lib:${SITE_PACKAGES}/nvidia/cuda_runtime/lib:${HOME}/.local/share/cuda-libs:${LD_LIBRARY_PATH:-}"
-HF_HUB_DIR="${HF_HUB_DIR:-${WORKSPACE_ROOT:-$(pwd)}/.cache/huggingface/hub}"
-if [[ ! -d "${HF_HUB_DIR}" && -d "${HOME}/.cache/huggingface/hub" ]]; then
+HF_HUB_DIR="${HF_HUB_DIR:-${WORKSPACE_ROOT}/.cache/huggingface/hub}"
+if [[ ! -d "$HF_HUB_DIR" && -d "${HOME}/.cache/huggingface/hub" ]]; then
     HF_HUB_DIR="${HOME}/.cache/huggingface/hub"
 fi
-MODEL_MAIN="${HF_HUB_DIR}/models--google--gemma-4-E4B-it-qat-q4_0-gguf/snapshots/main/gemma-4-E4B_q4_0-it.gguf"
+MODEL_MAIN="${HF_HUB_DIR}/models--NullpoLab--gemma-4-E4B-it-Heretic-ARA-Refusals6-attn-gguf/snapshots/main/gemma-4-E4B-it-Heretic-ARA-Refusals6-attn-Q4_K_M.gguf"
 MODEL_DRAFT="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
 DRAFT_FLAGS=()
-if [[ -f "$MODEL_DRAFT" ]]; then
-    DRAFT_FLAGS=(--model-draft "$MODEL_DRAFT" --spec-draft-ngl 99 --spec-draft-n-max 2 --spec-draft-p-min 0.75)
+if [[ "${USE_MTP:-0}" == "1" && -f "$MODEL_DRAFT" ]]; then
+    DRAFT_FLAGS=(--model-draft "$MODEL_DRAFT" --spec-type draft-mtp --spec-draft-ngl 99 --spec-draft-n-max 2 --spec-draft-p-min 0.75)
 fi
-exec "$SERVER_BIN" --model "$MODEL_MAIN" "${DRAFT_FLAGS[@]}" -ngl 99 --flash-attn on --jinja --reasoning-format auto -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 1 --slot-save-path "${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$@"
+exec "$SERVER_BIN" --model "$MODEL_MAIN" "${DRAFT_FLAGS[@]}" --alias "NullpoLab/gemma-4-E4B-it-Heretic-ARA-Refusals6-attn" -ngl 99 --flash-attn on --jinja --reasoning-format none -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 -np 1 --slot-save-path "${HOME}/.hermes/cache/slots" --threads 6 --threads-batch 6 --host 127.0.0.1 --port 8138 --metrics --temp 1.0 --top-p 0.95 --top-k 64 "$@"

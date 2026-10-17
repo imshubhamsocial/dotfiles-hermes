@@ -6,7 +6,7 @@ runtime:
 
   nofile_soft_limit: 4096
 model:
-  default: "NullpoLab/gemma-4-E4B-it-Heretic-ARA-Refusals6-attn"
+  default: "deadbydawn101/gemma-4-E4B-v2-Sol-Fable-Reasoning"
   provider: "custom"
   base_url: "http://127.0.0.1:8138/v1"
   context_length: 131072

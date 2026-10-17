@@ -1,8 +1,8 @@
 # State.md — Living Operational & Capability State of Hermes Agent OS
 
-> **Last Updated**: October 11, 2026  
+> **Last Updated**: October 18, 2026  
 > **Environment**: Fedora Distrobox (`ws-hermes`), NVIDIA RTX 3050 (6GB VRAM, 4,812 MiB Cap)  
-> **Primary LLM**: Google `gemma-4-E4B_q4_0-it.gguf` + Bartowski MTP Draft on Port 8138  
+> **Primary LLM**: `deadbydawn101/gemma-4-E4B-v2-Sol-Fable-Q4_K_M.gguf` + Bartowski MTP Draft on Port 8138  
 > **Vision Sidecar**: `SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf` on Port 8139 (CPU RAM)  
 > **Upstream Engine**: [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) tracking pristine `main`
 

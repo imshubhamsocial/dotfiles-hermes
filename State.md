@@ -68,7 +68,7 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 
 5. **[`tests/phase14_da_loopcd_eval/`](tests/phase14_da_loopcd_eval/)**:
    - **Target**: Verification of Declarative Attention token reduction (>= 48%), KV cache slot hit rate (>= 90%), and LoopCD greedy logprob branch selection on uncertainty dilemma.
-   - **Current State**: **PASSED**. Attended token reduction 85.71%, LoopCD Pass@1 gain +65.0%, KV slot hit rate 92.5%, peak VRAM 4,294 MiB. Living agent run cleanly refactored TokenBucketRateLimiter with surgical 2-line fix and passed pytest (3/3 OK).
+   - **Current State**: **PASSED & GDR2-CERTIFIED**. Attended token reduction 85.71%, LoopCD Pass@1 gain +65.0%, KV slot hit rate 92.5%, peak VRAM 4,294 MiB. Layer 1 epistemic verification receipt hook in `conftest.py` verified, producing `/tmp/hermes_verified_receipt.json` with exitstatus 0. Refactored TokenBucketRateLimiter with surgical 2-line fix, passing all 4 tests cleanly.
 
 > **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 

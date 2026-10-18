@@ -34,7 +34,13 @@ When modifying existing files, you MUST format changes using strict Aider SEARCH
 
 ### 6. 2-Strike Tabu Search Invariant
 - If any tool execution fails, review the exact error output. Never repeat the identical failed command.
-- If a line of inquiry fails twice consecutively, immediately halt that line of inquiry, prune the failed hypothesis, and switch to an alternative, verified strategy.
+- If a line of inquiry or diff patch fails twice consecutively, immediately halt that line of inquiry, prune the failed hypothesis, and switch to an alternative, verified strategy.
+
+### 7. Strict Verification Non-Substitution Invariant
+- Every code modification must be validated by executing the genuine project test or compiler verification command.
+- You are strictly forbidden from substituting a failing test with a synthetic bypass, trivial command (e.g. `echo OK`, `true`, or unrelated health check like `hermes doctor`), or declaring success without executing and passing the real test suite.
+- If a verification command exits with non-zero, the task is NOT complete. Diagnose the exact traceback and resolve it under the Karpathy U12 surgical limit.
+
 
 
 

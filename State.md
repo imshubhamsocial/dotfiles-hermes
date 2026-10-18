@@ -59,8 +59,8 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
    - **Current State**: **PASSED**. Validated SOP compliance and OpenViking hierarchical memory integration.
 
 3. **[`tests/phase12_sol_pi_eval/`](tests/phase12_sol_pi_eval/)**:
-   - **Target**: Verification of SoL-Pi action coalescing, 2-strike tabu guard, exit-code-preserving split head/tail handle, and strict verification non-substitution.
-   - **Current State**: **PASSED & CERTIFIED**. 76.91% token reduction, peak VRAM 4,294 MiB, Tabu halt validated, tracebacks preserved without pipeline exit masking. Living ground-reality agent run resolved un-spoon-fed KeyError defect in `DataPipeline` under 1,200-line telemetry flood with surgical 1-line patch (`Karpathy U12 <= 10`), passing all 5 testbed tests cleanly (exit code 0). Invariant 5 enforced.
+   - **Target**: Verification of SoL-Pi action coalescing, 2-strike tabu guard, exit-code-preserving split head/tail handle, trimmed `SOUL.md` (< 550 tokens), and zero-token deterministic epistemic closure ($V_{\text{executed}} \equiv V_{\text{contract}}$).
+   - **Current State**: **PASSED & GDR2-CERTIFIED**. 76.91% token reduction, peak VRAM 4,294 MiB, Tabu halt validated, tracebacks preserved without pipeline exit masking. Living agent executed un-spoon-fed natural prompt, applied surgical 1-line diff, and passed pytest with 0 errors. Layer 1 `conftest.py` hook automatically generated validated cryptographic receipt `/tmp/hermes_verified_receipt.json` (exitstatus 0). All 5 tests passing cleanly.
 
 4. **[`tests/phase13_stair_memory_eval/`](tests/phase13_stair_memory_eval/)**:
    - **Target**: Verification of STAIR structural AST Table-of-Contents extraction, polyglot symbol addressing, and zero chunk boundary slicing errors.

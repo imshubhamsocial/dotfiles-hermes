@@ -64,7 +64,7 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 
 4. **[`tests/phase13_stair_memory_eval/`](tests/phase13_stair_memory_eval/)**:
    - **Target**: Verification of STAIR structural AST Table-of-Contents extraction, polyglot symbol addressing, and zero chunk boundary slicing errors.
-   - **Current State**: **PASSED**. Recall@1 100.0% (12/12 symbols indexed), 0 chunk errors, 0 MiB CUDA VRAM delta.
+   - **Current State**: **PASSED & GDR2-CERTIFIED**. Recall@1 100.0% (12/12 symbols indexed), 0 chunk errors, 0 MiB CUDA VRAM delta (peak 4,294 MiB). Layer 1 epistemic verification receipt hook in `conftest.py` verified, producing `/tmp/hermes_verified_receipt.json` with exitstatus 0. Multi-tenant JWT auth engine verified with surgical 1-line 3-key fallback (`tenant_id`, `tid`, `tenant`), passing all 5 tests cleanly with immutable test assertion enforcement.
 
 5. **[`tests/phase14_da_loopcd_eval/`](tests/phase14_da_loopcd_eval/)**:
    - **Target**: Verification of Declarative Attention token reduction (>= 48%), KV cache slot hit rate (>= 90%), and LoopCD greedy logprob branch selection on uncertainty dilemma.

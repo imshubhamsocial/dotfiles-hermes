@@ -1,6 +1,6 @@
 # State.md — Living Operational & Capability State of Hermes Agent OS
 
-> **Last Updated**: October 18, 2026  
+> **Last Updated**: October 19, 2026  
 > **Environment**: Fedora Distrobox (`ws-hermes`), NVIDIA RTX 3050 (6GB VRAM, 4,812 MiB Cap)  
 > **Primary LLM**: `deadbydawn101/gemma-4-E4B-v2-Sol-Fable-Q4_K_M.gguf` + Bartowski MTP Draft on Port 8138  
 > **Vision Sidecar**: `SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf` on Port 8139 (CPU RAM)  
@@ -158,4 +158,55 @@ hermes doctor
 # Check GPU VRAM allocation (must remain <= 4,812 MiB)
 nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 ```
+
+---
+
+## 7. Next Session Resumption Plan: Phase 17 Execution Guide
+
+> **Handoff Timestamp**: October 19, 2026  
+> **Status at Handoff**: Phases 1–16 100% Certified (26/26 tests passing, receipts validated).  
+> **Active Target on Resumption**: **Phase 17 — Hardware-Bounded Test-Time Compute (TTC) Scaling and Hibernate-and-Train LoGRA/NoRA + GrowMTP Weight Evolution**.
+
+### 1. Step 1: Pre-Flight Health & Chained Regression Check
+Before authoring new code, run the master 5-phase testbed regression gate to guarantee clean initial state:
+```bash
+pytest tests/phase12_sol_pi_eval/ -q && \
+pytest tests/phase13_stair_memory_eval/scenario/polyglot_repo/test_polyglot_auth.py tests/phase13_stair_memory_eval/test_verify.py -q && \
+pytest tests/phase14_da_loopcd_eval/scenario/uncertainty_branch/test_rate_limiter.py tests/phase14_da_loopcd_eval/test_verify.py -q && \
+pytest tests/phase15_regen_security_eval/ -q && \
+pytest tests/phase16_dream_rsi_eval/scenario/test_dream_engine.py tests/phase16_dream_rsi_eval/test_verify.py -q
+```
+*Expected Result*: 26 passed in ~1.5s, exit code 0, all cryptographic receipts validated.
+
+### 2. Step 2: System Daemons & Hardware Status
+```bash
+# Check local Port 8138 llama-server:
+curl -s http://localhost:8138/health
+# Verify VRAM allocation (llama-server allocation: 4,294 MiB <= 4,812 MiB ceiling):
+nvidia-smi --query-gpu=memory.used,memory.total --format=csv
+# Check OpenViking (Port 1933):
+curl -s http://localhost:1933/health
+```
+
+### 3. Step 3: Phase 17 Technical Specification & Architectural Grounding
+* **Literature Grounding**:
+  - NVIDIA LoGRA (*Low-Rank Gradient Random Approximation for Memory-Efficient LLM RL*, arXiv:2610.06647)
+  - NoRA (*Normalized Low-Rank Adaptation*, arXiv:2608.31036)
+  - GrowMTP / Multi-Token Prediction (*DeepSeek / Bartowski*)
+* **Core Mechanisms**:
+  1. *Online TTC Compute Scaling*: Dynamically adapts `<|channel>thought` deliberation depth and Multi-Token Prediction parameters (`--spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-p-min 0.75`) bounded strictly within 4,812 MiB VRAM.
+  2. *Temporal Mutual Exclusion*: Halts `hermes-llama-server`, verifies GPU VRAM drops below 650 MiB, enforces PyTorch memory fraction `torch.cuda.set_per_process_memory_fraction(0.64)` (max 3,932 MiB, ensuring total GPU allocation $\le 4,812$ MiB), aligns MTP draft head weights using rank-64 random Gaussian gradient projections (LoGRA) and Frobenius-normalized initialization ($A \leftarrow A / \|A\|_F$, NoRA), restarts `hermes-llama-server`, and verifies speculative throughput $\ge 39.7$ tok/s.
+* **Target Artifacts to Author**:
+  - `~/.hermes/rules/rule_ttc_scaling_logra_evolution.md` (System prompt invariant rule, synced to Chezmoi).
+  - `~/.hermes/skills/logra-nora-evolver/SKILL.md` (Frontmatter description $\le 40$ chars, e.g. `"LoGRA NoRA hibernate weight evolver"`).
+  - `scripts/hibernate_train_mtp.py` (Script managing temporal mutual exclusion, LoGRA/NoRA alignment, and daemon restart).
+  - Testbed `tests/phase17_logra_nora_eval/` (Self-contained Git repo with `conftest.py` epistemic receipt hook, `benchmark_logra_nora.py`, `test_verify.py`, `run_eval.sh`, and `scenario/`).
+
+### 4. Step 4: Machine Verification Gate Command (Per Evolution.md Section 4.1)
+```bash
+pytest tests/phase17_logra_nora_eval/ -q && python3 -c "import json; t=json.load(open('tests/phase17_logra_nora_eval/training_telemetry.json')); assert t['peak_total_vram_mib'] <= 4812 and t['nora_frobenius_norm_init'] == 1.0 and t['kl_budget_respected'] is True and t['post_resume_mtp_tok_per_sec'] >= 39.7"
+```
+
+### 5. Step 5: Autonomous `--yolo` Goal Execution
+Dispatch Hermes against the scenario defect in `tests/phase17_logra_nora_eval/` in unattended `--yolo` mode, assert that `/tmp/hermes_verified_receipt.json` is generated with `exitstatus == 0`, commit the patch, and sync state to Chezmoi.
 

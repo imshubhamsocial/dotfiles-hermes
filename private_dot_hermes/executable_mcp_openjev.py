@@ -16,16 +16,22 @@ mcp = FastMCP("openjev")
 LLM_ENDPOINT = "http://127.0.0.1:8138/v1/completions"
 
 @mcp.tool()
-def jev_decide(premise: str, hypothesis_a: str, hypothesis_b: str) -> dict:
+def jev_decide(
+    premise: str,
+    hypothesis_a: str,
+    hypothesis_b: str,
+    focus_uri: str = ""
+) -> dict:
     """Evaluate two competing hypotheses against a premise using sub-50ms logprob scoring.
     
     Args:
         premise: The factual context or test execution result.
         hypothesis_a: Candidate hypothesis A.
         hypothesis_b: Candidate hypothesis B.
+        focus_uri: Optional active <focus> file URI or symbol scope for boundary verification.
         
     Returns:
-        dict: Containing 'decision' ('A' or 'B'), 'prob' (calibrated float 0.0-1.0), and 'winner'.
+        dict: Containing 'decision' ('A' or 'B'), 'prob' (calibrated float 0.0-1.0), 'winner', and 'focus_scoped'.
     """
     prompt = (
         f"<start_of_turn>user\n"
@@ -92,12 +98,20 @@ def jev_decide(premise: str, hypothesis_a: str, hypothesis_b: str) -> dict:
     total_exp = exp_a + exp_b
     prob = (exp_a / total_exp) if decision == "A" else (exp_b / total_exp)
     
+    # Verify boundary against focus_uri if provided
+    focus_scoped = True
+    winner = hypothesis_a if decision == "A" else hypothesis_b
+    if focus_uri and "/" in winner and focus_uri not in winner:
+        focus_scoped = False
+
     return {
         "decision": decision,
         "prob": round(prob, 4),
-        "winner": hypothesis_a if decision == "A" else hypothesis_b,
+        "winner": winner,
         "logprob_a": round(logprob_a, 4),
-        "logprob_b": round(logprob_b, 4)
+        "logprob_b": round(logprob_b, 4),
+        "focus_uri": focus_uri,
+        "focus_scoped": focus_scoped
     }
 
 if __name__ == "__main__":

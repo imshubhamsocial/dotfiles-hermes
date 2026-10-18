@@ -241,3 +241,14 @@ mcp_servers:
     command: "python3.13"
     args:
       - "${userHome}/.hermes/mcp_openjev.py"
+    env:
+      LLAMA_SERVER_URL: "http://127.0.0.1:8138"
+      CUDA_VISIBLE_DEVICES: ""
+  open-notebook:
+    command: "uvx"
+    args:
+      - "open-notebook-mcp"
+    env:
+      OPEN_NOTEBOOK_API_URL: "http://127.0.0.1:5055"
+      CUDA_VISIBLE_DEVICES: ""
+    lazy: true

@@ -40,6 +40,7 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 | **Phase 9** | **OpenJev Decision Gate MCP Server** | Upstream FastMCP Stdio JSON-RPC server (`.hermes/mcp_openjev.py`) exposing `jev_decide`, greedy logprob scoring against local Port 8138 llama-server, zero bespoke files | **100% Certified & Operational**. Verified via `tests/phase9_openjev_mcp_eval/` in Konsole TUI. Hermes autonomously verified stdio handshake, hypothesis discrimination, and distilled `.hermes/rules/rule_openjev_mcp_decision_gate.md`. | Ready for Phase 10. |
 | **Phase 10** | **Full Research 2.0 Integration Gauntlet** | Comprehensive single-session health verification proving all 7 Research 2.0 substrates operate autonomously and natively without bespoke scripts or manual intervention | **100% Certified & Operational**. Verified via `tests/phase10_integration_gauntlet/` in Konsole TUI. Hermes autonomously verified Doctor, Memory Ceiling (<= 2200), Two-Tier Skills, Distilled Rules, Jev Gate, VRAM, and Substrate Purity, distilling `.hermes/rules/rule_research_2_integration_gauntlet.md`. | Core Research 2.0 Roadmap Complete! |
 | **Phase 11** | **Neovim #41883 Frontier Benchmark** | Optional third-party C-codebase bug evaluation testbed (`tests/neovim_eval/`) | **Skipped / Deferred**. Optional enterprise C benchmark; introduces zero core Hermes OS features. All core architectural layers 100% operational. | Optional future stress test. |
+| **Phase 12** | **SoL-Pi Runtime Harness & Claude Anti-Thrashing Gate** | Coalesced action dispatch, Two-Strike Tabu Rule, SIGPIPE-safe 1KB split head/tail handle, subtask compaction | **100% Certified & Operational**. Authored `.hermes/rules/rule_anti_thrashing_tabu.md` (synced to Chezmoi). Verified via isolated testbed `tests/phase12_sol_pi_eval/` asserting 76.91% token reduction, Tabu halt on 2 consecutive failures, and bottom traceback preservation. | Advance to Phase 13 (STAIR Structural ToC/AST & 5-Layer Memory). |
 
 ---
 
@@ -54,6 +55,10 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 2. **[`tests/memory_eval/`](tests/memory_eval/)**:
    - **Target**: Verification of cross-session cognitive memory retrieval and invariant rule adherence without context saturation.
    - **Current State**: **PASSED**. Validated SOP compliance and OpenViking hierarchical memory integration.
+
+3. **[`tests/phase12_sol_pi_eval/`](tests/phase12_sol_pi_eval/)**:
+   - **Target**: Verification of SoL-Pi action coalescing, 2-strike tabu guard, and exit-code-preserving 1KB split head/tail handle.
+   - **Current State**: **PASSED**. 76.91% token reduction, 0 MiB VRAM footprint, Tabu triggered on duplicate failure, tracebacks preserved.
 
 > **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 

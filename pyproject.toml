@@ -81,3 +81,14 @@ ignore = [
     "E731",
     "E741",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [
+    ".git",
+    ".hermes",
+    ".local",
+    "node_modules",
+    "tests/agentic_eval",
+]
+python_files = ["test_*.py", "*_test.py"]

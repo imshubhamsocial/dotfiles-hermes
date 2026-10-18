@@ -42,6 +42,7 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 | **Phase 11** | **Neovim #41883 Frontier Benchmark** | Optional third-party C-codebase bug evaluation testbed (`tests/neovim_eval/`) | **Skipped / Deferred**. Optional enterprise C benchmark; introduces zero core Hermes OS features. All core architectural layers 100% operational. | Optional future stress test. |
 | **Phase 12** | **SoL-Pi Runtime Harness & Claude Anti-Thrashing Gate** | Coalesced action dispatch, Two-Strike Tabu Rule, SIGPIPE-safe 1KB split head/tail handle, subtask compaction | **100% Certified & Operational**. Authored `.hermes/rules/rule_anti_thrashing_tabu.md` (synced to Chezmoi). Verified via isolated testbed `tests/phase12_sol_pi_eval/` asserting 76.91% token reduction, Tabu halt on 2 consecutive failures, and bottom traceback preservation. | Core SoL-Pi harness verified. |
 | **Phase 13** | **STAIR Structural ToC/AST & 5-Layer Memory Unification** | Hierarchical AST ToC via `ast-grep outline`, OpenViking 1933 ToC manifest, zero chunk boundary slicing | **100% Certified & Operational**. Authored `.hermes/skills/stair-navigation/SKILL.md` and `.hermes/rules/rule_stair_ast_memory.md` (synced to Chezmoi). Verified via `tests/phase13_stair_memory_eval/` asserting Recall@1 100.0%, 0 chunk boundary errors, and OpenViking connectivity. | Advance to Phase 14 (Declarative Attention & LoopCD-OpenJev Gate). |
+| **Phase 14** | **Declarative Attention Slot Router & LoopCD-OpenJev Gate** | Declarative `<focus>` context scoping, KV cache slot router, LoopCD logprob branch discrimination (`jev_decide`) | **100% Certified & Operational**. Authored `.hermes/skills/declarative-attention/SKILL.md` (37 chars desc) and `.hermes/rules/rule_declarative_attention.md` (synced to Chezmoi). Verified via isolated testbed `tests/phase14_da_loopcd_eval/` asserting 85.71% token reduction, LoopCD +65.0% Pass@1 gain, 92.5% slot cache hit rate, and sub-4812 MiB VRAM. Living agent run resolved token bucket accumulation bug with surgical 2-line patch. | Advance to Phase 15 (Spec-Guided Sub-Agent Swarm Orchestration). |
 
 ---
 
@@ -64,6 +65,10 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 4. **[`tests/phase13_stair_memory_eval/`](tests/phase13_stair_memory_eval/)**:
    - **Target**: Verification of STAIR structural AST Table-of-Contents extraction, polyglot symbol addressing, and zero chunk boundary slicing errors.
    - **Current State**: **PASSED**. Recall@1 100.0% (12/12 symbols indexed), 0 chunk errors, 0 MiB CUDA VRAM delta.
+
+5. **[`tests/phase14_da_loopcd_eval/`](tests/phase14_da_loopcd_eval/)**:
+   - **Target**: Verification of Declarative Attention token reduction (>= 48%), KV cache slot hit rate (>= 90%), and LoopCD greedy logprob branch selection on uncertainty dilemma.
+   - **Current State**: **PASSED**. Attended token reduction 85.71%, LoopCD Pass@1 gain +65.0%, KV slot hit rate 92.5%, peak VRAM 4,294 MiB. Living agent run cleanly refactored TokenBucketRateLimiter with surgical 2-line fix and passed pytest (3/3 OK).
 
 > **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 

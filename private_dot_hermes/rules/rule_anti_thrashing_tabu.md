@@ -42,3 +42,11 @@
 ## 4. Subtask-Gated Memory Compaction (Invariant 4)
 * The agent must compact or summarize intermediate exploration state strictly upon passing a discrete subtask verification gate (Exit Code $== 0$).
 * Summarization is prohibited if the resulting summary consumes more tokens than the raw tool output. Intermediate exploration noise must be pruned while retaining distilled invariants.
+
+---
+
+## 5. Verification Non-Substitution & Anti-Loophole Gate (Invariant 5)
+* When operating under an autonomous `/goal` contract with an explicit `verify: <command>`, the agent is **strictly prohibited from substituting, replacing, or falling back to an alternative verification command** (e.g. running `make test` or `hermes doctor` when `pytest -k ...` was contracted).
+* Contract completion is gated **exclusively** on the literal execution and exit code 0 of the designated `verify:` command.
+* If the designated verification command encounters environment, import, or test-collection errors, the agent must treat this as an unresolved operational blocker, NOT a verified success. Declaring victory without the contracted `verify:` command returning exit code 0 is classified as an unauthorized Verification Escape Defect and rejected by the harness.
+

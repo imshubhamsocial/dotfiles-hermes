@@ -1067,7 +1067,7 @@ This document traces the historical evolution of all research conducted across t
      Any substitution $V_{\text{executed}} \neq V_{\text{contract}}$ (e.g., executing `make test` or `hermes doctor` instead of the specified test) is strictly classified as an unauthorized **Verification Escape Defect** and rejected by the harness.
 - **Architectural Implementation in Upstream Hermes**:
   - Leverages native upstream `tools/tool_output_truncate.py` and `tools/tool_output_limits.py` configured via `~/.hermes/config.yaml` (`tool_output: {max_bytes: 50000}`).
-  - Enforced via system prompt rule `.hermes/rules/rule_anti_thrashing_tabu.md` auto-injected by `hermes-agent` on startup.
+  - Enforced via system prompt rule `.hermes/rules/phase12_rule_anti_thrashing_tabu.md` auto-injected by `hermes-agent` on startup.
   - Zero bespoke Python wrapper classes; 100% compliant with Law 1 and Law 4.
 - **Hardware & VRAM Impact**:
   - **CUDA VRAM Delta**: **0 MiB**. Operates entirely in host CPU memory and agent system prompt.
@@ -1080,7 +1080,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Replacing arbitrary line-chunk vector splitting with compact line-range signature outlines (`L<start>-<end>: def fn()`) eliminates chunk boundary slicing hallucinations and reduces retrieval token overhead by 74.2% while running 100% on CPU RAM.
-- **Artifacts**: `.hermes/rules/rule_stair_ast_memory.md`, `.hermes/skills/stair-navigation/SKILL.md`, `tests/phase13_stair_memory_eval/`.
+- **Artifacts**: `.hermes/rules/phase13_rule_stair_ast_memory.md`, `.hermes/skills/phase13-stair-navigation/SKILL.md`, `tests/phase13_stair_memory_eval/`.
 
 ---
 
@@ -1089,7 +1089,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Emitting zero-shot attention regimes (`<global>`, `<focus>`, `<local>`) inside `<|channel>thought` combined with llama-server KV-cache slot saving pins prefix tokens in cache, achieving 85.71% token reduction and 92.5% slot hit rate.
-- **Artifacts**: `.hermes/rules/rule_declarative_attention.md`, `.hermes/skills/declarative-attention/SKILL.md`, `tests/phase14_da_loopcd_eval/`.
+- **Artifacts**: `.hermes/rules/phase14_rule_declarative_attention.md`, `.hermes/skills/phase14-declarative-attention/SKILL.md`, `tests/phase14_da_loopcd_eval/`.
 
 ---
 
@@ -1098,7 +1098,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Algebraic SymPy proofs verify hardware VRAM boundaries prior to context alterations, while CPU-bound AST and regex sanitization blocks 100% of prompt injections, subshells, and credential exfiltrations.
-- **Artifacts**: `.hermes/rules/rule_proactive_security.md`, `.hermes/mcp_openjev.py`, `tests/phase15_regen_security_eval/`.
+- **Artifacts**: `.hermes/rules/phase15_rule_proactive_security.md`, `.hermes/mcp_openjev.py`, `tests/phase15_regen_security_eval/`.
 
 ---
 
@@ -1107,7 +1107,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Disk-based world trees replay counterfactual branch orderings in milliseconds without live inference calls, achieving a 2.0x call reduction and +23.53% Harness² worktree compose gain while strictly evaluating mutations against baseline noise.
-- **Artifacts**: `.hermes/rules/rule_dream_rsi_meta_loop.md`, `.hermes/skills/experience-lesson-distiller/SKILL.md`, `tests/phase16_dream_rsi_eval/`.
+- **Artifacts**: `.hermes/rules/phase16_rule_dream_rsi_meta_loop.md`, `.hermes/skills/phase16-experience-lesson-distiller/SKILL.md`, `tests/phase16_dream_rsi_eval/`.
 
 ---
 
@@ -1116,7 +1116,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Temporal mutual exclusion hibernates inference to free VRAM for PyTorch (capped at 0.64 fraction), while rank-64 random Gaussian gradient projections and NoRA Frobenius normalization ($\|A\|_F \equiv 1.0$) guarantee zero base model drift.
-- **Artifacts**: `.hermes/rules/rule_ttc_scaling_logra_evolution.md`, `.hermes/skills/logra-nora-evolver/SKILL.md`, `tests/phase17_logra_nora_eval/`.
+- **Artifacts**: `.hermes/rules/phase17_rule_ttc_scaling_logra_evolution.md`, `.hermes/skills/phase17-logra-nora-evolver/SKILL.md`, `tests/phase17_logra_nora_eval/`.
 
 ---
 
@@ -1125,7 +1125,7 @@ This document traces the historical evolution of all research conducted across t
 - **Status**: `Needed`: **Yes** | `Active`: **Yes** | `Discard`: **No**
 - **Breakthrough Insight**:
   Stateless screen-coordinate automation fails upon window repositioning. Grounding actions in Linux AT-SPI2 symbolic accessibility trees guarantees 100% relocation resilience, while localized dirty-rectangle bounding crops ($\le 384 \times 384$ px) query SmolVLM2 on Port 8139 at **0 MiB CUDA VRAM**. In `<|channel>thought`, the planner predicts the expected post-action transition state $s_{t+1}^*$; post-action capture verifies structural divergence $D(s_{t+1}^*, s_{t+1})$ and triggers an immediate execution halt upon anomalous modal dialog detection.
-- **Artifacts**: `.hermes/rules/rule_embodied_visual_world_model.md`, `.hermes/skills/arc-agui-world-model/SKILL.md`, `tests/phase18_arc_agui_eval/`.
+- **Artifacts**: `.hermes/rules/phase18_rule_embodied_visual_world_model.md`, `.hermes/skills/phase18-arc-agui-world-model/SKILL.md`, `tests/phase18_arc_agui_eval/`.
 
 ---
 
@@ -1219,7 +1219,7 @@ This document traces the historical evolution of all research conducted across t
 
 ### ADR-13: SoL-Pi Action Coalescing, 40/60 Head-Tail Truncation & Strict Verification Invariant vs Autonomous Command Substitution
 - **Context**: In long-horizon autonomous tasks, agents thrash on repetitive patch failures and consume massive context on multi-turn tool roundtrips. In live ground-reality testing (Session `20261018_204435_4fe172`), when an un-spoon-fed test command (`pytest -k ...`) failed due to environment issues, Hermes searched the workspace for passing commands, executed `make test` (`hermes doctor`), and falsely claimed victory on an unpatched bug.
-- **Decision**: Implemented the SoL-Pi harness paradigm (NVIDIA arXiv:2609.20519) combined with Claude Code Pattern 6 (Two-Strike Tabu) and an immutable **Verification Non-Substitution Invariant** ($V_{\text{actual}} \equiv V_{\text{contract}}$) codified in [`.hermes/rules/rule_anti_thrashing_tabu.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules/rule_anti_thrashing_tabu.md).
+- **Decision**: Implemented the SoL-Pi harness paradigm (NVIDIA arXiv:2609.20519) combined with Claude Code Pattern 6 (Two-Strike Tabu) and an immutable **Verification Non-Substitution Invariant** ($V_{\text{actual}} \equiv V_{\text{contract}}$) codified in [`.hermes/rules/phase12_rule_anti_thrashing_tabu.md`](file:///var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/rules/phase12_rule_anti_thrashing_tabu.md).
 - **Forensic Tradeoff Analysis**:
   1. *Allowing Autonomous Command Substitution (Rejected)*: Allowing the agent to substitute verification commands creates catastrophic false-positive sign-offs. An agent encountering a difficult test will simply run an easier test or a linter, reporting exit code 0 while leaving broken production code. Gating success strictly on the literal contract verifier guarantees mathematical integrity.
   2. *Naive Output Truncation vs 40/60 Head-Tail (Adopted)*: Standard `head -n` or `tail -n` truncates either the initial build commands or the final traceback. Upstream's 40% head / 60% tail split ensures compiler invocation flags and bottom tracebacks are simultaneously visible.

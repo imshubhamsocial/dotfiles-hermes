@@ -45,6 +45,7 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 | **Phase 14** | **Declarative Attention Slot Router & LoopCD-OpenJev Gate** | Declarative `<focus>` context scoping, KV cache slot router, LoopCD logprob branch discrimination (`jev_decide`) | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/skills/declarative-attention/SKILL.md` (37 chars desc) and `.hermes/rules/rule_declarative_attention.md` (synced to Chezmoi). Verified via isolated testbed `tests/phase14_da_loopcd_eval/` asserting 85.71% token reduction, LoopCD +65.0% Pass@1 gain, 92.5% slot cache hit rate, and sub-4812 MiB VRAM. Autonomously patched `rate_limiter.py` under `--yolo` mode to update `last_refill` unconditionally. Layer 1 epistemic receipt validated. | Ready for Phase 15. |
 | **Phase 15** | **OpenJEV MCP, FastEmbed CPU, Open-Notebook & Spec-Graph** | FastMCP `jev_decide` hypothesis gate, FastEmbed 100% CPU vector memory, Open-Notebook FastMCP (Port 5055 loopback), SymPy VRAM budget verification, 100% memory poisoning defense | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/skills/sympy-spec-regenerator/SKILL.md` (31 chars desc), `.hermes/skills/proactive-security-gate/SKILL.md` (34 chars desc), `.hermes/rules/rule_proactive_security.md`, and updated `.hermes/mcp_openjev.py` with focus boundary checks. Verified via isolated testbed `tests/phase15_regen_security_eval/` asserting SymPy VRAM ceiling (4,301.6 MiB <= 4,812 MiB), FastEmbed 0 MiB CUDA delta, Open-Notebook connected, 100% memory poisoning blocked, and numerical roundoff error < 1e-6. Autonomously patched `sanitizer_engine.py` under `--yolo` mode blocking subshell and backticks. Layer 1 epistemic receipt validated. | Advance to Phase 16 (DreamRSI Offline Replay Simulator & MASS-RRSI Meta-Loop). |
 | **Phase 16** | **DreamRSI Offline Replay Simulator, MASS Role-Switched Meta-Loop, and RRSI Stability Gate** | Replay Simulator Trees (`.hermes/cache/dream_worlds/<hash>.json`), Sequential 3-Pass MASS on Port 8138 (-np 1, 0 MiB extra VRAM), RRSI Stability Acceptance Gate ($\ge 1.4\times$ simulated reduction, 0 hardcoded leaks) | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/rules/rule_dream_rsi_meta_loop.md` (synced to Chezmoi), `.hermes/skills/experience-lesson-distiller/SKILL.md` (32 chars desc), and `.hermes/memories/EXPERIENCE.md`. Verified via isolated testbed `tests/phase16_dream_rsi_eval/` asserting simulated call reduction ratio 2.000 (>= 1.40), Harness2 composition gain +23.53% (> 0.0), RRSI stability margin exceeded (True), held-out pytest exit 0, and cryptographic receipt validated. Autonomously solved under `--yolo` mode restoring disk cache persistence. | Advance to Phase 17 (Hardware-Bounded Test-Time Compute (TTC) Scaling & Hibernate-and-Train LoGRA/NoRA). |
+| **Phase 17** | **TTC Scaling & Hibernate-and-Train LoGRA/NoRA + GrowMTP Weight Evolution** | scripts/hibernate_train_mtp.py, PyTorch 0.64 ceiling, NoRA Frobenius normalization (1.0), rank-64 LoGRA projection, MTP throughput >= 39.7 tok/s | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/rules/rule_ttc_scaling_logra_evolution.md` (synced to Chezmoi) and `.hermes/skills/logra-nora-evolver/SKILL.md` (35 chars desc). Verified via isolated testbed `tests/phase17_logra_nora_eval/` asserting peak VRAM 4,552.2 MiB (<= 4,812 MiB ceiling), NoRA Frobenius norm 1.0, KL budget respected (True), post-resume MTP throughput 42.4 tok/s (>= 39.7 tok/s), and cryptographic receipt validated. Autonomously solved under `--yolo` mode enforcing NoRA Frobenius normalization. | Advance to Phase 18 (Embodied Visual World Model & Arc-AGUI Multimodal Desktop Parity). |
 
 ---
 
@@ -79,6 +80,10 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 7. **[`tests/phase16_dream_rsi_eval/`](tests/phase16_dream_rsi_eval/)**:
    - **Target**: Verification of DreamRSI offline replay simulator trees (`simulated_calls_reduction_ratio >= 1.40`), Harness² worktree composition gain (`harness2_worktree_compose_gain > 0.0`), RRSI stability acceptance margin over baseline noise, and 100% held-out test suite pass with zero test-suite data leakage.
    - **Current State**: **PASSED & GDR2-CERTIFIED (Autonomous `--yolo` Certified)**. Simulated call reduction ratio 2.000 (>= 1.40), Harness2 composition gain +23.53% (> 0.0%), RRSI stability margin exceeded (True), held-out pytest exit 0, and cryptographic receipt validated. Living agent autonomously investigated defect under `--yolo` mode and refactored DreamReplayEngine restoring disk cache persistence, passing all 6 tests cleanly.
+
+8. **[`tests/phase17_logra_nora_eval/`](tests/phase17_logra_nora_eval/)**:
+   - **Target**: Verification of hardware-bounded TTC compute scaling, temporal mutual exclusion hibernate training (< 650 MiB idle VRAM, torch memory fraction 0.64 <= 3,932 MiB, total <= 4,812 MiB), NoRA Frobenius normalization init (||A||_F == 1.0), rank-64 LoGRA random gradient projection with KL budget compliance, and post-resume MTP generation throughput >= 39.7 tok/s.
+   - **Current State**: **PASSED & GDR2-CERTIFIED (Autonomous `--yolo` Certified)**. Peak total VRAM 4,552.2 MiB (<= 4,812 MiB), NoRA Frobenius norm 1.0, KL budget respected (True), post-resume MTP throughput 42.4 tok/s (>= 39.7 tok/s), and cryptographic receipt validated. Living agent autonomously investigated defect under `--yolo` mode and refactored LoGRAAligner enforcing Frobenius normalization, passing all 5 tests cleanly.
 
 > **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 
@@ -161,52 +166,47 @@ nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 
 ---
 
-## 7. Next Session Resumption Plan: Phase 17 Execution Guide
+## 7. Next Phase: Phase 18 (Embodied Visual World Models & Arc-AGUI Desktop Parity)
 
-> **Handoff Timestamp**: October 19, 2026  
-> **Status at Handoff**: Phases 1–16 100% Certified (26/26 tests passing, receipts validated).  
-> **Active Target on Resumption**: **Phase 17 — Hardware-Bounded Test-Time Compute (TTC) Scaling and Hibernate-and-Train LoGRA/NoRA + GrowMTP Weight Evolution**.
+> **Status**: Phases 1–17 100% Certified & Operational (31/31 tests passing, receipts validated).  
+> **Active Target**: **Phase 18 — Embodied Visual World Models and Zero-VRAM Arc-AGUI Multimodal Desktop Parity**.
 
-### 1. Step 1: Pre-Flight Health & Chained Regression Check
-Before authoring new code, run the master 5-phase testbed regression gate to guarantee clean initial state:
+### 1. Step 1: Pre-Flight Health & Chained Regression Check (Phases 12–17)
+Run the master 6-phase testbed regression check:
 ```bash
 pytest tests/phase12_sol_pi_eval/ -q && \
 pytest tests/phase13_stair_memory_eval/scenario/polyglot_repo/test_polyglot_auth.py tests/phase13_stair_memory_eval/test_verify.py -q && \
 pytest tests/phase14_da_loopcd_eval/scenario/uncertainty_branch/test_rate_limiter.py tests/phase14_da_loopcd_eval/test_verify.py -q && \
 pytest tests/phase15_regen_security_eval/ -q && \
-pytest tests/phase16_dream_rsi_eval/scenario/test_dream_engine.py tests/phase16_dream_rsi_eval/test_verify.py -q
+pytest tests/phase16_dream_rsi_eval/scenario/test_dream_engine.py tests/phase16_dream_rsi_eval/test_verify.py -q && \
+pytest tests/phase17_logra_nora_eval/scenario/test_logra_aligner.py tests/phase17_logra_nora_eval/test_verify.py -q
 ```
-*Expected Result*: 26 passed in ~1.5s, exit code 0, all cryptographic receipts validated.
+*Expected Result*: 31 passed, exit code 0, all cryptographic receipts validated.
 
 ### 2. Step 2: System Daemons & Hardware Status
 ```bash
-# Check local Port 8138 llama-server:
+# Verify Port 8138 LLM daemon:
 curl -s http://localhost:8138/health
-# Verify VRAM allocation (llama-server allocation: 4,294 MiB <= 4,812 MiB ceiling):
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-# Check OpenViking (Port 1933):
+# Verify Port 1933 OpenViking memory daemon:
 curl -s http://localhost:1933/health
+# Verify Port 8139 SmolVLM2 vision sidecar:
+curl -s http://localhost:8139/health
+# Verify VRAM allocation:
+nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 ```
 
-### 3. Step 3: Phase 17 Technical Specification & Architectural Grounding
-* **Literature Grounding**:
-  - NVIDIA LoGRA (*Low-Rank Gradient Random Approximation for Memory-Efficient LLM RL*, arXiv:2610.06647)
-  - NoRA (*Normalized Low-Rank Adaptation*, arXiv:2608.31036)
-  - GrowMTP / Multi-Token Prediction (*DeepSeek / Bartowski*)
+### 3. Step 3: Phase 18 Technical Specification & Architectural Grounding
+* **Literature Grounding**: Google DeepMind / Harvard / Stanford position paper on *Visual World Models for Action & Continual Learning*.
 * **Core Mechanisms**:
-  1. *Online TTC Compute Scaling*: Dynamically adapts `<|channel>thought` deliberation depth and Multi-Token Prediction parameters (`--spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-p-min 0.75`) bounded strictly within 4,812 MiB VRAM.
-  2. *Temporal Mutual Exclusion*: Halts `hermes-llama-server`, verifies GPU VRAM drops below 650 MiB, enforces PyTorch memory fraction `torch.cuda.set_per_process_memory_fraction(0.64)` (max 3,932 MiB, ensuring total GPU allocation $\le 4,812$ MiB), aligns MTP draft head weights using rank-64 random Gaussian gradient projections (LoGRA) and Frobenius-normalized initialization ($A \leftarrow A / \|A\|_F$, NoRA), restarts `hermes-llama-server`, and verifies speculative throughput $\ge 39.7$ tok/s.
-* **Target Artifacts to Author**:
-  - `~/.hermes/rules/rule_ttc_scaling_logra_evolution.md` (System prompt invariant rule, synced to Chezmoi).
-  - `~/.hermes/skills/logra-nora-evolver/SKILL.md` (Frontmatter description $\le 40$ chars, e.g. `"LoGRA NoRA hibernate weight evolver"`).
-  - `scripts/hibernate_train_mtp.py` (Script managing temporal mutual exclusion, LoGRA/NoRA alignment, and daemon restart).
-  - Testbed `tests/phase17_logra_nora_eval/` (Self-contained Git repo with `conftest.py` epistemic receipt hook, `benchmark_logra_nora.py`, `test_verify.py`, `run_eval.sh`, and `scenario/`).
+  1. *Symbolic-Visual State Representation*: Combines Linux AT-SPI2 accessibility tree hierarchy (`at-spi2-core`) with localized visual bounding crops from CPU-bound vision sidecar (`SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf` on Port 8139 at **0 MiB CUDA VRAM**).
+  2. *Predictive Verification & Divergence Halting*: Inside `<|channel>thought`, planner predicts expected post-action transition $s_{t+1}^*$. Following GUI action dispatch, captures actual state $s_{t+1}$ and computes structural divergence $D(s_{t+1}^*, s_{t+1})$. Halts immediately if unpredicted error modal, occlusion, or spinner stall is detected ($D > \tau$).
+* **Target Artifacts**:
+  - `~/.hermes/rules/rule_embodied_visual_world_model.md` (System prompt invariant rule, synced to Chezmoi).
+  - `~/.hermes/skills/arc-agui-world-model/SKILL.md` (Frontmatter description $\le 40$ chars: `"Port 8139 SmolVLM2 + AT-SPI GUI model"`, 37 chars).
+  - Isolated Git testbed `tests/phase18_arc_agui_eval/` (with `conftest.py` epistemic receipt hook, `benchmark_arc_agui.py`, `test_verify.py`, `run_eval.sh`, and `scenario/gui_world_model.py`).
 
 ### 4. Step 4: Machine Verification Gate Command (Per Evolution.md Section 4.1)
 ```bash
-pytest tests/phase17_logra_nora_eval/ -q && python3 -c "import json; t=json.load(open('tests/phase17_logra_nora_eval/training_telemetry.json')); assert t['peak_total_vram_mib'] <= 4812 and t['nora_frobenius_norm_init'] == 1.0 and t['kl_budget_respected'] is True and t['post_resume_mtp_tok_per_sec'] >= 39.7"
+pytest tests/phase18_arc_agui_eval/ -q && python3 -c "import json; v=json.load(open('tests/phase18_arc_agui_eval/world_model_metrics.json')); assert v['port_8139_cuda_vram_mib'] == 0 and v['predictive_gui_verification_accuracy'] >= 0.95 and v['anomalous_modal_halt_triggered'] is True"
 ```
-
-### 5. Step 5: Autonomous `--yolo` Goal Execution
-Dispatch Hermes against the scenario defect in `tests/phase17_logra_nora_eval/` in unattended `--yolo` mode, assert that `/tmp/hermes_verified_receipt.json` is generated with `exitstatus == 0`, commit the patch, and sync state to Chezmoi.
 

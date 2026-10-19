@@ -154,6 +154,11 @@ Every plan, code change, or terminal command executed by an AI agent must strict
 * **Community & Production Parity**:
   Leading developers and frontier autonomous agent communities operate Hermes exclusively through this combined `/goal` + `/loop` paradigm. All evaluation scripts (`run_eval.sh`), launcher commands, and interactive developer sessions in this repository must enforce this standard.
 
+### Law 13: On-Demand Test Progress Monitoring & Zero Polling Invariant
+* **Zero Polling Invariant**: Never poll, spin, or periodically sleep-check running tests, daemon tasks, or background evaluations in an automated loop.
+* **On-Demand Inspection**: Progress checks and test status evaluations must be performed strictly **on demand** (only when triggered by an explicit user request or upon receiving an asynchronous task-completion event).
+* **Asynchronous Autonomy**: When a testbed or evaluation runs in the background or in a dedicated persistent Konsole window (`--hold`), allow it to run unhindered without issuing repetitive intermediate status queries, slot polls, or log fetches that waste system compute, VRAM bandwidth, or context tokens.
+
 ---
 
 ## 4. Agent Verification & Diagnostic Commands

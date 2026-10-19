@@ -57,12 +57,12 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios execute in self-contained sub-repositories under `tests/` driven by `/goal` contracts:
 
 1. **[`tests/ast_grep_eval/`](tests/ast_grep_eval/)**:
-   - **Target**: Synthesize, search, and refactor polyglot codebases using structural AST patterns.
-   - **Current State**: **PASSED**. Evaluated `ast-grep` pattern search on `sample_target.c` targeting `int $FN($VAR) { $$$ }`. Code compiled cleanly with `gcc`.
+   - **Target**: Synthesize, search, and refactor polyglot codebases using structural AST patterns and real C compiler gate.
+   - **Current State**: **PASSED & PHASE 11 CERTIFIED**. Evaluated `ast-grep` pattern search on `sample_target.c` targeting `int $FN($VAR) { $$$ }`. Code compiled and verified via `make test` (`gcc -Wall -Wextra -Werror` exiting code 0).
 
 2. **[`tests/memory_eval/`](tests/memory_eval/)**:
-   - **Target**: Verification of cross-session cognitive memory retrieval and invariant rule adherence without context saturation.
-   - **Current State**: **PASSED**. Validated SOP compliance and OpenViking hierarchical memory integration.
+   - **Target**: Verification of cross-session cognitive memory retrieval, SQLite WAL persistence, 2200-char capacity ceiling, and Zero Test Rule Pollution (Law 3).
+   - **Current State**: **PASSED & PHASE 2, 3, 8 CERTIFIED**. Verified via `pytest tests/memory_eval/ -q` (3 passed in 0.04s) and `-k forgetting` (1 passed).
 
 3. **[`tests/phase12_sol_pi_eval/`](tests/phase12_sol_pi_eval/)**:
    - **Target**: Verification of SoL-Pi action coalescing, 2-strike tabu guard, exit-code-preserving split head/tail handle, trimmed `SOUL.md` (< 550 tokens), and zero-token deterministic epistemic closure ($V_{\text{executed}} \equiv V_{\text{contract}}$).

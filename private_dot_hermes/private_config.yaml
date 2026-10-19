@@ -2,6 +2,20 @@ database:
   journal_mode: wal
 display:
   interface: tui
+  final_response_markdown: render
+  compact: false
+  tool_progress: all
+  cleanup_progress: false
+  interim_assistant_messages: true
+  long_running_notifications: true
+  busy_ack_detail: true
+  busy_input_mode: interrupt
+  background_process_notifications: concise
+  bell_on_complete: false
+  bell_on_prompt: false
+  show_reasoning: true
+  streaming: true
+  skin: default
 runtime:
 
   nofile_soft_limit: 4096
@@ -148,20 +162,6 @@ code_execution:
   max_tool_calls: 50
 delegation:
   max_iterations: 250
-display:
-  compact: false
-  tool_progress: all
-  cleanup_progress: false
-  interim_assistant_messages: true
-  long_running_notifications: true
-  busy_ack_detail: true
-  busy_input_mode: interrupt
-  background_process_notifications: concise
-  bell_on_complete: false
-  bell_on_prompt: false
-  show_reasoning: true
-  streaming: true
-  skin: default
 telemetry:
   shared_metrics:
     enabled: false
@@ -247,4 +247,5 @@ mcp_servers:
     env:
       OPEN_NOTEBOOK_API_URL: "http://127.0.0.1:5055"
       CUDA_VISIBLE_DEVICES: ""
+    disabled: true
     lazy: true

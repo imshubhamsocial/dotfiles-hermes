@@ -6,10 +6,10 @@ runtime:
 
   nofile_soft_limit: 4096
 model:
-  default: "deadbydawn101/gemma-4-E4B-v2-Sol-Fable-Reasoning"
+  default: "dory"
   provider: "custom"
   base_url: "http://127.0.0.1:8138/v1"
-  context_length: 131072
+  context_length: 262144
 custom_providers:
   - name: omniroute
     base_url: http://localhost:20128/v1

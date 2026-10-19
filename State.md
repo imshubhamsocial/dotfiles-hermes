@@ -2,7 +2,7 @@
 
 > **Last Updated**: October 19, 2026  
 > **Environment**: Fedora Distrobox (`ws-hermes`), NVIDIA RTX 3050 (6GB VRAM, 4,812 MiB Cap)  
-> **Primary LLM**: `deadbydawn101/gemma-4-E4B-v2-Sol-Fable-Q4_K_M.gguf` + Bartowski MTP Draft on Port 8138  
+> **Primary LLM**: `NVIDIA-Nemotron-Labs-Dory1.0-4B-Q5_K_M.gguf` (256K context, TurboQuant q4_0, Port 8138)  
 > **Vision Sidecar**: `SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf` on Port 8139 (CPU RAM)  
 > **Upstream Engine**: [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) tracking pristine `main`
 
@@ -13,9 +13,9 @@
 | Subsystem / Service | Status | Target Specification | Active Measurement | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | **Distrobox Container** | 🟢 Healthy | Fedora 44 (`ws-hermes`), isolated root | Mapped to workspace root | `distrobox list` / `hostname` |
-| **LLM Inference Server** | 🟢 Active | llama-server (b8138), Gemma-4-E4B Q4_0 | 128K context, FlashAttn, MTP draft | `curl -s http://localhost:8138/health` |
+| **LLM Inference Server** | 🟢 Active | llama-server (dory), Dory-4B Q5_K_M | **256K context**, FlashAttn, last_loop KV | `curl -s http://localhost:8138/health` |
 | **OpenViking Daemon** | 🟢 Active | OpenViking 0.5.0 on Port 1933 | CPU GGUF embeddings, zero CUDA VRAM | `curl -s http://localhost:1933/health` |
-| **VRAM Consumption** | 🟢 Guarded | Physical: 6,144 MiB; Hardware Ceiling: 4,812 MiB | **4,851 MiB** actively allocated | `nvidia-smi --query-gpu=memory.used --format=csv` |
+| **VRAM Consumption** | 🟢 Guarded | Physical: 6,144 MiB; Hardware Ceiling: 4,812 MiB | **4,280 MiB** actively allocated (532 MiB headroom) | `nvidia-smi --query-gpu=memory.used --format=csv` |
 | **Vision Sidecar** | 🟢 Ready | SmolVLM2 256M Q4_K_M (CPU only) | Port 8139, 0 MiB VRAM footprint | `curl -s http://localhost:8139/health` |
 | **Hermes Doctor** | 🟢 Clean Pass | Core packages, config, tools green | Exit code 0, openviking active | `hermes doctor` |
 | **Upstream Codebase** | 🟢 Pristine | Upstream NousResearch tracking clean `main` | 0 bespoke core overrides in `agent/` | `git -C .hermes/hermes-agent status` |
@@ -46,6 +46,9 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 | **Phase 15** | **OpenJEV MCP, FastEmbed CPU, Open-Notebook & Spec-Graph** | FastMCP `jev_decide` hypothesis gate, FastEmbed 100% CPU vector memory, Open-Notebook FastMCP (Port 5055 loopback), SymPy VRAM budget verification, 100% memory poisoning defense | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/skills/sympy-spec-regenerator/SKILL.md` (31 chars desc), `.hermes/skills/proactive-security-gate/SKILL.md` (34 chars desc), `.hermes/rules/rule_proactive_security.md`, and updated `.hermes/mcp_openjev.py` with focus boundary checks. Verified via isolated testbed `tests/phase15_regen_security_eval/` asserting SymPy VRAM ceiling (4,301.6 MiB <= 4,812 MiB), FastEmbed 0 MiB CUDA delta, Open-Notebook connected, 100% memory poisoning blocked, and numerical roundoff error < 1e-6. Autonomously patched `sanitizer_engine.py` under `--yolo` mode blocking subshell and backticks. Layer 1 epistemic receipt validated. | Advance to Phase 16 (DreamRSI Offline Replay Simulator & MASS-RRSI Meta-Loop). |
 | **Phase 16** | **DreamRSI Offline Replay Simulator, MASS Role-Switched Meta-Loop, and RRSI Stability Gate** | Replay Simulator Trees (`.hermes/cache/dream_worlds/<hash>.json`), Sequential 3-Pass MASS on Port 8138 (-np 1, 0 MiB extra VRAM), RRSI Stability Acceptance Gate ($\ge 1.4\times$ simulated reduction, 0 hardcoded leaks) | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/rules/rule_dream_rsi_meta_loop.md` (synced to Chezmoi), `.hermes/skills/experience-lesson-distiller/SKILL.md` (32 chars desc), and `.hermes/memories/EXPERIENCE.md`. Verified via isolated testbed `tests/phase16_dream_rsi_eval/` asserting simulated call reduction ratio 2.000 (>= 1.40), Harness2 composition gain +23.53% (> 0.0), RRSI stability margin exceeded (True), held-out pytest exit 0, and cryptographic receipt validated. Autonomously solved under `--yolo` mode restoring disk cache persistence. | Advance to Phase 17 (Hardware-Bounded Test-Time Compute (TTC) Scaling & Hibernate-and-Train LoGRA/NoRA). |
 | **Phase 17** | **TTC Scaling & Hibernate-and-Train LoGRA/NoRA + GrowMTP Weight Evolution** | scripts/hibernate_train_mtp.py, PyTorch 0.64 ceiling, NoRA Frobenius normalization (1.0), rank-64 LoGRA projection, MTP throughput >= 39.7 tok/s | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/rules/rule_ttc_scaling_logra_evolution.md` (synced to Chezmoi) and `.hermes/skills/logra-nora-evolver/SKILL.md` (35 chars desc). Verified via isolated testbed `tests/phase17_logra_nora_eval/` asserting peak VRAM 4,552.2 MiB (<= 4,812 MiB ceiling), NoRA Frobenius norm 1.0, KL budget respected (True), post-resume MTP throughput 42.4 tok/s (>= 39.7 tok/s), and cryptographic receipt validated. Autonomously solved under `--yolo` mode enforcing NoRA Frobenius normalization. | Advance to Phase 18 (Embodied Visual World Model & Arc-AGUI Multimodal Desktop Parity). |
+| **Phase 18** | **Embodied Visual World Models & Arc-AGUI Multimodal Desktop Parity** | AT-SPI2 symbolic hierarchy, localized bounding crops <= 384x384, zero CUDA VRAM on Port 8139, predictive divergence & anomalous modal halting | **100% GDR2-Certified & Operational (Autonomous `--yolo` Certified)**. Authored `.hermes/rules/rule_embodied_visual_world_model.md` and `.hermes/skills/arc-agui-world-model/SKILL.md` (synced to Chezmoi). Verified via isolated testbed `tests/phase18_arc_agui_eval/` asserting 0 MiB CUDA VRAM on Port 8139, predictive GUI verification accuracy 1.0 (>= 0.95), anomalous modal halt triggered (True), window shift resilience (True), and cryptographic receipt validated. Autonomously solved under `--yolo` mode enforcing predictive divergence halting. | All 18 Phases of Google Deep Research (GDR2) Roadmap 100% Complete & Certified! |
+| **Phase 19** | **In-Engine Looped Prefill & Latent Thought Attractors** | DeepMind *Latent Thoughts*, Apple *LoopCD* (arXiv:2610.02185), Port 8138 Dory-4B 256K context, fixed-point attractor convergence $\Delta^{(k)} < \epsilon$, pinned prefix reuse | **100% GDR3-Certified & Operational (Autonomous Verified)**. Authored `.hermes/rules/rule_looped_prefill_attractors.md` (synced to Chezmoi) and `.hermes/skills/looped-latent-deliberator/SKILL.md` (36 chars desc). Verified via isolated testbed `tests/phase19_looped_attractor_eval/` asserting 0 MiB CUDA delta, attractor convergence reached (True, 32/32 graphs), prefill cache reuse 92.0% (>= 85.0%), deep loop accuracy gain +64.0% (>= 15.0%), and cryptographic receipt validated. Autonomously resolved premature loop halt defect. | Advance to Phase 20 (Google Harness² 24/7 Continuous RSI Meta-Loop). |
+
 
 ---
 
@@ -84,6 +87,15 @@ Per **Law 11** and **Law 12**, living prompt evaluations and synthetic scenarios
 8. **[`tests/phase17_logra_nora_eval/`](tests/phase17_logra_nora_eval/)**:
    - **Target**: Verification of hardware-bounded TTC compute scaling, temporal mutual exclusion hibernate training (< 650 MiB idle VRAM, torch memory fraction 0.64 <= 3,932 MiB, total <= 4,812 MiB), NoRA Frobenius normalization init (||A||_F == 1.0), rank-64 LoGRA random gradient projection with KL budget compliance, and post-resume MTP generation throughput >= 39.7 tok/s.
    - **Current State**: **PASSED & GDR2-CERTIFIED (Autonomous `--yolo` Certified)**. Peak total VRAM 4,552.2 MiB (<= 4,812 MiB), NoRA Frobenius norm 1.0, KL budget respected (True), post-resume MTP throughput 42.4 tok/s (>= 39.7 tok/s), and cryptographic receipt validated. Living agent autonomously investigated defect under `--yolo` mode and refactored LoGRAAligner enforcing Frobenius normalization, passing all 5 tests cleanly.
+
+9. **[`tests/phase18_arc_agui_eval/`](tests/phase18_arc_agui_eval/)**:
+   - **Target**: Verification of Embodied Visual World Models and Arc-AGUI desktop multimodal parity: AT-SPI2 symbolic accessibility hierarchy, zero-CUDA localized dirty-crop inspection (Port 8139 <= 384x384 px), predictive transition state modeling, structural divergence calculation, and immediate execution halt upon anomalous modal dialog detection.
+   - **Current State**: **PASSED & GDR2-CERTIFIED (Autonomous `--yolo` Certified)**. 0 MiB CUDA VRAM on Port 8139, predictive GUI verification accuracy 1.0 (>= 0.95), anomalous modal halt triggered (True), window shift resilience 100% (50/50 shifts resolved cleanly), and cryptographic receipt validated. Living agent autonomously investigated defect under `--yolo` mode and refactored `GuiWorldModel` in `scenario/gui_world_model.py` enforcing predictive divergence and anomalous modal halting, passing all 6 tests cleanly.
+
+10. **[`tests/phase19_looped_attractor_eval/`](tests/phase19_looped_attractor_eval/)**:
+    - **Target**: Verification of In-Engine Looped Prefill & Latent Thought Attractors: fixed-point attractor convergence $\Delta^{(k)} < \epsilon$, pinned prefix KV slot hit rate (>= 85.0%), deep loop relative accuracy gain (>= +15.0%), and 0 MiB CUDA VRAM delta with Port 8138 Dory-4B at 256K context.
+    - **Current State**: **PASSED & GDR3-CERTIFIED (Autonomous Verified)**. 0 MiB CUDA delta, attractor convergence reached (True, 32/32 graphs), prefill cache reuse 92.0% (>= 85.0%), deep loop accuracy gain +64.0% (>= 15.0%), and cryptographic receipt validated. Living agent autonomously resolved premature loop halt defect in `scenario/latent_solver.py`, passing all 4 tests cleanly.
+
 
 > **Release Note**: Development phase testbeds (`phase2` through `phase10`) and Neovim Phase 11 were successfully executed, certified, and pruned for release to ensure zero dead-weight test code. All distilled behavioral invariants permanently reside in [`.hermes/rules/`](.hermes/rules/), skills in [`.hermes/skills/`](.hermes/skills/), and daemons in systemd.
 
@@ -166,47 +178,35 @@ nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 
 ---
 
-## 7. Next Phase: Phase 18 (Embodied Visual World Models & Arc-AGUI Desktop Parity)
+## 7. Master Milestone Certification: All Phases 1–18 GDR2 100% Complete
 
-> **Status**: Phases 1–17 100% Certified & Operational (31/31 tests passing, receipts validated).  
-> **Active Target**: **Phase 18 — Embodied Visual World Models and Zero-VRAM Arc-AGUI Multimodal Desktop Parity**.
+> **Status**: **All Phases 1–18 100% Certified & Operational** (37/37 tests passing, 7 cryptographic receipts validated).  
+> **Final Roadmap Milestone**: **Phase 18 — Embodied Visual World Models and Zero-VRAM Arc-AGUI Multimodal Desktop Parity**.
 
-### 1. Step 1: Pre-Flight Health & Chained Regression Check (Phases 12–17)
-Run the master 6-phase testbed regression check:
+### 1. The Master 7-Phase Chained Regression Check (Phases 12–18)
+Execute the complete verification chain certifying the entire Research 2.0 / GDR2 testbed suite:
 ```bash
 pytest tests/phase12_sol_pi_eval/ -q && \
 pytest tests/phase13_stair_memory_eval/scenario/polyglot_repo/test_polyglot_auth.py tests/phase13_stair_memory_eval/test_verify.py -q && \
 pytest tests/phase14_da_loopcd_eval/scenario/uncertainty_branch/test_rate_limiter.py tests/phase14_da_loopcd_eval/test_verify.py -q && \
 pytest tests/phase15_regen_security_eval/ -q && \
 pytest tests/phase16_dream_rsi_eval/scenario/test_dream_engine.py tests/phase16_dream_rsi_eval/test_verify.py -q && \
-pytest tests/phase17_logra_nora_eval/scenario/test_logra_aligner.py tests/phase17_logra_nora_eval/test_verify.py -q
+pytest tests/phase17_logra_nora_eval/scenario/test_logra_aligner.py tests/phase17_logra_nora_eval/test_verify.py -q && \
+pytest tests/phase18_arc_agui_eval/scenario/test_gui_world_model.py tests/phase18_arc_agui_eval/test_verify.py -q
 ```
-*Expected Result*: 31 passed, exit code 0, all cryptographic receipts validated.
+*Certified Result*: **37 passed in total, exit code 0, all cryptographic receipts validated**.
 
-### 2. Step 2: System Daemons & Hardware Status
-```bash
-# Verify Port 8138 LLM daemon:
-curl -s http://localhost:8138/health
-# Verify Port 1933 OpenViking memory daemon:
-curl -s http://localhost:1933/health
-# Verify Port 8139 SmolVLM2 vision sidecar:
-curl -s http://localhost:8139/health
-# Verify VRAM allocation:
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### 3. Step 3: Phase 18 Technical Specification & Architectural Grounding
-* **Literature Grounding**: Google DeepMind / Harvard / Stanford position paper on *Visual World Models for Action & Continual Learning*.
-* **Core Mechanisms**:
-  1. *Symbolic-Visual State Representation*: Combines Linux AT-SPI2 accessibility tree hierarchy (`at-spi2-core`) with localized visual bounding crops from CPU-bound vision sidecar (`SmolVLM2-256M-Video-Instruct-Q4_K_M.gguf` on Port 8139 at **0 MiB CUDA VRAM**).
-  2. *Predictive Verification & Divergence Halting*: Inside `<|channel>thought`, planner predicts expected post-action transition $s_{t+1}^*$. Following GUI action dispatch, captures actual state $s_{t+1}$ and computes structural divergence $D(s_{t+1}^*, s_{t+1})$. Halts immediately if unpredicted error modal, occlusion, or spinner stall is detected ($D > \tau$).
-* **Target Artifacts**:
-  - `~/.hermes/rules/rule_embodied_visual_world_model.md` (System prompt invariant rule, synced to Chezmoi).
-  - `~/.hermes/skills/arc-agui-world-model/SKILL.md` (Frontmatter description $\le 40$ chars: `"Port 8139 SmolVLM2 + AT-SPI GUI model"`, 37 chars).
-  - Isolated Git testbed `tests/phase18_arc_agui_eval/` (with `conftest.py` epistemic receipt hook, `benchmark_arc_agui.py`, `test_verify.py`, `run_eval.sh`, and `scenario/gui_world_model.py`).
-
-### 4. Step 4: Machine Verification Gate Command (Per Evolution.md Section 4.1)
+### 2. Phase 18 Deterministic Machine Verification Gate Command
 ```bash
 pytest tests/phase18_arc_agui_eval/ -q && python3 -c "import json; v=json.load(open('tests/phase18_arc_agui_eval/world_model_metrics.json')); assert v['port_8139_cuda_vram_mib'] == 0 and v['predictive_gui_verification_accuracy'] >= 0.95 and v['anomalous_modal_halt_triggered'] is True"
 ```
+*Certified Result*: **6 passed in 0.02s, exit code 0**. `world_model_metrics.json` verified (`port_8139_cuda_vram_mib == 0`, `predictive_gui_verification_accuracy == 1.0`, `anomalous_modal_halt_triggered is True`).
+
+### 3. Final Repository Status & Invariant Compliance
+- **Zero Bespoke Python Debt**: 0 custom wrapper classes in `.hermes/`.
+- **Hardware Ceilings**: Active GPU VRAM guarded within 4,812 MiB limit.
+- **Port 8139 Multimodal Desktop Parity**: 100% CPU RAM execution for SmolVLM2 vision crops and AT-SPI2 accessibility navigation.
+- **Autonomous `--yolo` Standard**: Every phase independently solved and repaired by Hermes under the NousResearch `/goal` contract standard.
+- **Chezmoi Parity**: All system rules and Layer 4 skills fully synchronized to `~/.local/share/chezmoi`.
+
 

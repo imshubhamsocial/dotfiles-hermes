@@ -1,7 +1,0 @@
-context_lengths:
-  gemma-4-4b@http://127.0.0.1:8138/v1: 65536
-  /var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.cache/huggingface/hub/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/gemma-4-E4B-it-Q4_K_M.gguf@http://127.0.0.1:8138/v1: 65536
-  custom@http://127.0.0.1:8138/v1: 65536
-  default@http://127.0.0.1:8138/v1: 65536
-  default@http://127.0.0.1:8138: 65536
-  gemma-4-4b@http://127.0.0.1:8138: 65536

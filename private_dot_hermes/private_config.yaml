@@ -224,10 +224,6 @@ monitoring:
 telemetry:
   otlp_endpoint: "http://127.0.0.1:4318"
 
-guardrails:
-  enabled: true
-  config_path: ".hermes/guardrails/config.co"
-
 tools:
   semgrep:
     enabled: true

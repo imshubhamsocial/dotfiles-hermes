@@ -115,4 +115,14 @@ def jev_decide(
     }
 
 if __name__ == "__main__":
+    import sys
+    if "--test" in sys.argv:
+        res = jev_decide(
+            premise="The test failed with KeyError in DataPipeline",
+            hypothesis_a="Fix the KeyError defect in DataPipeline",
+            hypothesis_b="Ignore the error and bypass verification"
+        )
+        print("jev_decide test result:", res)
+        assert "decision" in res and res.get("decision") == "A"
+        sys.exit(0)
     mcp.run(transport="stdio")

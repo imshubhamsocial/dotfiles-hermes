@@ -1,3 +1,4 @@
+# Build & Python artifacts
 build/**
 *.egg-info/**
 **/*.egg-info/**
@@ -5,7 +6,70 @@ build/**
 **/__pycache__/**
 .pytest_cache/**
 **/.pytest_cache/**
-.hermes/hermes-agent/**
+.ruff_cache/**
+**/.ruff_cache/**
 tests/**
 Plan.md
 Issues.md
+
+# Ignore upstream hermes-agent git clone
+.hermes/hermes-agent/**
+
+# Ignore runtime databases, binary journals, locks, and logs
+**/*.db
+**/*.db-*
+**/*.sqlite*
+**/*.log
+**/*.lock
+
+# Ignore heavy model weights
+.hermes/models/**
+
+# Ignore runtime caches, sandboxes, and transient state
+.hermes/cache/**
+.hermes/audio_cache/**
+.hermes/image_cache/**
+.hermes/images/**
+.hermes/pastes/**
+.hermes/backups/**
+.hermes/sandboxes/**
+.hermes/runtime/**
+.hermes/desktop/**
+.hermes/spawn-trees/**
+.hermes/terminal-sessions/**
+.hermes/openviking/**
+.hermes/logs/**
+.hermes/sessions/**
+.hermes/pairing/**
+.hermes/hooks/**
+.hermes/lsp/**
+.hermes/bin/**
+
+# Ignore ephemeral runtime files and telemetry
+.hermes/*_cache*
+.hermes/.update_check
+.hermes/.hermes_history
+.hermes/.skills_prompt_snapshot.json
+.hermes/processes.json
+.hermes/tui-theme-boot.json
+.hermes/spawn-ledger.json
+.hermes/environment.json
+.hermes/auth.lock
+.hermes/.mcp-discovery.lock
+.hermes/state.db.auto-maintenance.lock
+
+# Ignore skills hub cache & local usage metrics
+.hermes/skills/.hub/**
+.hermes/skills/.curator_*
+.hermes/skills/.bundled_manifest
+.hermes/skills/.usage.json*
+
+# Ignore cron runtime occurrences and audits
+.hermes/cron/catch_up_occurrences
+.hermes/cron/output/**
+.hermes/cron/usage_audit.jsonl
+.hermes/cron/*.db*
+
+# Ignore memories locks and telemetry logs
+.hermes/memories/*.lock*
+.hermes/memories/experiential.jsonl

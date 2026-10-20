@@ -1,0 +1,60 @@
+{
+  "jobs": [
+    {
+      "id": "30c04e821139",
+      "name": "nightly_dream_rsi",
+      "prompt": "/goal Audit recent session failures in state.db, synthesize candidate invariants, run regression verification across tests/, and promote verified rules to .hermes/rules/.",
+      "skills": [
+        "phase20-harness2-dream-meta-loop"
+      ],
+      "skill": "phase20-harness2-dream-meta-loop",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "custom",
+      "model_snapshot": "dory",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "monitor_script": null,
+      "monitor_url": null,
+      "monitor_state": null,
+      "context_from": [
+        "self"
+      ],
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *",
+        "display": "0 3 * * *"
+      },
+      "schedule_display": "0 3 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-10-20T01:16:55.717856+05:30",
+      "next_run_at": "2026-10-21T03:00:00+05:30",
+      "last_run_at": "2026-10-20T12:35:51.810003+05:30",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "last_delivery_unverified": null,
+      "failure_streak": 0,
+      "deliver": "local",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null,
+      "last_dispatch": {
+        "scheduled_at": "2026-10-20T03:00:00+05:30",
+        "dispatched_at": "2026-10-20T12:33:00.308386+05:30",
+        "lateness_seconds": 34380.3,
+        "kind": "catch_up"
+      },
+      "fire_claim": null
+    }
+  ],
+  "updated_at": "2026-10-20T12:35:51.811645+05:30"
+}

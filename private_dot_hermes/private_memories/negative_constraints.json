@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "negative_constraints": [
+    {
+      "id": "NC-001",
+      "category": "hardware_architecture",
+      "pattern": "concurrent_in_vram_backprop_4800mib",
+      "rationale": "Hardware limit: Concurrent PyTorch backpropagation with active llama-server exceeds 4812 MiB VRAM. Enforce offline training isolation (train_lora.py)."
+    },
+    {
+      "id": "NC-002",
+      "category": "code_surgery",
+      "pattern": "raw_sed_awk_multiline_patch",
+      "rationale": "Fragile line number mutations cause corruption. Enforce Aider SEARCH/REPLACE block format and ast-grep AST rewriting."
+    },
+    {
+      "id": "NC-003",
+      "category": "tool_execution",
+      "pattern": "speculative_parallel_tool_calls",
+      "rationale": "Emitting blind parallel tool invocations without verifying diagnostics leads to compounding errors. Enforce Frognano sequential tool execution."
+    }
+  ]
+}

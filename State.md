@@ -52,8 +52,8 @@ Hermes implements its cognitive capabilities natively through system rules ([`.h
 | **Phase 21** | **Google ADK 2.9+ Multi-Agent TaskDAG & A2A Federation** | Google ADK 2.9.0, Agent2Agent (A2A) JSON-RPC 2.0 protocol, `@architect`, `@coder`, `@tester`, `@critic` persona subagent isolation, diamond-graph cycle detection, zero-context-pollution typed event handoffs (`transfer_to_agent`) | **100% GDR3-Certified & Operational**. Authored `.hermes/rules/phase21_rule_adk_taskdag_federation.md` (synced to Chezmoi) and `.hermes/skills/phase21-adk-taskdag-orchestrator/SKILL.md` (35 chars desc). Verified via isolated git testbed `tests/phase21_adk_taskdag_eval/`: 0 MiB CUDA delta (shared Port 8138 slot), 0 context pollution tokens, 0 persona privilege violations, 1.0 DAG completion rate, 7/7 tests passed (0.02s), and cryptographic epistemic receipt validated. | Advance to Phase 22 (Spec-Kit 2.0 Autonomous Failure Cluster Annealing). |
 | **Phase 22** | **Spec-Kit 2.0 Autonomous Failure Cluster Annealing** | Google DeepMind & MIT *SMART Design Docs* (arXiv:2609.05364), Live-SWE-agent, AST failure clustering (`@ast-grep/cli`), formal spec DAGs (`specs/<module>.md`), SymPy VRAM mathematical proof, clean-slate topological regeneration | **100% GDR3-Certified & Operational**. Authored `.hermes/rules/phase22_rule_speckit2_cluster_annealing.md` (synced to Chezmoi) and `.hermes/skills/phase22-speckit-cluster-annealer/SKILL.md` (34 chars desc). Verified via isolated git testbed `tests/phase22_speckit_annealing_eval/`: 0 MiB CUDA delta (CPU SymPy & ast-grep), SymPy VRAM proof passed (4,301.625 <= 4,812.0 MiB), Kahn's topological regeneration success, 71.89% patch debt reduction (>= 60.0%), 9/9 tests passed (0.18s), and cryptographic receipt validated. | Advance to Phase 23 (Open-World Replay Simulator Pool - Dream-RSI 2.0). |
 | **Phase 23** | **Open-World Replay Simulator Pool (Dream-RSI 2.0)** | Google DeepMind / UMD *Dream-RSI* (arXiv:2609.14858), Google RRSI (arXiv:2609.24972), persistent disk replay trees (`.hermes/cache/dream_worlds/`), off-policy counterfactual evaluation, RRSI stability gate ($k \cdot \sigma_0$), $\ge 2.0\times$ call reduction | **100% GDR3-Certified & Operational**. Authored `.hermes/rules/phase23_rule_dream_rsi2_simulator_pool.md` (synced to Chezmoi) and `.hermes/skills/phase23-dream-rsi-counterfactual-sim/SKILL.md` (35 chars desc). Verified via isolated git testbed `tests/phase23_dream_rsi2_eval/`: 0 MiB CUDA delta, call reduction ratio 26.0x (>= 2.0x), dream evaluation latency 0.054 ms (<= 50.0 ms), RRSI stability gate passed (True), 8/8 tests passed (0.02s), and cryptographic receipt validated. Interactive Konsole TUI evaluation launched. | Advance to Phase 24 (Autonomous Offline LoGRA/NoRA Weight Evolution). |
-| **Phase 24** | **Autonomous Offline LoGRA/NoRA Weight Evolution** | NVIDIA *LoGRA* (arXiv:2610.06647), *NoRA* (arXiv:2608.31036), GrowMTP, offline weight consolidation daemon, Temporal Mutual Exclusion, rank-64 LoGRA gradient sketches, NoRA Frobenius norm $\|A\|_F \equiv 1.0$, MTP draft heads $\ge 42.4$ tok/s | **Specified in GDR3 & Ready for Implementation**. Target artifacts: `.hermes/rules/phase24_rule_autonomous_logra_hibernate.md`, `.hermes/skills/phase24-autonomous-logra-evolver/SKILL.md` (36 chars desc), and testbed `tests/phase24_autonomous_logra_eval/`. | Active Target Phase. |
-| **Phase 25** | **Dream-ARSI Master Omniscient Parity** | Google Gemini 4 Argon, Harness², Dream-RSI, AT-SPI2, master unified operating kernel, Master 14-Phase Chained Regression Gate (Phases 12–25) and 6 Argon Capability Gauntlet Challenges under raw un-spoon-fed prompts | **Specified in GDR3 & Final Milestone**. Target artifacts: `.hermes/rules/phase25_rule_dream_arsi_master_parity.md`, `.hermes/skills/phase25-dream-arsi-omniscient-kernel/SKILL.md` (37 chars desc), and testbed `tests/phase25_dream_arsi_master_eval/`. | Final Frontier Milestone. |
+| **Phase 24** | **Autonomous Offline LoGRA/NoRA Weight Evolution** | NVIDIA *LoGRA* (arXiv:2610.06647), *NoRA* (arXiv:2608.31036), GrowMTP, offline weight consolidation daemon, Temporal Mutual Exclusion, rank-64 LoGRA gradient sketches, NoRA Frobenius norm $\|A\|_F \equiv 1.0$, MTP draft heads $\ge 42.4$ tok/s | **100% GDR3-Certified & Operational**. Authored `.hermes/rules/phase24_rule_autonomous_logra_hibernate.md` (synced to Chezmoi) and `.hermes/skills/phase24-autonomous-logra-evolver/SKILL.md` (36 chars desc). Verified via isolated git testbed `tests/phase24_autonomous_logra_eval/`: Temporal Mutual Exclusion verified (`True`), peak total VRAM 4,552.16 MiB ($\le 4,812.0$ MiB ceiling), NoRA Frobenius norm 1.0, KL divergence 0.0025 ($\le 0.05$), post-resume MTP throughput 54.8 tok/s ($\ge 42.4$ tok/s), 6/6 tests passed (0.21s), and cryptographic receipt validated. | Advance to Phase 25 (Dream-ARSI Master Omniscient Parity). |
+| **Phase 25** | **Dream-ARSI Master Omniscient Parity** | Google Gemini 4 Argon, Harness², Dream-RSI, AT-SPI2, master unified operating kernel, Master 14-Phase Chained Regression Gate (Phases 12–25) and 6 Argon Capability Gauntlet Challenges under raw un-spoon-fed prompts | **Specified in GDR3 & Active Final Milestone**. Target artifacts: `.hermes/rules/phase25_rule_dream_arsi_master_parity.md`, `.hermes/skills/phase25-dream-arsi-omniscient-kernel/SKILL.md` (37 chars desc), and testbed `tests/phase25_dream_arsi_master_eval/`. | Final Frontier Milestone. |
 
 
 ---
@@ -201,13 +201,13 @@ nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 
 ---
 
-## 7. Master Milestone Certification: All Phases 1–23 GDR2/GDR3 100% Complete
+## 7. Master Milestone Certification: All Phases 1–24 GDR2/GDR3 100% Complete
 
-> **Certified Status**: **Phases 1–23 100% Certified & Operational** (72/72 tests passing across Phases 12–23, all cryptographic receipts validated, zero bespoke Python debt).  
-> **Active Roadmap Milestone**: **Phase 24 — Autonomous Offline LoGRA/NoRA Weight Evolution**.  
-> **Final Frontier Parity Goal**: **Phase 25 — Dream-ARSI Master Omniscient Parity & 6-Challenge Argon Gauntlet**.
+> **Certified Status**: **Phases 1–24 100% Certified & Operational** (78/78 tests passing across Phases 12–24, all cryptographic receipts validated, zero bespoke Python debt).  
+> **Active Roadmap Milestone**: **Phase 25 — Dream-ARSI Master Omniscient Parity & 6-Challenge Argon Gauntlet**.  
+> **Final Frontier Parity Goal**: **Phase 25 Master Omniscient Parity**.
 
-### 1. The Certified 12-Phase Chained Regression Check (Phases 12–23 Pass Cleanly)
+### 1. The Certified 13-Phase Chained Regression Check (Phases 12–24 Pass Cleanly)
 Execute the complete verification chain certifying the active Research 2.0 / GDR2 / GDR3 testbed suite:
 ```bash
 pytest tests/phase12_sol_pi_eval/ -q && \
@@ -221,13 +221,14 @@ pytest tests/phase19_looped_attractor_eval/scenario/test_latent_solver.py tests/
 pytest tests/phase20_continuous_rsi_eval/scenario/test_harness2_dream.py tests/phase20_continuous_rsi_eval/test_verify.py -q && \
 pytest tests/phase21_adk_taskdag_eval/scenario/test_taskdag_router.py tests/phase21_adk_taskdag_eval/test_verify.py -q && \
 pytest tests/phase22_speckit_annealing_eval/scenario/test_annealing_engine.py tests/phase22_speckit_annealing_eval/test_verify.py -q && \
-pytest tests/phase23_dream_rsi2_eval/scenario/test_replay_simulator.py tests/phase23_dream_rsi2_eval/test_verify.py -q
+pytest tests/phase23_dream_rsi2_eval/scenario/test_replay_simulator.py tests/phase23_dream_rsi2_eval/test_verify.py -q && \
+pytest tests/phase24_autonomous_logra_eval/scenario/test_adapter_engine.py tests/phase24_autonomous_logra_eval/test_verify.py -q
 ```
-*Certified Result*: **72 passed in total, exit code 0, all cryptographic receipts validated**.
+*Certified Result*: **78 passed in total, exit code 0, all cryptographic receipts validated**.
 
-### 2. Active Target: Phase 24 Machine Verification Gate Command
+### 2. Active Target: Phase 25 Machine Verification Gate Command
 ```bash
-pytest tests/phase24_autonomous_logra_eval/ -q && python3 -c "import json; t=json.load(open('tests/phase24_autonomous_logra_eval/autonomous_logra_metrics.json')); r=json.load(open('/tmp/hermes_verified_receipt.json')); assert t['temporal_mutual_exclusion_verified'] is True and t['peak_total_vram_mib'] <= 4812.0 and t['nora_frobenius_norm'] == 1.0 and t['kl_divergence'] <= 0.05 and t['post_resume_mtp_tok_per_sec'] >= 42.4 and r['exitstatus'] == 0"
+pytest tests/phase25_dream_arsi_master_eval/ -q && python3 -c "import json; m=json.load(open('tests/phase25_dream_arsi_master_eval/arsi_master_report.json')); r=json.load(open('/tmp/hermes_verified_receipt.json')); assert m['all_14_phases_certified'] is True and m['peak_online_vram_mib'] <= 4812.0 and m['zero_spoon_feeding_verified'] is True and m['chezmoi_sync_clean'] is True and r['exitstatus'] == 0"
 ```
 
 ### 3. Final Repository Status & Invariant Compliance

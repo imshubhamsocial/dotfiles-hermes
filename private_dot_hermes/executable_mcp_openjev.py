@@ -685,7 +685,7 @@ def query_live_nvml_vram() -> float:
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         return round(info.used / (1024 * 1024), 2)
-    except Exception:
+    except (ImportError, RuntimeError, OSError):
         try:
             out = subprocess.check_output(
                 ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
@@ -693,7 +693,7 @@ def query_live_nvml_vram() -> float:
                 stderr=subprocess.DEVNULL,
             ).strip()
             return float(out)
-        except Exception:
+        except (subprocess.SubprocessError, OSError, ValueError):
             return 3951.0
 
 
@@ -718,7 +718,7 @@ def jev_verify_arsi_omniscient(
         with urllib.request.urlopen(req, timeout=3.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             port_8138_healthy = (data.get("status") == "ok")
-    except Exception:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, TimeoutError):
         port_8138_healthy = False
 
     # Live state.db session count

@@ -269,7 +269,11 @@ def jev_decide(
         }
 
     # 2. Check if uncertainty gate triggers a Port 8138 probe
-    needs_probe = (strike_count >= 1) or (ast_callers > 3) or (action_type == "mutate")
+    is_mutation_intent = any(
+        kw in (premise + " " + hypothesis_a + " " + hypothesis_b).lower()
+        for kw in ("fix", "update", "repair", "bug", "patch", "refactor", "error", "defect", "fail", "token", "ratelimit", "mutate")
+    )
+    needs_probe = (strike_count >= 1) or (ast_callers > 3) or (action_type == "mutate") or (action_type == "auto" and is_mutation_intent)
 
     if not needs_probe:
         return {

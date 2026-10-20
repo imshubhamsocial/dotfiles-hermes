@@ -3,11 +3,12 @@
     {
       "id": "30c04e821139",
       "name": "nightly_dream_rsi",
-      "prompt": "/goal Audit recent session failures in state.db, synthesize candidate invariants, run regression verification across tests/, and promote verified rules to .hermes/rules/.",
+      "prompt": "/goal Synchronize live state.db replay trees via jev_dream_rsi_sync, audit session failures, synthesize candidate invariants, run regression verification across tests/, and promote verified rules to .hermes/rules/.",
       "skills": [
-        "phase20-harness2-dream-meta-loop"
+        "phase20-harness2-dream-meta-loop",
+        "phase29-live-statedb-dream-rsi"
       ],
-      "skill": "phase20-harness2-dream-meta-loop",
+      "skill": "phase29-live-statedb-dream-rsi",
       "model": null,
       "provider": null,
       "provider_snapshot": "custom",

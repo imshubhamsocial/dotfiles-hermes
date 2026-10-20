@@ -229,6 +229,8 @@ telemetry:
   otlp_endpoint: "http://127.0.0.1:4318"
 
 tools:
+  tool_search:
+    enabled: "off"
   semgrep:
     enabled: true
   reviewdog:
@@ -247,9 +249,11 @@ mcp_servers:
   open-notebook:
     command: "uvx"
     args:
+      - "--with"
+      - "mcp<2"
       - "open-notebook-mcp"
     env:
       OPEN_NOTEBOOK_API_URL: "http://127.0.0.1:5055"
       CUDA_VISIBLE_DEVICES: ""
-    disabled: true
+    enabled: false
     lazy: true

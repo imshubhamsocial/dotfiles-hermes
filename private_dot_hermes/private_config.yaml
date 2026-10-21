@@ -99,10 +99,10 @@ compression:
   enabled: true
   checkpoint_required: false
   progress_notices: false
-  threshold: 0.5
+  threshold: 0.50
   codex_gpt55_autoraise: true
-  target_ratio: 0.2
-  protect_last_n: 20
+  target_ratio: 0.18
+  protect_last_n: 16
   min_tail_user_messages: 1
   max_attempts: 3
   codex_app_server_auto: native
@@ -131,7 +131,7 @@ streaming:
 skills:
   creation_nudge_interval: 15
 agent:
-  max_turns: 500
+  max_turns: 10000
   verbose: true
   reasoning_effort: medium
   service_tier: ''

@@ -1,0 +1,33 @@
+# File: .hermes/guardrails/rails.co
+define subflow verify input entropy and injection
+  $audit = execute sanitize_and_audit_input(raw_text=$user_message)
+  if not $audit.passed
+    bot inform input blocked by security rail
+    stop
+
+define bot inform input blocked by security rail
+  "[NEMO_INPUT_RAIL_BLOCKED]: Input rejected due to subshell injection pattern or excessive Shannon entropy (H > 4.6)."
+
+define subflow enforce karpathy u12 and two strike tabu
+  $gate = execute enforce_hard_constitutional_invariants(workspace_dir=$workspace_dir, target_file=$target_file, diff_lines=$diff_lines, last_test_failed=$last_test_failed)
+  if $gate.u12_violated
+    bot inform u12 surgical diff violation
+    stop
+  if $gate.tabu_reverted
+    bot inform two strike tabu revert triggered
+    stop
+
+define bot inform u12 surgical diff violation
+  "[NEMO_EXECUTION_RAIL_BLOCKED]: Karpathy U12 violation. Diff exceeds 15 lines."
+
+define bot inform two strike tabu revert triggered
+  "[NEMO_EXECUTION_RAIL_BLOCKED]: Two-Strike Tabu revert triggered. Restoring .turn1.bak baseline."
+
+define subflow verify syntax with ruff and ast grep
+  $syntax_ok = execute verify_output_diff_syntax(workspace_dir=$workspace_dir, target_file=$target_file)
+  if not $syntax_ok
+    bot inform syntax verification failed
+    stop
+
+define bot inform syntax verification failed
+  "[NEMO_OUTPUT_RAIL_BLOCKED]: Output diff contains syntax errors."

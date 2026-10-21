@@ -92,3 +92,14 @@ build/**
 # Ignore memories locks and telemetry logs
 .hermes/memories/*.lock*
 .hermes/memories/experiential.jsonl
+
+# Ignore backups and temporary files
+.hermes/*.bak
+.hermes/**/*.bak
+
+# Ignore dynamically generated profiles
+.hermes/profiles/**
+
+# Ignore skills non-code assets
+.hermes/skills/**/assets/**
+.hermes/skills/**/resources/**

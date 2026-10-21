@@ -1,0 +1,33 @@
+# File: .hermes/guardrails/config.yml
+models:
+  - type: main
+    engine: openai
+    model: dory
+    parameters:
+      base_url: "http://127.0.0.1:8138/v1"
+      api_key: "hermes-local-slot0"
+      temperature: 0.2
+
+rails:
+  input:
+    flows:
+      - verify input entropy and injection
+      - mask sensitive credentials on input
+  retrieval:
+    flows:
+      - sanitize openviking retrieved chunks
+  dialog:
+    single_call:
+      enabled: true
+      fallback_to_multiple_calls: false
+    flows:
+      - enforce turn1 intent compilation
+      - prevent long horizon cognitive drift
+  execution:
+    flows:
+      - enforce karpathy u12 and two strike tabu
+      - verify tirith sandbox boundaries
+  output:
+    flows:
+      - verify syntax with ruff and ast grep
+      - redact leaked secrets on output

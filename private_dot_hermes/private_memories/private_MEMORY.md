@@ -1,29 +1,9 @@
-# Hermes Agent OS — Core System Invariants
+# Hermes System Memory & Universal Execution Invariants (Phases 01–30)
 
-§ Invariant 1: Local Inference & Hardware Envelope
-Local llama-server on http://127.0.0.1:8138/v1 (Gemma-4-E4B / Qwen). RTX 3050 <= 4,812 MiB VRAM. Embeddings CPU-only. Zero cloud APIs.
-
-§ Invariant 2: Single Canonical Entry Point
-Workflows run via native Hermes commands (`hermes <cmd>`, `/<cmd>`) or hooks. No external shell wrappers for agent loops.
-
-§ Invariant 3: Single Canonical Agent Home
-Runtime state, plugins, rules, and configs reside in `.hermes/`. Mirrored to Chezmoi (`private_dot_hermes/`).
-
-§ Invariant 4: Continuous Verification
-Correctness guaranteed by native contracts (`make test`, `hermes exam`), maintaining 100% pass.
-
-§ Invariant 5: Belief-Progress-Experience (BPE)
-Sessions adhere to BPE (belief.md facts, progress.md DAGs, experience.db insights).
-
-§ Invariant 6: Cryptographic Security Boundary
-Filesystem mutations, role checks (@architect, @coder, @tester), and entropy checks tracked in SHA256 audit ledger.
-
-§ Invariant 7: Kernel Namespace Isolation (`bwrap`)
-Evaluations execute inside Bubblewrap sandbox (`tests/bwrap_eval_runner.sh`) masking root repo files from `/workspace` to eliminate build hijacking and scope drift.
-
-§ Invariant 8: SMART Design Docs & L5 Recursive Optimization
-Code is treated as ephemeral compilation of durable SMART markdown specs (`specs/*.md`). Telemetry-identified latency bottlenecks drive autonomous spec updates and concurrent dispatch refactors verified by pytest (`elapsed < 0.05s`).
-§
-Phase 4 testbed: Runtime tool dispatch optimization. Test command is ./run_tests.sh. Baseline latency is ~0.60s (> 0.05s threshold) due to sequential unbatched dispatch. Enforce SMART spec precedence and Karpathy U12.
-§
-Refactoring JWT claims in MultiTenantJwtAuthenticator.validate_claim_signature (auth_engine.py) requires updating the claim lookup logic to use the modern fallback pattern: token_payload.get("tenant_id") or token_payload.get("tid").
+* **§0 MANDATORY TURN-1 GATE (OVERRIDES SKILLS PREAMBLE)**: On Turn 1 of EVERY prompt and follow-up turn, your FIRST tool call MUST be mcp_openjev(jev_compile_intent, raw_prompt=..., workspace_dir=...) BEFORE calling skill_view, read_file, patch, or terminal.
+* **§1 Hardware Ceiling**: Port 8138 llama-server (Gemma-4-E4B, -np 1, 128K q4_0 KV, MTP+N-gram 92–112 tok/s). Active GPU VRAM MUST NEVER exceed **4,812.0 MiB** (steady 3,951 MiB). Port 8139 (SmolVLM2 Vision) and Port 1933 (OpenViking 0.5.0 BGE-small) run 100% on CPU RAM (CUDA_VISIBLE_DEVICES="", 0.0 MiB CUDA delta).
+* **§2 Upstream Git Purity**: .hermes/hermes-agent is 100% pristine (ca6b189a). .hermes/mcp_openjev.py v3.0 is the sole unified FastMCP server. All ~/.hermes/ configs/skills/rules are tracked in Chezmoi (0 unmanaged files).
+* **§3 Domain A (Computer/Browser Use & Gaming)**: Check/install arc-agui-world-model / computer-use / agent-browser, write SMART spec, and call jev_ground_gui (AT-SPI2 + Port 8139 SmolVLM2 CPU crop) before every click/scroll/key action. Halt on divergence_halt == True (modals, window move, frame lag).
+* **§4 Domain B (Home/System Files Without Git)**: jev_compile_intent creates <file>.hermes.bak automatically. Apply Karpathy U12 surgical diffs ($\le 15$ lines). On 2 consecutive failures, revert via cp -f "<file>.hermes.bak" "<file>". Verify via bash -n <file>, systemd-analyze --user verify <file>, or schema load before completion.
+* **§5 Domain C (Code Repositories)**: Extract AST outlines via extract_workspace_ast, route high-entropy branches via jev_decide (Two-Stage zero-KV-eviction router), plan multi-file changes via jev_taskdag_plan and jev_harness2_probe_compose, and require pytest exit 0 + /tmp/hermes_verified_receipt.json.
+* **§6 Known Testbed Domain Facts**: JWT claims in auth_engine.py require fallback token_payload.get("tenant_id") or token_payload.get("tid") or token_payload.get("tenant"). TokenBucketRateLimiter must update self.last_refill = now unconditionally. DataPipeline legacy records require record.get("event_id") or record.get("id") or "UNKNOWN".

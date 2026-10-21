@@ -72,6 +72,13 @@ browser:
   inactivity_timeout: 120
   extension_control:
     enabled: false
+web:
+  search_backend: "ddgs"
+  extract_backend: "trafilatura"
+  searxng_url: "http://127.0.0.1:8080"
+  fallback_search_backend: "ddgs"
+  timeout_seconds: 12
+  verify_ssl: true
 tool_output:
   max_bytes: 3500
   max_lines: 100

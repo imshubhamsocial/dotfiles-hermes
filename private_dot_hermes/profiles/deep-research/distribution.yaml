@@ -1,0 +1,9 @@
+name: deep-research
+version: 1.0.0
+description: "Hermes OS Gemini-Style Autonomous Deep Research Bot (SearXNG + Trafilatura + EmbeddingGemma 2 MRL + OpenViking)"
+author: "imshubhamsocial"
+homepage: "https://github.com/imshubhamsocial/dotfiles-hermes"
+env:
+  - name: SEARXNG_URL
+    description: "Local SearXNG JSON API endpoint"
+    default: "http://127.0.0.1:8080"

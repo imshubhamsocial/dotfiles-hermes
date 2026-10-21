@@ -10,3 +10,6 @@
 - **Trace World Tree Construction**: Cached in `.hermes/cache/dream_worlds/`.
 - **Counterfactual Call Reduction**: Simulated branch rollbacks yield $\ge 1.40\times$ call reduction relative to unpruned search.
 - **MASS 3-Pass Validation**: Skills evolved via Pass B must pass Pass C leakage auditing (zero test suite literal leaks).
+
+<!-- AQUA_SYNC_119 -->
+- **AQuA Verified Sync (119 sessions, 3674 messages)**: DR counterfactual value=0.9142, RRSI margin=0.1563 (passed). Citation verified against `.hermes/mcp_openjev.py:1-620` and `.hermes/SOUL.md:1-52`.

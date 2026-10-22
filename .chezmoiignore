@@ -90,9 +90,13 @@ build/**
 .hermes/cron/usage_audit.jsonl
 .hermes/cron/*.db*
 
-# Ignore memories locks and telemetry logs
+# Ignore memories locks, vector indices, and telemetry logs
 .hermes/memories/*.lock*
-.hermes/memories/experiential.jsonl
+.hermes/memories/*.jsonl
+.hermes/memories/openviking_l0_index.jsonl
+
+# Ignore dynamic autonomous RSI generated rules
+.hermes/rules/auto_rsi_*.md
 
 # Ignore backups and temporary files
 .hermes/*.bak

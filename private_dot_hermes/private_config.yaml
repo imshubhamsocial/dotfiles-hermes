@@ -2,7 +2,7 @@ database:
   journal_mode: wal
 display:
   interface: tui
-  personality: ""
+  personality: ''
   final_response_markdown: render
   compact: false
   tool_progress: all
@@ -22,12 +22,11 @@ display:
   streaming: true
   skin: default
 runtime:
-
   nofile_soft_limit: 4096
 model:
-  default: "google/gemma-4-E4B-it"
-  provider: "custom"
-  base_url: "http://127.0.0.1:8138/v1"
+  default: google/gemma-4-E4B-it
+  provider: custom
+  base_url: http://127.0.0.1:8138/v1
   context_length: 65536
 custom_providers:
   - name: omniroute
@@ -50,9 +49,9 @@ custom_providers:
     api_key: sk-kaggle-local
     display_name: Kaggle Cloud GPU (NVIDIA Tesla P100)
     models:
-      "gemma4:A12B":
+      gemma4:A12B:
         context_length: 65536
-      "gemma-4-12b":
+      gemma-4-12b:
         context_length: 65536
 kanban:
   review_dispatch: true
@@ -74,10 +73,11 @@ browser:
   extension_control:
     enabled: false
 web:
-  search_backend: "ddgs"
-  extract_backend: "trafilatura"
-  searxng_url: "http://127.0.0.1:8080"
-  fallback_search_backend: "ddgs"
+  backend: ""
+  search_backend: ""
+  extract_backend: ""
+  searxng_url: http://127.0.0.1:8080
+  fallback_search_backend: ""
   timeout_seconds: 12
   verify_ssl: true
 tool_output:
@@ -101,7 +101,7 @@ tool_loop_guardrails:
       tool_search: 3
 compression:
   enabled: true
-  threshold: 0.50
+  threshold: 0.5
   target_ratio: 0.18
   protect_last_n: 16
 prompt_caching:
@@ -111,7 +111,7 @@ memory:
   memory_enabled: true
   session_search: true
   user_profile_enabled: true
-  memory_char_limit: 2200
+  memory_char_limit: 8000
   user_char_limit: 1375
   nudge_interval: 10
   openviking:
@@ -165,9 +165,7 @@ code_execution:
 delegation:
   max_iterations: 250
 telemetry:
-  shared_metrics:
-    enabled: false
-    send: false
+  otlp_endpoint: http://127.0.0.1:4318
 updates:
   check: true
   pre_update_backup: false
@@ -176,112 +174,72 @@ updates:
 plugins:
   enabled: []
 _config_version: 44
-
-# ── Security ──────────────────────────────────────────────────────────
-# Secret redaction is ON by default — strings that look like API keys,
-# tokens, and passwords are masked in tool output, logs, and chat
-# responses before the model or user ever sees them. Set redact_secrets
-# to false to disable (e.g. when developing the redactor itself).
-# tirith pre-exec scanning is enabled by default when the tirith binary
-# is available. Configure via security.tirith_* keys or env vars
-# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
-#
-# security:
-#   redact_secrets: true
-#   tirith_enabled: true
-#   tirith_path: "tirith"
-#   tirith_timeout: 5
-#   tirith_fail_open: true
-
-# ── Fallback Model ────────────────────────────────────────────────────
-# Automatic provider failover when primary is unavailable.
-# Uncomment and configure to enable. Triggers on rate limits (429),
-# overload (529), service errors (503), or connection failures.
-#
-# Supported providers:
-#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
-#   openai-codex (OAuth — hermes auth) — OpenAI Codex
-#   nous         (OAuth — hermes auth) — Nous Portal
-#   zai          (ZAI_API_KEY)         — Z.AI / GLM
-#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
-#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
-#   minimax      (MINIMAX_API_KEY)     — MiniMax
-#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
-#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
-#
-# For custom OpenAI-compatible endpoints, add base_url and key_env.
-#
-# fallback_model:
-#   provider: openrouter
-#   model: anthropic/claude-sonnet-4
-
 monitoring:
   gateway_health_export:
     enabled: true
   export:
     otlp:
       enabled: true
-      endpoint: "http://127.0.0.1:4318"
-
-telemetry:
-  otlp_endpoint: "http://127.0.0.1:4318"
-
+      endpoint: http://127.0.0.1:4318
 tools:
   semgrep:
     enabled: true
   reviewdog:
     enabled: true
   tool_search:
-    enabled: "auto"
-    threshold_pct: 5
+    enabled: "off"
+    threshold_pct: 15
+    defer: []
   disabled_toolsets:
     - feishu
     - desktop_preview
     - gui_tour
     - video_analyze
     - browser_vault
-
-
-
 mcp_servers:
   openjev:
-    command: "python3.13"
+    command: python3.13
     args:
-      - "${userHome}/.hermes/mcp_openjev.py"
+      - ${userHome}/.hermes/mcp_openjev.py
     env:
-      LLAMA_SERVER_URL: "http://127.0.0.1:8138"
-      HERMES_VISION_URL: "http://127.0.0.1:8139"
-      OPENVIKING_URL: "http://127.0.0.1:1933"
-      CHROME_CDP_URL: "http://127.0.0.1:9222"
-      CUDA_VISIBLE_DEVICES: ""
+      LLAMA_SERVER_URL: http://127.0.0.1:8138
+      HERMES_VISION_URL: http://127.0.0.1:8139
+      OPENVIKING_URL: http://127.0.0.1:1933
+      OPENJEV_VIKING_URL: http://127.0.0.1:1933
+      CHROME_CDP_URL: http://127.0.0.1:9222
+      CUDA_VISIBLE_DEVICES: ''
+      TMPDIR: /tmp
   cua_driver:
-    command: "${userHome}/.local/bin/cua-driver"
+    command: ${userHome}/.local/bin/cua-driver
     args:
-      - "mcp"
-      - "--socket"
-      - "${userHome}/.hermes/run/cua-driver.sock"
+      - mcp
     env:
-      CUA_DEFAULT_INCLUDE_SCREENSHOT: "false"
-      CUA_TELEMETRY_DISABLED: "1"
-      WAYLAND_DISPLAY: "wayland-0"
-      DISPLAY: ":0"
-      CUDA_VISIBLE_DEVICES: ""
+      CUA_SOCKET_PATH: /tmp/hermes_cua_driver.sock
+      CUA_DEFAULT_INCLUDE_SCREENSHOT: 'false'
+      CUA_TELEMETRY_DISABLED: '1'
+      WAYLAND_DISPLAY: wayland-0
+      DISPLAY: :0
+      CUDA_VISIBLE_DEVICES: ''
+      TMPDIR: /tmp
   playwright_cdp:
-    command: "npx"
+    command: npx
     args:
-      - "@playwright/mcp@latest"
-      - "--cdp-endpoint"
-      - "http://127.0.0.1:9222"
+      - '@playwright/mcp@latest'
+      - --cdp-endpoint
+      - http://127.0.0.1:9222
     env:
-      CUDA_VISIBLE_DEVICES: ""
+      CUDA_VISIBLE_DEVICES: ''
   open-notebook:
-    command: "uvx"
+    command: uvx
     args:
-      - "--with"
-      - "mcp<2"
-      - "open-notebook-mcp"
+      - --with
+      - mcp<2
+      - open-notebook-mcp
     env:
-      OPEN_NOTEBOOK_API_URL: "http://127.0.0.1:5055"
-      CUDA_VISIBLE_DEVICES: ""
+      OPEN_NOTEBOOK_API_URL: http://127.0.0.1:5055
+      CUDA_VISIBLE_DEVICES: ''
     enabled: false
     lazy: true
+onboarding:
+  seen:
+    tool_progress_prompt: true

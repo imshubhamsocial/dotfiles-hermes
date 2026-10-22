@@ -12,6 +12,7 @@ Hardware Law: CUDA_VISIBLE_DEVICES="" enforced globally (0.0 MiB online CUDA VRA
 from __future__ import annotations
 
 import ast
+import atexit
 import collections
 import contextlib
 import difflib
@@ -197,11 +198,45 @@ def _get_proc_starttime(pid: int) -> int | None:
         return None
 
 
+def _terminate_process_group_safely(proc: subprocess.Popen[Any], grace_sec: float = 0.5) -> None:
+    """Two-phase SIGTERM -> SIGKILL process-group reaper with ESRCH guard and zombie collection."""
+    if proc.poll() is not None:
+        return
+    pgid = proc.pid  # Deterministic under start_new_session=True (setsid)
+    try:
+        os.killpg(pgid, signal.SIGTERM)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
+    try:
+        proc.wait(timeout=grace_sec)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
+    try:
+        proc.wait(timeout=1.0)
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+
+def _get_short_unix_socket_dir(workspace_dir: str = ".") -> Path:
+    """Guarantees AF_UNIX socket paths remain < 48 bytes (well below Linux 108-byte sun_path limit)."""
+    ws_hash = hashlib.sha256(str(Path(workspace_dir).resolve()).encode("utf-8")).hexdigest()[:8]
+    short_dir = Path(f"/tmp/h_cdp_{ws_hash}")
+    short_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["TMPDIR"] = "/tmp"
+    os.environ["PLAYWRIGHT_SOCKETS_DIR"] = str(short_dir)
+    return short_dir
+
+
 def _extract_html_with_hard_timeout(raw_html: str, url: str, timeout_sec: float = 4.0) -> str:
     """
     GDR10-BUG-01 Hardened:
     Executes trafilatura inside an isolated subprocess with start_new_session=True.
-    Reaps the entire process group via os.killpg on TimeoutExpired and bounds stdin to html[:250000].
+    Reaps the entire process group safely on TimeoutExpired and bounds stdin to html[:250000].
     """
     if not raw_html:
         return ""
@@ -225,16 +260,11 @@ def _extract_html_with_hard_timeout(raw_html: str, url: str, timeout_sec: float 
         return stdout.strip() if proc.returncode == 0 else ""
     except subprocess.TimeoutExpired:
         if proc is not None:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except OSError:
-                proc.kill()
-            proc.wait(timeout=1.0)
+            _terminate_process_group_safely(proc)
         return ""
     except Exception:  # noqa: BLE001
         if proc is not None and proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=1.0)
+            _terminate_process_group_safely(proc)
         return ""
 
 
@@ -414,7 +444,7 @@ def _resolve_turn1_backup_paths(backup_dir: Path, target_path: Path) -> tuple[Pa
     backup_dir.mkdir(parents=True, exist_ok=True)
     rel_key = hashlib.sha256(str(target_path.resolve()).encode("utf-8")).hexdigest()[:8]
     return (
-        backup_dir / f"{rel_key}_{target_path.name}.turn1.bak",
+        backup_dir / f"{target_path.name}.{rel_key}.turn1.bak",
         backup_dir / f"{target_path.name}.turn1.bak",
     )
 
@@ -518,7 +548,7 @@ class _GemmaCPUSidecarPool:
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
             try:
                 from fastembed import TextEmbedding
-                cls._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=4)
+                cls._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=2)
                 cls.backend = "fastembed_onnx_cpu"
             except Exception:  # noqa: BLE001
                 cls._embedder = None
@@ -535,16 +565,15 @@ class _GemmaCPUSidecarPool:
         """Generates L2-renormalized embeddings (256d MRL) on CPU via fastembed."""
         cls._ensure_loaded()
         if cls._embedder is not None:
-            if task_prefix:
-                full_input = f"{task_prefix}: {text}"
-            elif is_code or chunk_type == "code":
-                full_input = f"Represent this code symbol for retrieval: {text}"
-            else:
-                full_input = f"query: {text}"
+            formatted = f"{task_prefix}{text}" if task_prefix else (
+                f"Represent this code symbol for retrieval: {text}"
+                if (is_code or chunk_type == "code")
+                else f"query: {text}"
+            )
             try:
-                raw_vec = list(next(cls._embedder.embed([full_input])))[:truncate_dim]
+                raw_vec = [float(x) for x in list(next(cls._embedder.embed([formatted])))[:truncate_dim]]
                 norm = math.sqrt(sum(x * x for x in raw_vec)) or 1.0
-                return [round(x / norm, 6) for x in raw_vec]
+                return [round(float(x) / norm, 6) for x in raw_vec]
             except Exception:  # noqa: BLE001, S110
                 pass
 
@@ -554,7 +583,7 @@ class _GemmaCPUSidecarPool:
         if len(raw_vec) < truncate_dim:
             raw_vec = (raw_vec + [0.0] * truncate_dim)[:truncate_dim]
         norm = math.sqrt(sum(x * x for x in raw_vec)) or 1.0
-        return [round(x / norm, 6) for x in raw_vec]
+        return [round(float(x) / norm, 6) for x in raw_vec]
 
     @classmethod
     def cosine_similarity(cls, vec_a: list[float], vec_b: list[float]) -> float:
@@ -673,6 +702,323 @@ def extract_workspace_ast(workspace_dir: str = ".", max_files: int = 25) -> dict
         "cuda_delta_mib": 0.0,
     }
 
+# ==============================================================================
+# GDR12 Autonomous Per-Prompt Self-Recursive Improvement (RSI) Engine
+# ==============================================================================
+
+CORE_MEMORY_HEADER = """# Hermes OS Core Invariants (L0 Pinned)
+- §1 Hardware: Port 8138 Gemma-4-E4B (-np 1, <= 4,812 MiB VRAM). Port 8139 Vision & Port 1933 OpenViking 100% CPU RAM.
+- §2 Entry: Native hermes CLI & profiles only. Zero synthetic wrappers in .local/bin/.
+- §3 Home: .hermes/ is the sole runtime state directory, synced via Chezmoi.
+- §4 Verification: Non-vacuous pytest -q (N >= 1) + /tmp/hermes_verified_receipt.json.
+- §5 Overflow: Dynamic session lessons live in EXPERIENCE.md and OpenViking Port 1933.
+"""
+
+def _auto_spillover_memory_md(max_keep_chars: int = 1400) -> dict[str, Any]:
+    """Prevents built-in memory tool from ever returning [full] by spilling excess lines to OpenViking & EXPERIENCE.md."""
+    mem_dir = ACTIVE_HERMES_HOME / "memories"
+    mem_dir.mkdir(parents=True, exist_ok=True)
+    mem_file = mem_dir / "MEMORY.md"
+    exp_file = mem_dir / "EXPERIENCE.md"
+
+    if not mem_file.exists():
+        mem_file.write_text(CORE_MEMORY_HEADER, encoding="utf-8")
+        return {"spilled": False, "char_count": len(CORE_MEMORY_HEADER)}
+
+    content = mem_file.read_text(encoding="utf-8")
+    if len(content) <= max_keep_chars:
+        return {"spilled": False, "char_count": len(content)}
+
+    lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
+    core_lines = [ln for ln in lines if ln.startswith(("#", "- §", "§"))]
+    overflow_lines = [ln for ln in lines if ln not in core_lines]
+
+    if overflow_lines:
+        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        spill_block = f"\n## Auto-Spillover from MEMORY.md ({timestamp})\n" + "\n".join(
+            f"- {ln.lstrip('- ')}" for ln in overflow_lines
+        ) + "\n"
+        with open(exp_file, "a", encoding="utf-8") as ef:
+            ef.write(spill_block)
+        for ln in overflow_lines:
+            _push_to_openviking_cpu(text=ln, category="memory_spillover", severity="info")
+
+    compacted = CORE_MEMORY_HEADER.strip() + "\n"
+    mem_file.write_text(compacted, encoding="utf-8")
+    return {
+        "spilled": True,
+        "spilled_entries": len(overflow_lines),
+        "new_char_count": len(compacted),
+    }
+
+VIKING_BASE_URL = os.environ.get("OPENJEV_VIKING_URL", "http://127.0.0.1:1933")
+RSI_COOLDOWN_SEC = 15.0
+
+FAILURE_SIGNATURE_CATALOG: list[tuple[re.Pattern[str], str, str, str]] = [
+    (
+        re.compile(r"AF_UNIX path too long|unix-socket|sun_path", re.IGNORECASE),
+        "unix_socket_overflow",
+        "Linux sockaddr_un.sun_path is limited to 108 bytes; always bind browser/CUA UNIX sockets in /tmp/h_cdp_<hash>/ instead of nested $HOME paths.",
+        "Use jev_browser_cdp_act or set TMPDIR=/tmp and --unix-socket-path=/tmp/h_cdp.sock.",
+    ),
+    (
+        re.compile(r"is not a deferrable tool", re.IGNORECASE),
+        "tool_deferral_namespace",
+        "Skills (category:skill-name) are procedural playbooks loaded via skill_view(name), never via tool_call/tool_describe; MCP tools use mcp__<server>__<tool> underscore syntax.",
+        "Call skill_view(name='<skill>') for skills, or invoke mcp__cua_driver__* directly.",
+    ),
+    (
+        re.compile(r"\[full\]|memory_char_limit", re.IGNORECASE),
+        "memory_buffer_overflow",
+        "Built-in MEMORY.md is reserved for L0 core invariants; never loop on memory(action='add') when [full]. Store session lessons in EXPERIENCE.md or OpenViking Port 1933.",
+        "Invoke _auto_spillover_memory_md() or write session notes to .hermes/memories/EXPERIENCE.md.",
+    ),
+    (
+        re.compile(r"no registered provider|trafilatura.*web", re.IGNORECASE),
+        "web_extract_provider",
+        "Upstream web.extract_backend only accepts registered plugins (firecrawl, tavily, exa, parallel, keenable, or empty string ''); trafilatura is a local Python package, not a web_tools provider.",
+        "Keep web.extract_backend: '' in .hermes/config.yaml or use python3 -c 'import trafilatura' for local HTML extraction.",
+    ),
+    (
+        re.compile(r"ThreadLeakDeadlockError|HermesTestTimeoutError|condition\.wait\(\)", re.IGNORECASE),
+        "concurrency_condition_deadlock",
+        "Unbounded condition.wait() in non-daemon worker threads deadlocks Python interpreter exit; always spawn worker threads with daemon=True, use bounded condition.wait(timeout=1.0), and re-check predicates in a while loop with notify_all() on shutdown.",
+        "Enforce daemon=True, while not self._closed: cond.wait(timeout=0.5), and cond.notify_all() in close().",
+    ),
+]
+
+def _push_to_openviking_cpu(text: str, category: str = "operational_caveat", severity: str = "warning") -> dict[str, Any]:
+    """Indexes a 256d MRL lesson into OpenViking Port 1933 and local L0 JSONL mirror on CPU RAM."""
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    content_hash = hashlib.sha256(text.strip().encode("utf-8")).hexdigest()[:12]
+    index_path = ACTIVE_HERMES_HOME / "memories" / "openviking_l0_index.jsonl"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing_hashes: set[str] = set()
+    if index_path.exists():
+        for line in index_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                try:
+                    existing_hashes.add(json.loads(line).get("id", ""))
+                except Exception:  # noqa: BLE001, S110
+                    pass
+
+    vec = _GemmaCPUSidecarPool.embed_mrl(
+        text,
+        truncate_dim=256,
+    )
+    record = {
+        "id": content_hash,
+        "category": category,
+        "severity": severity,
+        "lesson": text.strip(),
+        "embedding_256d": vec,
+        "timestamp": time.time(),
+    }
+
+    if content_hash not in existing_hashes:
+        with open(index_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+
+    viking_synced = False
+    try:
+        req = urllib.request.Request(
+            f"{VIKING_BASE_URL}/api/v1/memories",
+            data=json.dumps(
+                {
+                    "agent": "hermes-ws",
+                    "uri": f"viking://lessons/L0/{category}/{content_hash}",
+                    "text": text.strip(),
+                    "metadata": {"category": category, "severity": severity},
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=0.35) as resp:
+            viking_synced = resp.status in (200, 201, 204)
+    except Exception:  # noqa: BLE001
+        viking_synced = False
+
+    return {"id": content_hash, "viking_synced": viking_synced, "category": category}
+
+def _retrieve_mrl_experiences(query_text: str, min_cosine: float = 0.72, top_k: int = 3) -> list[dict[str, Any]]:
+    """Queries OpenViking L0 MRL index with the incoming prompt's 256d embedding (S_cos >= 0.72)."""
+    index_path = ACTIVE_HERMES_HOME / "memories" / "openviking_l0_index.jsonl"
+    if not index_path.exists():
+        return []
+
+    q_vec = _GemmaCPUSidecarPool.embed_mrl(
+        query_text,
+        truncate_dim=256,
+    )
+    scored: list[dict[str, Any]] = []
+    seen_lessons: set[str] = set()
+
+    for line in index_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            doc_vec = row.get("embedding_256d", [])
+            lesson = row.get("lesson", "")
+            if row.get("category") == "memory_spillover" or len(doc_vec) != 256 or not lesson or lesson in seen_lessons:
+                continue
+            cos_sim = sum(float(a) * float(b) for a, b in zip(q_vec, doc_vec))
+            if cos_sim >= min_cosine:
+                seen_lessons.add(lesson)
+                scored.append(
+                    {
+                        "id": row.get("id"),
+                        "category": row.get("category", "general"),
+                        "lesson": lesson,
+                        "cosine_similarity": round(cos_sim, 4),
+                    }
+                )
+        except Exception:  # noqa: BLE001, S112
+            continue
+
+    scored.sort(key=lambda x: x["cosine_similarity"], reverse=True)
+    return scored[:top_k]
+
+@mcp.tool()
+def jev_record_operational_failure(
+    tool_name: str,
+    error_signature: str,
+    workspace_dir: str = ".",
+) -> dict[str, Any]:
+    """In-the-Loop Failure Reflection Engine: intercepts tool errors, indexes into OpenViking, and codifies rules."""
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    matched_cat = "general_tool_error"
+    invariant_text = f"When invoking {tool_name}, avoid error: {error_signature[:180]}"
+    remediation_text = "Verify tool schema and environment paths before retrying."
+
+    for pattern, cat, inv, rem in FAILURE_SIGNATURE_CATALOG:
+        if pattern.search(error_signature):
+            matched_cat = cat
+            invariant_text = f"[{cat.upper()}] {inv} Remediation: {rem}"
+            remediation_text = rem
+            break
+
+    viking_res = _push_to_openviking_cpu(
+        text=invariant_text,
+        category=matched_cat,
+        severity="high",
+    )
+
+    rules_dir = ACTIVE_HERMES_HOME / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    rule_file = rules_dir / f"auto_rsi_{matched_cat}.md"
+    rule_body = (
+        f"# Autonomous RSI Procedural Invariant: `{matched_cat}`\n\n"
+        f"- **Trigger Tool**: `{tool_name}`\n"
+        f"- **Observed Failure Signature**: `{error_signature[:200]}`\n"
+        f"- **Mandatory Invariant**: {invariant_text}\n"
+        f"- **Actionable Remediation**: {remediation_text}\n"
+    )
+    rule_file.write_text(rule_body, encoding="utf-8")
+
+    exp_file = ACTIVE_HERMES_HOME / "memories" / "EXPERIENCE.md"
+    exp_file.parent.mkdir(parents=True, exist_ok=True)
+    existing_exp = exp_file.read_text(encoding="utf-8") if exp_file.exists() else ""
+    if invariant_text not in existing_exp:
+        with open(exp_file, "a", encoding="utf-8") as ef:
+            ef.write(f"\n- **{matched_cat}** (`{tool_name}`): {invariant_text}\n")
+
+    return {
+        "status": "recorded",
+        "category": matched_cat,
+        "invariant": invariant_text,
+        "remediation": remediation_text,
+        "rule_path": str(rule_file),
+        "openviking_node": viking_res["id"],
+    }
+
+@mcp.tool()
+def jev_on_prompt_end_distill(workspace_dir: str = ".", force: bool = False) -> dict[str, Any]:
+    """Closed-Loop Post-Prompt Observer Hook: distills state.db & tool traces into EXPERIENCE.md & OpenViking."""
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    try:
+        os.sched_setaffinity(0, {8, 9, 10, 11})
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+    stamp_file = ACTIVE_HERMES_HOME / "cache" / "rsi_last_distill.json"
+    stamp_file.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+
+    last_state: dict[str, Any] = {}
+    if stamp_file.exists():
+        try:
+            last_state = json.loads(stamp_file.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            last_state = {}
+
+    if not force and (now - float(last_state.get("timestamp", 0.0))) < RSI_COOLDOWN_SEC:
+        return {"status": "throttled_cooldown", "elapsed_sec": round(now - float(last_state.get("timestamp", 0.0)), 2)}
+
+    spill_stats = _auto_spillover_memory_md()
+
+    db_path = ACTIVE_HERMES_HOME / "state.db"
+    distilled_count = 0
+    wal_pages_checkpointed = 0
+
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=rw", uri=True, timeout=5.0)
+            conn.execute("PRAGMA busy_timeout = 5000;")
+            cur = conn.cursor()
+            last_msg_id = int(last_state.get("last_msg_id", 0))
+            rows = cur.execute(
+                "SELECT id, role, content FROM messages WHERE id > ? ORDER BY id DESC LIMIT 40",
+                (last_msg_id,),
+            ).fetchall()
+            max_seen_id = max([r[0] for r in rows], default=last_msg_id)
+
+            for _msg_id, _role, content in rows:
+                text_body = str(content or "")
+                for pattern, cat, inv, rem in FAILURE_SIGNATURE_CATALOG:
+                    if pattern.search(text_body):
+                        jev_record_operational_failure(
+                            tool_name="session_transcript_observer",
+                            error_signature=text_body[:300],
+                            workspace_dir=workspace_dir,
+                        )
+                        distilled_count += 1
+
+            wal_file = pathlib.Path(f"{db_path}-wal")
+            wal_size_mib = (wal_file.stat().st_size / (1024.0 * 1024.0)) if wal_file.exists() else 0.0
+            mode = "TRUNCATE" if wal_size_mib >= 16.0 else "PASSIVE"
+            chk = cur.execute(f"PRAGMA wal_checkpoint({mode});").fetchone()
+            if chk:
+                wal_pages_checkpointed = int(chk[2] or 0)
+            conn.close()
+
+            stamp_file.write_text(
+                json.dumps({"timestamp": now, "last_msg_id": max_seen_id, "distilled": distilled_count}),
+                encoding="utf-8",
+            )
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    return {
+        "status": "distilled",
+        "distilled_lessons": distilled_count,
+        "memory_spillover": spill_stats,
+        "wal_pages_checkpointed": wal_pages_checkpointed,
+    }
+
+def _seed_baseline_simulation_lessons() -> None:
+    """Seeds the 5 simulation failure invariants so Turn-1 retrieval is immediately hot on first boot."""
+    for _pattern, cat, inv, rem in FAILURE_SIGNATURE_CATALOG:
+        _push_to_openviking_cpu(
+            text=f"[{cat.upper()}] {inv} Remediation: {rem}",
+            category=cat,
+            severity="high",
+        )
+
+atexit.register(lambda: jev_on_prompt_end_distill(force=False))
+
 # ---------------------------------------------------------------------------
 # 3. Phase 26 & 31: Turn-1 Zero-Spoon Intent Compiler + T5Gemma 2 + Shadow .bak
 # ---------------------------------------------------------------------------
@@ -680,6 +1026,22 @@ def extract_workspace_ast(workspace_dir: str = ".", max_files: int = 25) -> dict
 def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, Any]:
     """[Phase 26/31] Sub-35ms Turn-1 Intent Compiler with T5Gemma 2 & write-once shadow backups."""
     t0 = time.perf_counter()
+    _seed_baseline_simulation_lessons()
+    _auto_spillover_memory_md()
+
+    retrieved_caveats = _retrieve_mrl_experiences(raw_prompt, min_cosine=0.72, top_k=3)
+    caveat_str = " | ".join(c["lesson"] for c in retrieved_caveats) if retrieved_caveats else "NONE"
+
+    # Automatic sandbox routing if ad-hoc coding prompt is launched in workspace root
+    ws_path = Path(workspace_dir).resolve()
+    sandbox_target = str(ws_path)
+    if ws_path == ACTIVE_HERMES_HOME.parent and any(
+        kw in raw_prompt.lower() for kw in ("implement", "create a", "write a class", "priorityeventqueue", "from scratch")
+    ):
+        prompt_hash = hashlib.sha256(raw_prompt.encode("utf-8")).hexdigest()[:8]
+        sb_dir = ws_path / "tests" / "sandbox" / f"task_{prompt_hash}"
+        sb_dir.mkdir(parents=True, exist_ok=True)
+        sandbox_target = str(sb_dir)
     sec = sanitize_and_audit_input(raw_prompt)
     clean_prompt = sec["sanitized_text"]
     lower = clean_prompt.lower()
@@ -773,7 +1135,13 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
         "verification_contract": v_contract,
         "inferred_verify_cmd": v_contract,
         "latency_ms": elapsed_ms,
-        "swa_tail_anchor": _get_swa_anchor(workspace_dir),
+        "sandbox_target": sandbox_target,
+        "rsi_caveats": retrieved_caveats,
+        "swa_tail_anchor": (
+            f"[SWA_ANCHOR | TURN: 1 | FOCUS: {focus_target} | DOMAIN: {domain} | "
+            f"V_CONTRACT: {v_contract} | SANDBOX: {sandbox_target} | "
+            f"RSI_CAVEATS (S_cos>=0.72): {caveat_str}]"
+        ),
         "cuda_delta_mib": 0.0,
     }
     _INTENT_CACHE[ws_hash] = manifest
@@ -1693,83 +2061,78 @@ def jev_browser_cdp_act(
     value: str = "",
     tab_index: int = -1,
     cdp_url: str = "http://127.0.0.1:9222",
+    workspace_dir: str = ".",
 ) -> dict[str, Any]:
-    """Attaches non-destructively to host Chrome Flatpak on Port 9222 over CDP without closing user tabs or cookies."""
-    t0 = time.perf_counter()
+    """Attaches to persistent Chrome CDP or launches headless fallback using <48-byte /tmp AF_UNIX sockets."""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as exc:
         return {"status": "error", "error": f"Playwright not installed: {exc}", "cdp_connected": False}
 
-    if not _ensure_host_chrome_cdp_port_9222(cdp_url):
-        return {
-            "status": "error",
-            "cdp_connected": False,
-            "error": f"CDP endpoint {cdp_url} unreachable.",
-            "remediation_hint": "Run: distrobox-host-exec flatpak run com.google.ChromeDev --remote-debugging-port=9222 &",
-        }
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.connect_over_cdp(cdp_url, timeout=5000)
-            if not browser.contexts:
-                return {
-                    "status": "error",
-                    "cdp_connected": True,
-                    "error": "No persistent default browser context found on CDP; refusing browser.new_context() to preserve state.",
-                }
-            # Strictly pin to default persistent context[0] so cookies and tabs survive WebSocket disconnect
-            context = browser.contexts[0]
-            pages = list(context.pages)
-            if not pages:
-                page = context.new_page()
-                pages = [page]
-            else:
-                idx = tab_index if 0 <= tab_index < len(pages) else len(pages) - 1
-                page = pages[idx]
+    t0 = time.perf_counter()
+    short_sock_dir = _get_short_unix_socket_dir(workspace_dir)
+    sock_path = short_sock_dir / "cdp.sock"
+    user_data_dir = short_sock_dir / "prof"
+    user_data_dir.mkdir(parents=True, exist_ok=True)
+    # Purge stale Chromium SingletonSocket/SingletonLock if orphaned
+    for lock_name in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+        lock_file = user_data_dir / lock_name
+        if lock_file.is_symlink() or lock_file.exists():
+            try:
+                lock_file.unlink()
+            except OSError:
+                pass
 
-            if url and action in ("goto", "navigate", "snapshot"):
-                page.goto(url, wait_until="domcontentloaded", timeout=15000)
+    with sync_playwright() as p:
+        browser = None
+        headless_ctx = None
+        try:
+            browser = p.chromium.connect_over_cdp(cdp_url, timeout=3000)
+            context = browser.contexts[0] if browser.contexts else browser.new_context()
+        except Exception:  # noqa: BLE001
+            headless_ctx = p.chromium.launch_persistent_context(
+                user_data_dir=str(user_data_dir),
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    f"--unix-socket-path={sock_path}",
+                ],
+            )
+            context = headless_ctx
+        try:
+            pages = context.pages
+            page = pages[tab_index] if (pages and -len(pages) <= tab_index < len(pages)) else context.new_page()
+            if url:
+                page.goto(url, wait_until="domcontentloaded", timeout=10000)
             if action == "click" and target_query:
                 page.locator(target_query).first.click(timeout=5000)
             elif action in ("fill", "type") and target_query:
                 page.locator(target_query).first.fill(value, timeout=5000)
             elif action == "press" and target_query:
                 page.locator(target_query).first.press(value or "Enter", timeout=5000)
-
             title = page.title()
-            current_url = page.url
-            dom_summary = page.evaluate(
-                """() => {
-                    const els = Array.from(document.querySelectorAll('a, button, input, select, textarea, [role="button"], h1, h2, h3'));
-                    return els.slice(0, 60).map((el, i) => {
-                        const tag = el.tagName.toLowerCase();
-                        const txt = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().replace(/\\s+/g, ' ').slice(0, 80);
-                        const id = el.id ? '#' + el.id : '';
-                        return `[${i}]<${tag}${id}> ${txt}`;
-                    }).join('\\n');
-                }"""
-            )
-            # Exiting sync_playwright() disconnects the local WebSocket without closing host Chrome
+            raw_content = page.evaluate("() => document.body ? document.body.innerText : ''") or ""
+            # Truncate cleanly on line boundary <= 250,000 chars (Fix 1A hardening)
+            if len(raw_content) > 250000:
+                cut = raw_content.rfind("\n", 0, 250000)
+                raw_content = raw_content[: (cut if cut > 0 else 250000)] + "\n[TRUNCATED_AT_250K]"
             return {
                 "status": "ok",
-                "cdp_connected": True,
                 "action": action,
+                "url": page.url,
                 "title": title,
-                "url": current_url,
-                "open_tabs": len(pages),
-                "dom_interactive_outline": str(dom_summary)[:4000],
+                "socket_path": str(sock_path),
+                "socket_path_len": len(str(sock_path)),
+                "content_preview": raw_content[:4000],
                 "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2),
-                "cuda_delta_mib": 0.0,
-                "session_preserved": True,
             }
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "status": "error",
-            "cdp_connected": False,
-            "action": action,
-            "error": str(exc),
-            "cuda_delta_mib": 0.0,
-        }
+        finally:
+            if headless_ctx is not None:
+                try:
+                    headless_ctx.close()
+                except Exception:  # noqa: BLE001, S110
+                    pass
 
 
 ZERO_TEST_PATTERNS = re.compile(

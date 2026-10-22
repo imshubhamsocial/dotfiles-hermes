@@ -1,9 +1,6 @@
-# Hermes System Memory & Universal Execution Invariants (Phases 01–30)
-
-* **§0 MANDATORY TURN-1 GATE (OVERRIDES SKILLS PREAMBLE)**: On Turn 1 of EVERY prompt and follow-up turn, your FIRST tool call MUST be mcp_openjev(jev_compile_intent, raw_prompt=..., workspace_dir=...) BEFORE calling skill_view, read_file, patch, or terminal.
-* **§1 Hardware Ceiling**: Port 8138 llama-server (Gemma-4-E4B, -np 1, 128K q4_0 KV, MTP+N-gram 92–112 tok/s). Active GPU VRAM MUST NEVER exceed **4,812.0 MiB** (steady 3,951 MiB). Port 8139 (SmolVLM2 Vision) and Port 1933 (OpenViking 0.5.0 BGE-small) run 100% on CPU RAM (CUDA_VISIBLE_DEVICES="", 0.0 MiB CUDA delta).
-* **§2 Upstream Git Purity**: .hermes/hermes-agent is 100% pristine (ca6b189a). .hermes/mcp_openjev.py v3.0 is the sole unified FastMCP server. All ~/.hermes/ configs/skills/rules are tracked in Chezmoi (0 unmanaged files).
-* **§3 Domain A (Computer/Browser Use & Gaming)**: Check/install arc-agui-world-model / computer-use / agent-browser, write SMART spec, and call jev_ground_gui (AT-SPI2 + Port 8139 SmolVLM2 CPU crop) before every click/scroll/key action. Halt on divergence_halt == True (modals, window move, frame lag).
-* **§4 Domain B (Home/System Files Without Git)**: jev_compile_intent creates <file>.hermes.bak automatically. Apply Karpathy U12 surgical diffs ($\le 15$ lines). On 2 consecutive failures, revert via cp -f "<file>.hermes.bak" "<file>". Verify via bash -n <file>, systemd-analyze --user verify <file>, or schema load before completion.
-* **§5 Domain C (Code Repositories)**: Extract AST outlines via extract_workspace_ast, route high-entropy branches via jev_decide (Two-Stage zero-KV-eviction router), plan multi-file changes via jev_taskdag_plan and jev_harness2_probe_compose, and require pytest exit 0 + /tmp/hermes_verified_receipt.json.
-* **§6 Known Testbed Domain Facts**: JWT claims in auth_engine.py require fallback token_payload.get("tenant_id") or token_payload.get("tid") or token_payload.get("tenant"). TokenBucketRateLimiter must update self.last_refill = now unconditionally. DataPipeline legacy records require record.get("event_id") or record.get("id") or "UNKNOWN".
+# Hermes OS Core Invariants (L0 Pinned)
+- §1 Hardware: Port 8138 Gemma-4-E4B (-np 1, <= 4,812 MiB VRAM). Port 8139 Vision & Port 1933 OpenViking 100% CPU RAM.
+- §2 Entry: Native hermes CLI & profiles only. Zero synthetic wrappers in .local/bin/.
+- §3 Home: .hermes/ is the sole runtime state directory, synced via Chezmoi.
+- §4 Verification: Non-vacuous pytest -q (N >= 1) + /tmp/hermes_verified_receipt.json.
+- §5 Overflow: Dynamic session lessons live in EXPERIENCE.md and OpenViking Port 1933.

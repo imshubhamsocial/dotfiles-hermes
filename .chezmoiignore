@@ -45,6 +45,7 @@ build/**
 .hermes/models/**
 
 # Ignore runtime caches, sandboxes, and transient state
+.hermes/run/**
 .hermes/cache/**
 .hermes/audio_cache/**
 .hermes/image_cache/**

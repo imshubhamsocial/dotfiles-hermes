@@ -1,33 +1,41 @@
-# File: .hermes/guardrails/rails.co
-define subflow verify input entropy and injection
-  $audit = execute sanitize_and_audit_input(raw_text=$user_message)
-  if not $audit.passed
-    bot inform input blocked by security rail
+define subflow check input entropy and injection
+  $input_audit = execute check_input_security_action(text=$user_message)
+  if not $input_audit.security_passed
+    bot refuse unsafe input
     stop
 
-define bot inform input blocked by security rail
-  "[NEMO_INPUT_RAIL_BLOCKED]: Input rejected due to subshell injection pattern or excessive Shannon entropy (H > 4.6)."
+define bot refuse unsafe input
+  "SECURITY RAIL HALT: Input rejected by Phase 15 Proactive Security Gate (subshell injection, backtick escape, or Shannon entropy H > 4.6)."
 
-define subflow enforce karpathy u12 and two strike tabu
-  $gate = execute enforce_hard_constitutional_invariants(workspace_dir=$workspace_dir, target_file=$target_file, diff_lines=$diff_lines, last_test_failed=$last_test_failed)
-  if $gate.u12_violated
-    bot inform u12 surgical diff violation
-    stop
-  if $gate.tabu_reverted
-    bot inform two strike tabu revert triggered
+define subflow check retrieved context integrity
+  $rag_audit = execute check_retrieval_poisoning_action(chunks=$relevant_chunks)
+  if not $rag_audit.passed
+    bot refuse poisoned retrieval
     stop
 
-define bot inform u12 surgical diff violation
-  "[NEMO_EXECUTION_RAIL_BLOCKED]: Karpathy U12 violation. Diff exceeds 15 lines."
+define bot refuse poisoned retrieval
+  "RETRIEVAL RAIL HALT: Retrieved memory or web chunk contained indirect prompt injection markers and was quarantined."
 
-define bot inform two strike tabu revert triggered
-  "[NEMO_EXECUTION_RAIL_BLOCKED]: Two-Strike Tabu revert triggered. Restoring .turn1.bak baseline."
-
-define subflow verify syntax with ruff and ast grep
-  $syntax_ok = execute verify_output_diff_syntax(workspace_dir=$workspace_dir, target_file=$target_file)
-  if not $syntax_ok
-    bot inform syntax verification failed
+define subflow enforce u12 diff and tabu execution rail
+  $exec_audit = execute enforce_u12_and_tabu_action(tool_name=$tool_name, diff_lines=$diff_lines, strike_count=$strike_count, ast_callers=$ast_callers, target_file=$target_file, workspace_dir=$workspace_dir)
+  if $exec_audit.tabu_reverted
+    bot notify tabu revert
+    stop
+  if not $exec_audit.u12_passed
+    bot refuse u12 violation
     stop
 
-define bot inform syntax verification failed
-  "[NEMO_OUTPUT_RAIL_BLOCKED]: Output diff contains syntax errors."
+define bot notify tabu revert
+  "TABU STRIKE-2 RAIL HALT: Target file restored from write-once .turn1.bak shadow backup. Incremental patching halted; escalating to jev_decide / jev_anneal_cluster."
+
+define bot refuse u12 violation
+  "EXECUTION RAIL HALT: Proposed mutation exceeds Karpathy U12 surgical diff bound (> 15 lines for bug fix) or uses prohibited raw sed/awk."
+
+define subflow verify epistemic closure and non vacuous receipt
+  $out_audit = execute verify_epistemic_receipt_action(bot_response=$bot_message, last_tool_output=$last_tool_output, workspace_dir=$workspace_dir)
+  if not $out_audit.verified
+    bot refuse unverified completion
+    stop
+
+define bot refuse unverified completion
+  "OUTPUT RAIL HALT: Epistemic closure rejected. Completion requires exitstatus == 0 in /tmp/hermes_verified_receipt.json and >= 1 executed test ('Ran 0 tests' is prohibited)."

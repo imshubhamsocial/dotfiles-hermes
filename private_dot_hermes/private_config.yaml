@@ -2,6 +2,7 @@ database:
   journal_mode: wal
 display:
   interface: tui
+  personality: ""
   final_response_markdown: render
   compact: false
   tool_progress: all
@@ -24,7 +25,7 @@ runtime:
 
   nofile_soft_limit: 4096
 model:
-  default: "dory"
+  default: "google/gemma-4-E4B-it"
   provider: "custom"
   base_url: "http://127.0.0.1:8138/v1"
   context_length: 65536
@@ -95,6 +96,9 @@ tool_loop_guardrails:
     exact_failure: 2
     same_tool_failure: 4
     idempotent_no_progress: 3
+  loop_caps:
+    per_tool:
+      tool_search: 3
 compression:
   enabled: true
   threshold: 0.50
@@ -223,12 +227,19 @@ telemetry:
   otlp_endpoint: "http://127.0.0.1:4318"
 
 tools:
-  tool_search:
-    enabled: "off"
   semgrep:
     enabled: true
   reviewdog:
     enabled: true
+  tool_search:
+    enabled: "auto"
+    threshold_pct: 5
+  disabled_toolsets:
+    - feishu
+    - desktop_preview
+    - gui_tour
+    - video_analyze
+    - browser_vault
 
 
 
@@ -250,6 +261,8 @@ mcp_servers:
       - "--socket"
       - "${userHome}/.hermes/run/cua-driver.sock"
     env:
+      CUA_DEFAULT_INCLUDE_SCREENSHOT: "false"
+      CUA_TELEMETRY_DISABLED: "1"
       WAYLAND_DISPLAY: "wayland-0"
       DISPLAY: ":0"
       CUDA_VISIBLE_DEVICES: ""

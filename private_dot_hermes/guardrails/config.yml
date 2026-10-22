@@ -1,33 +1,31 @@
-# File: .hermes/guardrails/config.yml
+colang_version: "1.0"
+
 models:
   - type: main
     engine: openai
-    model: google/gemma-4-E4B-it
+    model: dory
     parameters:
       base_url: "http://127.0.0.1:8138/v1"
-      api_key: "hermes-local-slot0"
+      api_key: "hermes-local"
       temperature: 0.2
 
 rails:
-  input:
-    flows:
-      - verify input entropy and injection
-      - mask sensitive credentials on input
-  retrieval:
-    flows:
-      - sanitize openviking retrieved chunks
+  config:
+    user_messages:
+      embeddings_only: true
   dialog:
     single_call:
       enabled: true
       fallback_to_multiple_calls: false
+  input:
     flows:
-      - enforce turn1 intent compilation
-      - prevent long horizon cognitive drift
+      - check input entropy and injection
+  retrieval:
+    flows:
+      - check retrieved context integrity
   execution:
     flows:
-      - enforce karpathy u12 and two strike tabu
-      - verify tirith sandbox boundaries
+      - enforce u12 diff and tabu execution rail
   output:
     flows:
-      - verify syntax with ruff and ast grep
-      - redact leaked secrets on output
+      - verify epistemic closure and non vacuous receipt

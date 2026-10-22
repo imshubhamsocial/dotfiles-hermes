@@ -25,6 +25,7 @@ import pathlib
 import random
 import re
 import shutil
+import signal
 import socket
 import sqlite3
 import subprocess
@@ -198,38 +199,43 @@ def _get_proc_starttime(pid: int) -> int | None:
 
 def _extract_html_with_hard_timeout(raw_html: str, url: str, timeout_sec: float = 4.0) -> str:
     """
-    GDR10-BUG-01 Remediation:
-    Executes trafilatura inside an isolated subprocess with start_new_session=True
-    to avoid ProcessPoolExecutor shutdown deadlocks and multithreaded fork mutex hazards.
+    GDR10-BUG-01 Hardened:
+    Executes trafilatura inside an isolated subprocess with start_new_session=True.
+    Reaps the entire process group via os.killpg on TimeoutExpired and bounds stdin to html[:250000].
     """
     if not raw_html:
         return ""
-    bounded_html = raw_html[:1_500_000]
-    worker_code = (
+    script = (
         "import sys, trafilatura; "
-        "html = sys.stdin.read(); "
-        "res = trafilatura.extract(html, include_tables=True, include_links=False, favor_precision=True); "
-        "sys.stdout.write((res or '').strip())"
+        "raw = sys.stdin.read(); "
+        "res = trafilatura.extract(raw, include_links=True, include_comments=False) or ''; "
+        "sys.stdout.write(res[:12000])"
     )
+    proc = None
     try:
-        proc = subprocess.run(
-            [sys.executable, "-c", worker_code],
-            input=bounded_html,
-            capture_output=True,
+        proc = subprocess.Popen(
+            [sys.executable, "-c", script],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout_sec,
-            check=False,
             start_new_session=True,
         )
-        if proc.returncode == 0 and proc.stdout.strip():
-            return proc.stdout.strip()[:32000]
+        stdout, _ = proc.communicate(input=raw_html[:250000], timeout=timeout_sec)
+        return stdout.strip() if proc.returncode == 0 else ""
     except subprocess.TimeoutExpired:
-        pass
-    except Exception:  # noqa: BLE001, S110
-        pass
-    text = re.sub(r"<(script|style|noscript)[^>]*>.*?</\1>", " ", bounded_html, flags=re.DOTALL | re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", " ", text)
-    return re.sub(r"\s+", " ", text).strip()[:32000]
+        if proc is not None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except OSError:
+                proc.kill()
+            proc.wait(timeout=1.0)
+        return ""
+    except Exception:  # noqa: BLE001
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=1.0)
+        return ""
 
 
 def _ddgs_resilient_search(query: str, max_results: int = 5) -> list[dict[str, str]]:
@@ -403,6 +409,16 @@ def _require_compiled_intent(fn: Any) -> Any:
     return wrapper
 
 
+def _resolve_turn1_backup_paths(backup_dir: Path, target_path: Path) -> tuple[Path, Path]:
+    """Returns (disambiguated_path_bak, legacy_basename_bak) for write-once Turn-1 backups."""
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    rel_key = hashlib.sha256(str(target_path.resolve()).encode("utf-8")).hexdigest()[:8]
+    return (
+        backup_dir / f"{rel_key}_{target_path.name}.turn1.bak",
+        backup_dir / f"{target_path.name}.turn1.bak",
+    )
+
+
 def _enforce_hard_constitutional_invariants(
     workspace_dir: str,
     target_file: str = "",
@@ -435,10 +451,10 @@ def _enforce_hard_constitutional_invariants(
     # Write-once Turn-1 shadow backup creation
     if target_file:
         target_abs = (ws_path / target_file).resolve()
-        turn1_bak = shadow_dir / f"{Path(target_file).name}.turn1.bak"
-        if target_abs.is_file() and not turn1_bak.exists():
+        disambig_bak, legacy_bak = _resolve_turn1_backup_paths(shadow_dir, target_abs)
+        if target_abs.is_file() and not disambig_bak.exists() and not legacy_bak.exists():
             with contextlib.suppress(OSError):
-                shutil.copy2(target_abs, turn1_bak, follow_symlinks=False)
+                shutil.copy2(target_abs, disambig_bak, follow_symlinks=False)
 
     # 1. Karpathy U12 Hard Gate (<= 15 lines or <= 3x defective block)
     u12_ceiling = max(15, 3 * max(1, defect_block_lines))
@@ -448,9 +464,10 @@ def _enforce_hard_constitutional_invariants(
     tabu_reverted = False
     if state["strike_count"] >= 2 and target_file:
         target_abs = (ws_path / target_file).resolve()
-        turn1_bak = shadow_dir / f"{Path(target_file).name}.turn1.bak"
-        if turn1_bak.exists():
-            shutil.copy2(turn1_bak, target_abs)
+        disambig_bak, legacy_bak = _resolve_turn1_backup_paths(shadow_dir, target_abs)
+        active_bak = disambig_bak if disambig_bak.exists() else legacy_bak
+        if active_bak.exists():
+            shutil.copy2(active_bak, target_abs)
             tabu_reverted = True
         elif (ws_path / ".git").exists():
             subprocess.run(
@@ -510,7 +527,7 @@ class _GemmaCPUSidecarPool:
     def embed_mrl(
         cls,
         text: str,
-        task_prefix: str = "task: code retrieval | query: ",
+        task_prefix: str = "",
         truncate_dim: int = 256,
         chunk_type: str = "code",
         is_code: bool | None = None,
@@ -518,9 +535,14 @@ class _GemmaCPUSidecarPool:
         """Generates L2-renormalized embeddings (256d MRL) on CPU via fastembed."""
         cls._ensure_loaded()
         if cls._embedder is not None:
-            prefix = "Represent this code symbol for retrieval: " if (is_code or chunk_type == "code") else "query: "
+            if task_prefix:
+                full_input = f"{task_prefix}: {text}"
+            elif is_code or chunk_type == "code":
+                full_input = f"Represent this code symbol for retrieval: {text}"
+            else:
+                full_input = f"query: {text}"
             try:
-                raw_vec = list(next(cls._embedder.embed([prefix + text])))[:truncate_dim]
+                raw_vec = list(next(cls._embedder.embed([full_input])))[:truncate_dim]
                 norm = math.sqrt(sum(x * x for x in raw_vec)) or 1.0
                 return [round(x / norm, 6) for x in raw_vec]
             except Exception:  # noqa: BLE001, S110
@@ -1363,9 +1385,14 @@ def jev_gemma_sidecar_embed_and_refine(
 
     ranked: list[dict[str, Any]] = []
     for item in corpus_items or []:
-        title = item.get("title", "none")
-        content = item.get("text", "")
-        chunk_type = item.get("chunk_type", "code")
+        if isinstance(item, str):
+            title = item[:30]
+            content = item
+            chunk_type = "code" if ("def " in item or "class " in item) else "doc"
+        else:
+            title = item.get("title", "none")
+            content = item.get("text", "")
+            chunk_type = item.get("chunk_type", "code")
         doc_str = f"title: {title} | text: {content}"
         d_vec = _GemmaCPUSidecarPool.embed_mrl(
             doc_str, task_prefix="", truncate_dim=truncate_dim, chunk_type=chunk_type
@@ -1620,6 +1647,44 @@ def jev_computer_browser_act(
     )
 
 
+def _ensure_host_chrome_cdp_port_9222(cdp_url: str = "http://127.0.0.1:9222") -> bool:
+    """Verifies Port 9222 CDP reachability; auto-launches host ChromeDev Flatpak if offline."""
+    import urllib.request
+    version_url = f"{cdp_url.rstrip('/')}/json/version"
+    try:
+        with urllib.request.urlopen(version_url, timeout=1.0) as resp:
+            if resp.status == 200:
+                return True
+    except Exception:  # noqa: BLE001, S110
+        pass
+    try:
+        subprocess.Popen(
+            [
+                "distrobox-host-exec",
+                "flatpak",
+                "run",
+                "com.google.ChromeDev",
+                "--remote-debugging-port=9222",
+                "--no-first-run",
+                "--no-default-browser-check",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        for _ in range(15):
+            time.sleep(0.25)
+            try:
+                with urllib.request.urlopen(version_url, timeout=0.5) as resp:
+                    if resp.status == 200:
+                        return True
+            except Exception:  # noqa: BLE001, S112
+                continue
+    except Exception:  # noqa: BLE001, S110
+        pass
+    return False
+
+
 @mcp.tool()
 def jev_browser_cdp_act(
     action: str = "snapshot",
@@ -1629,61 +1694,151 @@ def jev_browser_cdp_act(
     tab_index: int = -1,
     cdp_url: str = "http://127.0.0.1:9222",
 ) -> dict[str, Any]:
-    """
-    Persistent Multi-Turn Browser Automation attached to Host Google Chrome Flatpak
-    (com.google.ChromeDev) via CDP on Port 9222 (GDR10 Golden Mandate 4).
-    Never closes the user's browser or destroys authenticated session cookies across turns.
-    """
+    """Attaches non-destructively to host Chrome Flatpak on Port 9222 over CDP without closing user tabs or cookies."""
     t0 = time.perf_counter()
     try:
-        from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        return {"status": "error", "error": f"Playwright not installed: {exc}", "cdp_connected": False}
+
+    if not _ensure_host_chrome_cdp_port_9222(cdp_url):
+        return {
+            "status": "error",
+            "cdp_connected": False,
+            "error": f"CDP endpoint {cdp_url} unreachable.",
+            "remediation_hint": "Run: distrobox-host-exec flatpak run com.google.ChromeDev --remote-debugging-port=9222 &",
+        }
+    try:
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(cdp_url, timeout=5000)
-            context = browser.contexts[0] if browser.contexts else browser.new_context()
-            pages = context.pages
-
-            if url and action == "new_tab":
+            if not browser.contexts:
+                return {
+                    "status": "error",
+                    "cdp_connected": True,
+                    "error": "No persistent default browser context found on CDP; refusing browser.new_context() to preserve state.",
+                }
+            # Strictly pin to default persistent context[0] so cookies and tabs survive WebSocket disconnect
+            context = browser.contexts[0]
+            pages = list(context.pages)
+            if not pages:
                 page = context.new_page()
-                page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                pages = [page]
             else:
-                page = pages[tab_index] if (pages and -len(pages) <= tab_index < len(pages)) else (pages[-1] if pages else context.new_page())
-                if url:
-                    page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                idx = tab_index if 0 <= tab_index < len(pages) else len(pages) - 1
+                page = pages[idx]
 
+            if url and action in ("goto", "navigate", "snapshot"):
+                page.goto(url, wait_until="domcontentloaded", timeout=15000)
             if action == "click" and target_query:
-                page.get_by_text(target_query, exact=False).first.click(timeout=5000)
-            elif action == "fill" and target_query:
-                page.get_by_label(target_query, exact=False).first.fill(value, timeout=5000)
-            elif action == "press" and value:
-                page.keyboard.press(value)
+                page.locator(target_query).first.click(timeout=5000)
+            elif action in ("fill", "type") and target_query:
+                page.locator(target_query).first.fill(value, timeout=5000)
+            elif action == "press" and target_query:
+                page.locator(target_query).first.press(value or "Enter", timeout=5000)
 
-            ax_snapshot = page.locator("body").aria_snapshot(timeout=5000)
-            tables = page.evaluate(
-                """() => Array.from(document.querySelectorAll('table')).slice(0, 5).map(t =>
-                    Array.from(t.rows).slice(0, 30).map(r =>
-                        Array.from(r.cells).map(c => c.innerText.trim()).join(' | ')
-                    ).join('\\n')
-                )"""
+            title = page.title()
+            current_url = page.url
+            dom_summary = page.evaluate(
+                """() => {
+                    const els = Array.from(document.querySelectorAll('a, button, input, select, textarea, [role="button"], h1, h2, h3'));
+                    return els.slice(0, 60).map((el, i) => {
+                        const tag = el.tagName.toLowerCase();
+                        const txt = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().replace(/\\s+/g, ' ').slice(0, 80);
+                        const id = el.id ? '#' + el.id : '';
+                        return `[${i}]<${tag}${id}> ${txt}`;
+                    }).join('\\n');
+                }"""
             )
+            # Exiting sync_playwright() disconnects the local WebSocket without closing host Chrome
             return {
                 "status": "ok",
-                "cdp_endpoint": cdp_url,
-                "active_url": page.url,
-                "title": page.title(),
-                "open_tabs_count": len(context.pages),
-                "aria_snapshot": str(ax_snapshot)[:8000],
-                "extracted_tables": tables,
-                "cuda_vram_delta_mib": 0.0,
+                "cdp_connected": True,
+                "action": action,
+                "title": title,
+                "url": current_url,
+                "open_tabs": len(pages),
+                "dom_interactive_outline": str(dom_summary)[:4000],
                 "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2),
+                "cuda_delta_mib": 0.0,
+                "session_preserved": True,
             }
     except Exception as exc:  # noqa: BLE001
         return {
             "status": "error",
-            "cdp_endpoint": cdp_url,
-            "error": f"Failed to attach over CDP to {cdp_url}: {exc}. Ensure Chrome Flatpak is running with --remote-debugging-port=9222",
-            "cuda_vram_delta_mib": 0.0,
-            "latency_ms": round((time.perf_counter() - t0) * 1000.0, 2),
+            "cdp_connected": False,
+            "action": action,
+            "error": str(exc),
+            "cuda_delta_mib": 0.0,
         }
+
+
+ZERO_TEST_PATTERNS = re.compile(
+    r"(?:Ran\s+0\s+tests\s+in|collected\s+0\s+items|no\s+tests\s+ran)",
+    re.IGNORECASE,
+)
+
+
+@mcp.tool()
+def jev_verify_test_execution(
+    verify_cmd: str = "pytest -q",
+    workspace_dir: str = ".",
+    target_file: str = "",
+    stdout_override: str = "",
+    exit_code_override: int = -1,
+) -> dict[str, Any]:
+    """Executes or audits verification output to block vacuous 'Ran 0 tests' victories and read-mutation bugs."""
+    ws = Path(workspace_dir).resolve()
+    if target_file:
+        tpath = (ws / target_file).resolve()
+        if tpath.is_file():
+            src = tpath.read_text(encoding="utf-8", errors="ignore")
+            if "def get(" in src:
+                get_block = src.split("def get(")[1].split("def ")[0]
+                if ".pop(" in get_block and "_remove" not in get_block:
+                    return {
+                        "verified": False,
+                        "exit_code": 1,
+                        "loophole_blocked": "MUTATION_ON_READ_DEFECT",
+                        "error": "Detected destructive .pop() inside get() without node detachment (_remove_node).",
+                    }
+    if stdout_override != "" or exit_code_override != -1:
+        combined_out = stdout_override
+        retcode = exit_code_override if exit_code_override != -1 else 0
+    else:
+        try:
+            proc = subprocess.run(
+                verify_cmd,
+                shell=True,
+                cwd=str(ws),
+                capture_output=True,
+                text=True,
+                timeout=60.0,
+                check=False,
+                start_new_session=True,
+            )
+            combined_out = f"{proc.stdout}\n{proc.stderr}"
+            retcode = proc.returncode
+        except subprocess.TimeoutExpired:
+            return {"verified": False, "exit_code": 124, "loophole_blocked": "TIMEOUT"}
+
+    if ZERO_TEST_PATTERNS.search(combined_out):
+        return {
+            "verified": False,
+            "exit_code": 5,
+            "loophole_blocked": "RAN_ZERO_TESTS_LOOPHOLE",
+            "output": combined_out[-1200:],
+            "error": (
+                "CRITICAL: Test runner executed 0 tests ('Ran 0 tests' / 'collected 0 items'). "
+                "Never rely on `if __name__ == '__main__': unittest.main()` inside execute_code; "
+                "invoke `pytest -q <file>` via terminal or `unittest.main(argv=[''], exit=False)`."
+            ),
+        }
+    return {
+        "verified": retcode == 0,
+        "exit_code": retcode,
+        "loophole_blocked": None,
+        "output": combined_out[-1200:],
+    }
 
 if __name__ == "__main__":
     mcp.run()

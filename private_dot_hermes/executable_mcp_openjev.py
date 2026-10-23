@@ -202,20 +202,24 @@ def _terminate_process_group_safely(proc: subprocess.Popen[Any], grace_sec: floa
     """Two-phase SIGTERM -> SIGKILL process-group reaper with ESRCH guard and zombie collection."""
     if proc.poll() is not None:
         return
-    pgid = proc.pid  # Deterministic under start_new_session=True (setsid)
     try:
-        os.killpg(pgid, signal.SIGTERM)
+        pgid = os.getpgid(proc.pid)
+    except OSError:
+        pgid = proc.pid
+    use_pg = pgid != os.getpgrp()
+    try:
+        os.killpg(pgid, signal.SIGTERM) if use_pg else proc.terminate()
     except (ProcessLookupError, PermissionError, OSError):
-        pass
+        proc.terminate()
     try:
         proc.wait(timeout=grace_sec)
         return
     except subprocess.TimeoutExpired:
         pass
     try:
-        os.killpg(pgid, signal.SIGKILL)
+        os.killpg(pgid, signal.SIGKILL) if use_pg else proc.kill()
     except (ProcessLookupError, PermissionError, OSError):
-        pass
+        proc.kill()
     try:
         proc.wait(timeout=1.0)
     except Exception:  # noqa: BLE001, S110
@@ -730,8 +734,8 @@ def _auto_spillover_memory_md(max_keep_chars: int = 1400) -> dict[str, Any]:
         return {"spilled": False, "char_count": len(content)}
 
     lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
-    core_lines = [ln for ln in lines if ln.startswith(("#", "- §", "§"))]
-    overflow_lines = [ln for ln in lines if ln not in core_lines]
+    core_header_set = {ln.strip() for ln in CORE_MEMORY_HEADER.splitlines() if ln.strip()}
+    overflow_lines = [ln for ln in lines if ln not in core_header_set]
 
     if overflow_lines:
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

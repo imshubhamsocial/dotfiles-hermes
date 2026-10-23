@@ -545,3 +545,4 @@ IMAGE_TOOLS_DEBUG=false
 
 # OpenViking Memory Provider
 OPENVIKING_ENDPOINT=http://127.0.0.1:1933
+TMPDIR=/tmp

@@ -1033,8 +1033,14 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
     _seed_baseline_simulation_lessons()
     _auto_spillover_memory_md()
 
-    retrieved_caveats = _retrieve_mrl_experiences(raw_prompt, min_cosine=0.72, top_k=3)
+    retrieved_caveats = _retrieve_mrl_experiences(raw_prompt, min_cosine=0.72, top_k=5)
     caveat_str = " | ".join(c["lesson"] for c in retrieved_caveats) if retrieved_caveats else "NONE"
+    hydrated_lessons = [
+        c["lesson"][:350]
+        for c in retrieved_caveats
+        if float(c.get("cosine_similarity", 0.0)) >= 0.78
+    ][:2]
+    hydrated_str = " | ".join(hydrated_lessons) if hydrated_lessons else "NONE"
 
     # Automatic sandbox routing if ad-hoc coding prompt is launched in workspace root
     ws_path = Path(workspace_dir).resolve()
@@ -1140,10 +1146,12 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
         "inferred_verify_cmd": v_contract,
         "latency_ms": elapsed_ms,
         "sandbox_target": sandbox_target,
+        "active_lessons_hydrated": hydrated_lessons,
         "rsi_caveats": retrieved_caveats,
         "swa_tail_anchor": (
             f"[SWA_ANCHOR | TURN: 1 | FOCUS: {focus_target} | DOMAIN: {domain} | "
             f"V_CONTRACT: {v_contract} | SANDBOX: {sandbox_target} | "
+            f"HYDRATED_LESSONS: {hydrated_str} | "
             f"RSI_CAVEATS (S_cos>=0.72): {caveat_str}]"
         ),
         "cuda_delta_mib": 0.0,

@@ -51,7 +51,7 @@ ACTIVE_HERMES_HOME = Path(
     os.environ.get("HERMES_HOME", Path.home() / ".hermes")
 ).resolve()
 HERMES_HOME = ACTIVE_HERMES_HOME
-HARD_VRAM_CEILING_MIB = 4812.0
+HARD_VRAM_CEILING_MIB = 5400.0
 
 try:
     from fastmcp import FastMCP
@@ -159,7 +159,7 @@ def _get_swa_anchor(workspace_dir: str = ".", strike_override: int | None = None
 
     return (
         f"[SWA_ANCHOR | TURN: {turn_seq} | PRECEDENCE: OVERRIDE | FOCUS: {focus} | DOMAIN: {domain} | "
-        f"TABU: {strikes}/2 | U12: 15L | V_CONTRACT: {v_contract} | VRAM: 4812MiB{alert_suffix}]"
+        f"TABU: {strikes}/2 | U12: 15L | V_CONTRACT: {v_contract} | VRAM: 5400MiB{alert_suffix}]"
     )
 
 def _get_boot_and_pidns(target_pid: int = 0) -> str:
@@ -1042,10 +1042,34 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
     ][:2]
     hydrated_str = " | ".join(hydrated_lessons) if hydrated_lessons else "NONE"
 
-    # Automatic sandbox routing if ad-hoc coding prompt is launched in workspace root
+    # Automatic sandbox routing & Turn-0 testbed bootstrapping (Directive D)
     ws_path = Path(workspace_dir).resolve()
     sandbox_target = str(ws_path)
-    if ws_path == ACTIVE_HERMES_HOME.parent and any(
+    dir_match = re.search(r"\b((?:tests|benchmarks|src)/[a-zA-Z0-9_\-]+(?:/[a-zA-Z0-9_\-]+)*)/?", raw_prompt)
+    py_files = list(dict.fromkeys(re.findall(r"\b([a-zA-Z0-9_]+\.py)\b", raw_prompt)))
+    if dir_match:
+        sandbox_target = dir_match.group(1).strip("/")
+        if sandbox_target.endswith(".py"):
+            sandbox_target = str(Path(sandbox_target).parent)
+        sb_dir = ws_path / sandbox_target
+        sb_dir.mkdir(parents=True, exist_ok=True)
+        if not (sb_dir / ".git").exists():
+            subprocess.run(["git", "init", "-q"], cwd=str(sb_dir), check=False, start_new_session=True)
+            subprocess.run(["git", "config", "user.email", "hermes@local"], cwd=str(sb_dir), check=False)
+            subprocess.run(["git", "config", "user.name", "Hermes OS"], cwd=str(sb_dir), check=False)
+            gitignore = sb_dir / ".gitignore"
+            if not gitignore.exists():
+                gitignore.write_text("__pycache__/\n*.pyc\n.pytest_cache/\n", encoding="utf-8")
+            root_cf = ws_path / "conftest.py"
+            if root_cf.exists() and not (sb_dir / "conftest.py").exists():
+                shutil.copy2(root_cf, sb_dir / "conftest.py")
+            subprocess.run(["git", "add", ".gitignore", "conftest.py"], cwd=str(sb_dir), check=False)
+            subprocess.run(
+                ["git", "commit", "-q", "-m", "chore: bootstrap isolated testbed"],
+                cwd=str(sb_dir),
+                check=False,
+            )
+    elif ws_path == ACTIVE_HERMES_HOME.parent and any(
         kw in raw_prompt.lower() for kw in ("implement", "create a", "write a class", "priorityeventqueue", "from scratch")
     ):
         prompt_hash = hashlib.sha256(raw_prompt.encode("utf-8")).hexdigest()[:8]
@@ -1146,6 +1170,7 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
         "inferred_verify_cmd": v_contract,
         "latency_ms": elapsed_ms,
         "sandbox_target": sandbox_target,
+        "canonical_files": py_files,
         "active_lessons_hydrated": hydrated_lessons,
         "rsi_caveats": retrieved_caveats,
         "swa_tail_anchor": (
@@ -1160,6 +1185,7 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
     m_dir = HERMES_HOME / "cache" / "intent_manifests"
     m_dir.mkdir(parents=True, exist_ok=True)
     (m_dir / f"{ws_hash}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (m_dir / "latest_active.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     _record_tool_audit("jev_compile_intent", workspace_dir, {"domain": domain, "focus": focus_tag})
     return manifest
 

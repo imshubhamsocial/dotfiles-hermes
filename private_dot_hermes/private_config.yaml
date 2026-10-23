@@ -88,6 +88,12 @@ tool_loop_guardrails:
   warnings_enabled: true
   hard_stop_enabled: true
   non_interactive_hard_stop_enabled: true
+  max_consecutive_same_tool_calls: 8
+  idempotent_no_progress: 2
+  semantic_rotational_window: 5
+  shingle_jaccard_threshold: 0.65
+  mrl_intent_cosine_threshold: 0.86
+  max_new_test_subdirs_per_session: 1
   warn_after:
     exact_failure: 2
     same_tool_failure: 3

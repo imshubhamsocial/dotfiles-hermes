@@ -27,7 +27,7 @@ model:
   default: google/gemma-4-E4B-it
   provider: custom
   base_url: http://127.0.0.1:8138/v1
-  context_length: 98304
+  context_length: 131072
 custom_providers:
   - name: omniroute
     base_url: http://localhost:20128/v1
@@ -50,9 +50,9 @@ custom_providers:
     display_name: Kaggle Cloud GPU (NVIDIA Tesla P100)
     models:
       gemma4:A12B:
-        context_length: 98304
+        context_length: 131072
       gemma-4-12b:
-        context_length: 98304
+        context_length: 131072
 kanban:
   review_dispatch: true
 cron:

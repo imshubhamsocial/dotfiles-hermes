@@ -108,3 +108,11 @@ build/**
 # Ignore skills non-code assets
 .hermes/skills/**/assets/**
 .hermes/skills/**/resources/**
+
+# Ignore dynamic autonomous RSI daemons and local skills
+.hermes/hermes-rsi-daemon.service
+.hermes/hermes_rsi_daemon.py
+.hermes/skills/karpathy-surgical-diff
+.hermes/skills/karpathy-surgical-diff/**
+.hermes/skills/speckit-annealing
+.hermes/skills/speckit-annealing/**

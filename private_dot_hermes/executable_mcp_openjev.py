@@ -20,6 +20,8 @@ import shutil
 import sqlite3
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from collections import deque
 from pathlib import Path
 from typing import Any
@@ -393,6 +395,63 @@ def jev_decide(
             "stage": "STAGE_0_READ_BYPASS",  
             "cuda_delta_mib": 0.0,  
         }
+
+    # LoopCD Port 8138 logprob discrimination
+    with contextlib.suppress(
+        urllib.error.URLError,
+        TimeoutError,
+        OSError,
+        json.JSONDecodeError,
+        KeyError,
+        IndexError,
+    ):
+        prompt = (
+            f"<start_of_turn>user\n"
+            f"Given the premise:\n{premise}\n\n"
+            f"Which hypothesis is true?\n"
+            f"A: {hypothesis_a}\n"
+            f"B: {hypothesis_b}\n\n"
+            f"Answer with just the letter A or B.<end_of_turn>\n"
+            f"<start_of_turn>model\n"
+        )
+        payload = {"prompt": prompt, "max_tokens": 1, "temperature": 0.0, "logprobs": 5}
+        req = urllib.request.Request(
+            "http://127.0.0.1:8138/v1/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        choices = data.get("choices", [])
+        content_list = choices[0].get("logprobs", {}).get("content", [])
+        top_logprobs = content_list[0].get("top_logprobs", [])
+        lp_a, lp_b = -100.0, -100.0
+        for item in top_logprobs:
+            t = item.get("token", "").strip().upper()
+            lp = item.get("logprob", -100.0)
+            if t == "A" and lp > lp_a:
+                lp_a = lp
+            elif t == "B" and lp > lp_b:
+                lp_b = lp
+        if lp_a > -90.0 and lp_b > -90.0:
+            winner_key = "A" if lp_a >= lp_b else "B"
+            winner_text = hypothesis_a if winner_key == "A" else hypothesis_b
+            max_lp = max(lp_a, lp_b)
+            exp_a, exp_b = math.exp(lp_a - max_lp), math.exp(lp_b - max_lp)
+            prob = (exp_a / (exp_a + exp_b)) if winner_key == "A" else (exp_b / (exp_a + exp_b))
+            return {
+                "decision": winner_key,
+                "winner": winner_text,
+                "prob": round(prob, 4),
+                "delta_s": round(abs(lp_a - lp_b), 4),
+                "gate_bypassed": False,
+                "gate_triggered": True,
+                "llm_calls": 1,
+                "cache_preserved": True,
+                "focus_scoped": bool(focus_uri),
+                "stage": "STAGE_2_LOOPCD_PORT_8138",
+                "cuda_delta_mib": 0.0,
+            }
 
     vec_p = _GemmaCPUSidecarPool.embed_mrl_256d(premise, is_code=True)  
     vec_a = _GemmaCPUSidecarPool.embed_mrl_256d(hypothesis_a, is_code=True)  

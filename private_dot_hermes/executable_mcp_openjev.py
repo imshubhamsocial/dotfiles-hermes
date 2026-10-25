@@ -639,6 +639,25 @@ def jev_dream_rsi_sync(
     }
 
 @mcp.tool()  
+def auto_spillover_memory_md(max_chars: int = 2200) -> dict[str, Any]:  
+    """Phase 03 Ebbinghaus Memory Forgetting & Spillover Gate."""  
+    mem_path = HERMES_HOME / "memories" / "MEMORY.md"  
+    exp_path = HERMES_HOME / "memories" / "EXPERIENCE.md"  
+    if not mem_path.exists():  
+        return {"status": "error", "error": "MEMORY.md not found"}  
+    content = mem_path.read_text(encoding="utf-8")  
+    if len(content) <= max_chars:  
+        return {"status": "ok", "spillover": False, "length": len(content)}  
+    core_lines, spill_lines = [], []  
+    for line in content.splitlines(keepends=True):  
+        (core_lines if any(h in line for h in ("# MEMORY", "§1", "§2", "§3", "§4", "§5", "§6", "§7", "§8", "Constraint")) else spill_lines).append(line)  
+    mem_path.write_text("".join(core_lines).strip() + "\n", encoding="utf-8")  
+    if spill_lines:  
+        existing_exp = exp_path.read_text(encoding="utf-8") if exp_path.exists() else "# EXPERIENCE.md\n"  
+        exp_path.write_text(existing_exp.rstrip() + "\n\n" + "".join(spill_lines).strip() + "\n", encoding="utf-8")  
+    return {"status": "spilled", "spillover": True, "length": len(core_lines)}
+
+@mcp.tool()  
 def query_live_nvml_vram() -> dict[str, Any]:  
     """Phase 10 Live NVML Hardware VRAM Telemetry Gate."""  
     used_mib = 3923.0  

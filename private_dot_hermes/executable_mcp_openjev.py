@@ -7,31 +7,31 @@ Strictly enforces CUDA_VISIBLE_DEVICES="" (0.0 MiB CUDA VRAM delta).
 """  
 from __future__ import annotations
 
-import ast  
-from collections import deque  
-import contextlib  
-import difflib  
-import fcntl  
-import hashlib  
-import json  
-import math  
-import os  
-from pathlib import Path  
-import re  
-import shutil  
-import sqlite3  
-import subprocess  
-import time  
+import ast
+import contextlib
+import difflib
+import fcntl
+import hashlib
+import json
+import math
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import time
+from collections import deque
+from pathlib import Path
 from typing import Any
 
 # Force 100% CPU execution for all FastMCP sidecars and embeddings  
 os.environ["CUDA_VISIBLE_DEVICES"] = ""  
 os.environ.setdefault("TMPDIR", "/tmp")
 
-from fastmcp import FastMCP  
-import numpy as np  
-from pydantic import BaseModel, ConfigDict, Field, field_validator  
+import numpy as np
 import sympy as sp
+from fastmcp import FastMCP
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 mcp = FastMCP("openjev")
 
@@ -184,7 +184,7 @@ def _ensure_icm_stage_folders(workspace: Path) -> dict[str, str]:
         "02_impl": workspace / "02_impl",  
         "03_verify": workspace / "03_verify",  
     }  
-    for name, folder in stages.items():  
+    for folder in stages.values():  
         folder.mkdir(parents=True, exist_ok=True)  
     spec_file = stages["01_spec"] / "spec.md"  
     if not spec_file.exists():  
@@ -240,10 +240,11 @@ def jev_mutate_module(args: MutateModuleInput) -> str:
                 text=True,  
                 timeout=5,  
                 start_new_session=True,  
+                check=False,  
             )  
             if res.returncode != 0:  
                 lint_status = f"Linter warnings:\\n{res.stdout[:400]}"  
-        except Exception as exc:  
+        except (subprocess.SubprocessError, OSError) as exc:  
             lint_status = f"Linter check skipped: {exc}"
 
     _log_tool_ledger("jev_mutate_module", {"path": str(p), "lint": lint_status})  
@@ -299,7 +300,7 @@ def extract_workspace_ast(workspace_dir: str = ".", max_files: int = 32) -> dict
                     file_entries.append(f"L{node.lineno}-L{end_line}: {type(node).__name__} {node.name}")  
                     symbols.append(node.name)  
             outlines[str(py_file.relative_to(ws))] = file_entries  
-        except Exception:  
+        except (SyntaxError, UnicodeDecodeError, OSError):  
             continue
 
     return {  
@@ -360,7 +361,7 @@ def jev_compile_intent(raw_prompt: str, workspace_dir: str = ".") -> dict[str, A
         "latency_ms": latency_ms,  
         "cuda_delta_mib": 0.0,  
     }  
-    manifest_hash = hashlib.sha256(f"{ws}:{raw_prompt}".encode("utf-8")).hexdigest()[:16]  
+    manifest_hash = hashlib.sha256(f"{ws}:{raw_prompt}".encode()).hexdigest()[:16]  
     (INTENT_DIR / f"{manifest_hash}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")  
     _log_tool_ledger("jev_compile_intent", manifest)  
     return manifest
@@ -571,7 +572,7 @@ def jev_ground_gui(
     workspace_dir: str = ".",  
 ) -> dict[str, Any]:  
     """Phase 18 & 30 AT-SPI2 + SmolVLM2 (Port 8139) Embodied GUI World Model."""  
-    curr_hash = hashlib.sha256(f"{window_title}:{target_description}".encode("utf-8")).hexdigest()[:16]  
+    curr_hash = hashlib.sha256(f"{window_title}:{target_description}".encode()).hexdigest()[:16]  
     diverged = bool(prev_state_hash and prev_state_hash == curr_hash)  
     return {  
         "window_title": window_title,  
@@ -609,7 +610,7 @@ def jev_dream_rsi_sync(
                 sessions_count = max(sessions_count, int(cur.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]))  
                 messages_count = max(messages_count, int(cur.execute("SELECT COUNT(*) FROM messages").fetchone()[0]))  
             conn.close()  
-        except Exception:  
+        except (sqlite3.Error, OSError):  
             pass
 
     target_cache = Path(cache_dir)  
@@ -617,7 +618,7 @@ def jev_dream_rsi_sync(
         target_cache = (HERMES_ROOT / target_cache).resolve()  
     target_cache.mkdir(parents=True, exist_ok=True)
 
-    tree_id = hashlib.sha256(f"{sessions_count}:{messages_count}:{candidate_rule_diff}".encode("utf-8")).hexdigest()[:16]  
+    tree_id = hashlib.sha256(f"{sessions_count}:{messages_count}:{candidate_rule_diff}".encode()).hexdigest()[:16]  
     tree_path = target_cache / f"{tree_id}.json"  
     tree_payload = {  
         "tree_id": tree_id,  
@@ -629,7 +630,7 @@ def jev_dream_rsi_sync(
     tree_path.write_text(json.dumps(tree_payload, indent=2), encoding="utf-8")
 
     rollback_executed = bool(simulate_regression)  
-    promoted = (not simulate_regression) and bool(candidate_rule_diff or True)
+    promoted = not simulate_regression
 
     return {  
         "sessions_ingested": sessions_count,  
@@ -677,7 +678,7 @@ def query_live_nvml_vram() -> dict[str, Any]:
         parts = [float(x.strip()) for x in out.split(",")]  
         if len(parts) == 2:  
             used_mib, total_mib = parts[0], parts[1]  
-    except Exception:  
+    except (subprocess.SubprocessError, ValueError, OSError):  
         pass
 
     return {  

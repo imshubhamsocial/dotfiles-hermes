@@ -34,6 +34,14 @@ mcp_servers:
       OPENVIKING_URL: "http://127.0.0.1:1933"  
       CUDA_VISIBLE_DEVICES: ""  
       TMPDIR: "/tmp"
+  open-notebook:
+    command: "uvx"
+    args:
+      - "open-notebook-mcp"
+    env:
+      OPEN_NOTEBOOK_API_URL: "http://127.0.0.1:5055"
+      CUDA_VISIBLE_DEVICES: ""
+    lazy: true
 
 terminal:  
   backend: "local"  

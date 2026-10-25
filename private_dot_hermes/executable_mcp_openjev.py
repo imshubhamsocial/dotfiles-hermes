@@ -437,8 +437,15 @@ def jev_latent_deliberate(
     frob = float(np.linalg.norm(raw_w, ord="fro"))  
     w_mat = raw_w * (min(0.38, lipschitz_bound * 0.45) / max(frob, 1e-6))
 
-    seed_text = premise + " " + " ".join(constraints or [])  
-    h = _GemmaCPUSidecarPool.embed_mrl_256d(seed_text)[:dim].copy()  
+    if isinstance(premise, (list, tuple, np.ndarray)):
+        arr = np.array(premise, dtype=np.float32)
+        if len(arr) < dim:
+            h = np.pad(arr, (0, dim - len(arr)))
+        else:
+            h = arr[:dim].copy()
+    else:
+        seed_text = str(premise) + " " + " ".join(constraints or [])
+        h = _GemmaCPUSidecarPool.embed_mrl_256d(seed_text)[:dim].copy()  
     steps = 0  
     converged = False  
     residual = 1.0
@@ -457,6 +464,7 @@ def jev_latent_deliberate(
         "steps": steps,  
         "residual_diff": round(residual, 6),  
         "lipschitz_constant": round(float(np.linalg.norm(w_mat, ord=2)), 4),  
+        "lipschitz_bound": round(float(np.linalg.norm(w_mat, ord=2)), 4),  
         "kv_cache_reuse_ratio": 0.92,  
         "cuda_delta_mib": 0.0,  
     }

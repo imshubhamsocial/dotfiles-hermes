@@ -1,0 +1,47 @@
+model:  
+  default: "dory"  
+  provider: "custom"  
+  base_url: "http://127.0.0.1:8138/v1"  
+  model_name: "gemma-4-e4b-it"  
+  context_length: 131072
+
+display:  
+  interface: "tui"  
+  sections:  
+    thinking: "collapsed"  
+  show_reasoning: true
+
+memory:  
+  provider: "openviking"  
+  memory_enabled: true  
+  session_search: true  
+  memory_char_limit: 2200  
+  openviking:  
+    agent: "hermes-ws"  
+    url: "http://127.0.0.1:1933"
+
+agent:  
+  max_turns: 500  
+  verbose: true
+
+mcp_servers:  
+  openjev:  
+    command: "/usr/bin/python3.13"  
+    args: ["-u", "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/mcp_openjev.py"]  
+    env:  
+      LLAMA_SERVER_URL: "http://127.0.0.1:8138"  
+      VISION_SERVER_URL: "http://127.0.0.1:8139"  
+      OPENVIKING_URL: "http://127.0.0.1:1933"  
+      CUDA_VISIBLE_DEVICES: ""  
+      TMPDIR: "/tmp"
+
+terminal:  
+  backend: "local"  
+  timeout: 180
+
+compression:  
+  enabled: true  
+  threshold: 0.5  
+  target_ratio: 0.2  
+  protect_last_n: 20
+

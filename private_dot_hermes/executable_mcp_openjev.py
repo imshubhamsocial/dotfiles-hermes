@@ -258,7 +258,7 @@ def jev_mutate_module(args: MutateModuleInput) -> str:
 @mcp.tool()  
 def sanitize_and_audit_input(raw_text: str) -> dict[str, Any]:  
     """Phase 15 Proactive Security Gate: Regex + Shannon entropy audit."""  
-    subshell_re = re.compile(r"\\$${[}^{)}]+$|`[^`]+`|\\$\\{[^}]*@P\\}|;\\s*rm\\s+-rf")  
+    subshell_re = re.compile(r"\$\([^)]+\)|`[^`]+`|\$\{[^}]*@P\}|;\s*rm\s+-rf")  
     blocked = bool(subshell_re.search(raw_text))  
     sanitized = subshell_re.sub("[REDACTED_INJECTION]", raw_text)
 

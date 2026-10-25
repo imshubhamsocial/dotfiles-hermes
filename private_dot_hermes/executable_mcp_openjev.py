@@ -211,6 +211,7 @@ def jev_mutate_module(args: MutateModuleInput) -> str:
     p.parent.mkdir(parents=True, exist_ok=True)  
     _create_write_once_shadow_backup(p)
 
+    repl = args.replacement_content
     if args.target_pattern and p.exists():  
         content = p.read_text(encoding="utf-8")  
         if args.target_pattern not in content:  
@@ -218,12 +219,9 @@ def jev_mutate_module(args: MutateModuleInput) -> str:
                 f"ERROR: target_pattern not found in {p}. "  
                 f"[SWA_ANCHOR | FOCUS: {p.name} | SANDBOX: {p.parent} | V_CONTRACT: pytest -q]"  
             )  
-        new_content = content.replace(args.target_pattern, args.replacement_content, 1)  
+        new_content = content.replace(args.target_pattern, repl, 1)  
     else:  
-        new_content = args.replacement_content
-
-    if "\\n" in new_content:  
-        new_content = new_content.replace("\\n", "\n")
+        new_content = repl
 
     if p.suffix == ".py":  
         try:  

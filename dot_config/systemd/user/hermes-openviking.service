@@ -1,0 +1,14 @@
+[Unit]
+Description=Hermes OpenViking Hierarchical Memory Server
+After=network.target
+
+[Service]
+Type=simple
+Environment=CUDA_VISIBLE_DEVICES=
+ExecStart=%h/.local/bin/openviking-server --config %h/.openviking/ov.conf
+Restart=always
+RestartSec=3s
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target

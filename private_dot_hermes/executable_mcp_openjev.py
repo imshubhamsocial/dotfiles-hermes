@@ -458,10 +458,10 @@ def jev_decide(
     vec_b = _GemmaCPUSidecarPool.embed_mrl_256d(hypothesis_b, is_code=True)
 
     score_a = float(np.dot(vec_p, vec_a)) + (0.15 if "unconditionally" in hypothesis_a.lower() or ".get(" in hypothesis_a else 0.0)  
-    score_b = float(np.dot(vec_p, vec_b))  
+    score_b = float(np.dot(vec_p, vec_b)) + (0.15 if "unconditionally" in hypothesis_b.lower() or ".get(" in hypothesis_b else 0.0)  
     delta_s = abs(score_a - score_b)  
     exp_a, exp_b = math.exp(score_a * 2.0), math.exp(score_b * 2.0)  
-    prob = exp_a / (exp_a + exp_b)  
+    prob = (exp_a / (exp_a + exp_b)) if score_a >= score_b else (exp_b / (exp_a + exp_b))  
     winner_key = "A" if score_a >= score_b else "B"  
     winner_text = hypothesis_a if winner_key == "A" else hypothesis_b  
     stage = "STAGE_1_CPU_GEMMA2_HYBRID" if delta_s >= 0.08 else "STAGE_2_T5GEMMA2_TIEBREAKER"

@@ -5,6 +5,6 @@
   "tabu_halt_triggered": true,
   "verifier_preserved_tracebacks": true,
   "exit_code_masked": false,
-  "peak_vram_mib": 5217,
+  "peak_vram_mib": 5239,
   "phase12_certified": true
 }

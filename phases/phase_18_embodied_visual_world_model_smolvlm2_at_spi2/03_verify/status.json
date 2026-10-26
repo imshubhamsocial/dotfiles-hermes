@@ -1,0 +1,9 @@
+{
+  "phase": "phase_18_embodied_visual_world_model_smolvlm2_at_spi2",
+  "phase_num": 18,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

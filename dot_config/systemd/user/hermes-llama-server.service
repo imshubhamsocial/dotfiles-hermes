@@ -1,0 +1,14 @@
+[Unit]
+Description=Hermes Local LLM Inference Daemon (llama-server)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/llama-server
+Restart=always
+RestartSec=5s
+KillMode=process
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,9 @@
+{
+  "cuda_vram_delta_mib": 0,
+  "attractor_convergence_reached": true,
+  "prefill_cache_reuse_pct": 92.0,
+  "deep_loop_accuracy_gain": 0.64,
+  "single_pass_accuracy": 0.36,
+  "looped_accuracy": 1.0,
+  "high_entropy_converged_ratio": "32/32"
+}

@@ -1,0 +1,10 @@
+{
+  "token_reduction_pct": 76.91,
+  "uncoalesced_tokens": 44520,
+  "coalesced_tokens": 10280,
+  "tabu_halt_triggered": true,
+  "verifier_preserved_tracebacks": true,
+  "exit_code_masked": false,
+  "peak_vram_mib": 5217,
+  "phase12_certified": true
+}

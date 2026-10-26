@@ -1,0 +1,6 @@
+{
+  "peak_total_vram_mib": 4552.16,
+  "nora_frobenius_norm_init": 1.0,
+  "kl_budget_respected": true,
+  "post_resume_mtp_tok_per_sec": 42.4
+}

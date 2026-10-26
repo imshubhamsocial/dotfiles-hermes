@@ -1,0 +1,38 @@
+# Phase 01: Canonical Upstream Parity & Zero-Bespoke Core — Specification Manifest
+
+> **Phase ID**: `phase_01_canonical_upstream_parity_zero_bespoke_core`  
+> **Canonical Enterprise Tool / Framework**: `Upstream NousResearch/hermes-agent \+ Chezmoi \+ FastMCP5`  
+> **ICM Architectural Layer**: `**Layer 1** (SOUL.md) & **60% Infra**5`  
+> **Hardware Boundary Assertion**: `0.0 MiB tool delta; ![][image50] GPU5`  
+
+---
+
+## 1. Master Matrix Realignment Summary
+| Field | Specification |
+| :--- | :--- |
+| **Capability Title** | Canonical Upstream Parity & Zero-Bespoke Core |
+| **Enterprise Toolkit** | Upstream NousResearch/hermes-agent \+ Chezmoi \+ FastMCP5 |
+| **ICM Layer / Stage** | **Layer 1** (SOUL.md) & **60% Infra**5 |
+| **Primary Verification Gate** | `pytest tests/phase01\_canonical\_parity/ \-q6` |
+| **Hardware Assertion** | 0.0 MiB tool delta; ![][image50] GPU5 |
+
+---
+
+## 2. Exhaustive Phase Specification
+Phase 01 establishes the foundational 60% Linux/Git substrate using the official NousResearch/hermes-agent upstream Git repository (main), the Chezmoi dotfile manager (\~/.local/share/chezmoi), and Anthropic FastMCP (fastmcp \>= 0.4.0)1. Within Jake Van Clief’s ICM architecture, this phase governs **Layer 1 (\~/.hermes/SOUL.md)** and the **60% Infrastructure Layer**, deleting legacy .hermes.md and sitecustomize.py artifacts so upstream agent/prompt\_builder.py natively loads SOUL.md and AGENTS.md with zero modifications to tracked core files1. Hardware safety is guaranteed by enforcing os.environ.get("CUDA\_VISIBLE\_DEVICES", "") \== "" inside the FastMCP tool environment (0.0 MiB CUDA delta) and keeping discrete GPU VRAM ![][image53]5. The exact verification contract (![][image73]) executes as follows:
+
+---
+
+## 3. Operational Invariants for Active Stage
+1. **Sub-8K Context Discipline**: Read ONLY this file during Stage `01_spec`. Do not load other phases.
+2. **Turn 1 Reconnaissance**: Emit `<deliberation><global>...</global></deliberation>`, call `jev_compile_intent` and `extract_workspace_ast`.
+3. **Task Formulation**: Populate `02_impl/task.md` with target files and symbols before advancing to Stage `02_impl`.
+
+
+<!-- Embedded Formula References -->
+[image50]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGcAAAASCAYAAABGrsCLAAAApUlEQVR4Xu3WLQqCQRSF4Vv8K4KYxBUYBF2BiGJwDSImN6BZ3IHFYBFXIBajyaW4DJMvzFfmNtOdcB54w3DyDGMmIiIi8qcBnanpB4kzoQsdqZdPEqFOK7rRpjpLsC4d6Epzt0mQDm0tPV9Dt0mgGX1p7QeJ16AdfehFi3yWEtQs3Z531TSfpRQjS5+CB43dJoXo04nutHSbFKJNe3pSy20iIoX4AZjqEPn6DqumAAAAAElFTkSuQmCC>
+
+[image53]: <data:image/png;base64,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>
+
+[image73]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAAAVCAYAAAAZ6IOkAAACnElEQVR4Xu2XW4hOURTH/24R5VJueZA7eZOS5OFLLgmRwhNNCY1mXB/cGbkToUSiBiGXEnKJRimUS7yIIk+SZ4+88P+31nb2bIOvmTMvp/OvX9/ea+2zzz7rrL3O/oBSpUqVKvWHOpDb5Bv56bwnE+NB1Fn3ic9kUXN3MTQX9oBnUoerI3lD5qSOImkcLAj3UoernuxKjUVTT2RbIdVA8oh0Th1F1FfyHVYnYp0noxNbYfUMlg0DIttssi7qF16XYEGY4P1ebkszI09NSQ05qdXz7oUFYb73j5Ahv735S7XmaGrMSVdSQ7VaAQvCKjKJLG3uzlU9yEXkHwRl7XryOnVUq+mwIBwn+xJf0AzSRDbCDlCdYDc+5H1du8nHKpBvSSNsPj3wbvcpXR+SJ2QbGUumkQ/kFqwYaz5Jdemkj9tDurtd0jruwuZdS4bBzjpfYONnZkOr01BYELSQvolPGk4+kT6kH+whBpFacjoad50s9/Ya2Hxdva/rx3hbi0wzYSt5SkaQOrctIyu9vYMc9LZOrVqDNBVWv6QK2pAJOhX+gL3tlqSo30+NsEXXRH2l4x1v65AVFie9Q3YkbykIyqJjiU3ZNs99N8hlt+sem8OgSBW0IQj/kxat1Ev1Eva2gnSy1OFK0hu8EPkUBG0TKQ5CqOZ60MPeDrpJDnhbGXbV28qCsPViVZAFodVfib9pJOxA1dv7k93WgOxhupDnsC0iqcimQdB1kvbwKdKNbHGbfuMgaD5tUd1H2kCukZ1kCSwQ4RNeA8ua8bD7SO1y1J9FXsAm19dEUqFSmjbCCl2w67zxALagBbA9rn+r58hg0t/bCsQo2Bt8TD7CtlHQflg2NJDV5BVZ7L7tyAq16oKkoJyAFeuFbiv1L/0CauSEJ1Lri1UAAAAASUVORK5CYII=>
+

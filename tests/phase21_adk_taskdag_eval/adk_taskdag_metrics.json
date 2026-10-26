@@ -1,0 +1,8 @@
+{
+  "cuda_vram_delta_mib": 0,
+  "context_pollution_tokens": 0,
+  "persona_privilege_violations": 0,
+  "dag_completion_rate": 1.0,
+  "total_nodes_scheduled": 5,
+  "a2a_events_emitted": 5
+}

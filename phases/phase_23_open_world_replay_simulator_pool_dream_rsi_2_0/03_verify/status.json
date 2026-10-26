@@ -1,0 +1,9 @@
+{
+  "phase": "phase_23_open_world_replay_simulator_pool_dream_rsi_2_0",
+  "phase_num": 23,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

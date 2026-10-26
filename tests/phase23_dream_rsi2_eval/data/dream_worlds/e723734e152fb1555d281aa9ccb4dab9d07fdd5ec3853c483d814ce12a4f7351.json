@@ -1,0 +1,56 @@
+{
+  "session_id": "session_live_phase23",
+  "task_goal": "Topological taskDAG dispatch with AST failure annealing",
+  "root_hash": "e723734e152fb1555d281aa9ccb4dab9d07fdd5ec3853c483d814ce12a4f7351",
+  "transitions": [
+    {
+      "step": 0,
+      "state_desc": "AST Outline Scan",
+      "action": "ast_grep_outline",
+      "reward": 0.85,
+      "next_state": "outline_ready",
+      "baseline_prob": 0.6,
+      "q_estimate": 0.8
+    },
+    {
+      "step": 1,
+      "state_desc": "Declarative Focus Scope",
+      "action": "declare_focus_scope",
+      "reward": 0.9,
+      "next_state": "scope_locked",
+      "baseline_prob": 0.55,
+      "q_estimate": 0.85
+    },
+    {
+      "step": 2,
+      "state_desc": "Surgical Code Diff",
+      "action": "apply_surgical_diff",
+      "reward": 0.95,
+      "next_state": "diff_applied",
+      "baseline_prob": 0.5,
+      "q_estimate": 0.9
+    },
+    {
+      "step": 3,
+      "state_desc": "Pytest Compiler Gate",
+      "action": "run_pytest_gate",
+      "reward": 1.0,
+      "next_state": "tests_passed",
+      "baseline_prob": 0.7,
+      "q_estimate": 0.95
+    },
+    {
+      "step": 4,
+      "state_desc": "Chezmoi Sync & Learn",
+      "action": "distill_learned_rule",
+      "reward": 0.88,
+      "next_state": "knowledge_persisted",
+      "baseline_prob": 0.45,
+      "q_estimate": 0.85
+    }
+  ],
+  "metadata": {
+    "phase": 23,
+    "eval": "dream_rsi2"
+  }
+}

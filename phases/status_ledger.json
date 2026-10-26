@@ -1,0 +1,233 @@
+{
+  "total_phases": 32,
+  "current_phase": "phase_32_asymmetric_attention_production_agi_gauntlet",
+  "verified_count": 32,
+  "active_stage": "complete",
+  "updated_at": "2026-10-25T17:40:00Z",
+  "phases": {
+    "phase_01_canonical_upstream_parity_zero_bespoke_core": {
+      "num": 1,
+      "title": "Canonical Upstream Parity & Zero-Bespoke Core",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_02_openviking_hierarchical_memory_server": {
+      "num": 2,
+      "title": "OpenViking Hierarchical Memory Server",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_03_ebbinghaus_memory_forgetting_spillover_gate": {
+      "num": 3,
+      "title": "Ebbinghaus Memory Forgetting & Spillover Gate",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_04_two_tier_progressive_skill_catalog": {
+      "num": 4,
+      "title": "Two-Tier Progressive Skill Catalog",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_05_runtime_tool_dispatch_prefix_cache_pinning": {
+      "num": 5,
+      "title": "Runtime Tool Dispatch & Prefix Cache Pinning",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_06_pydantic_v2_settings_schema_migration": {
+      "num": 6,
+      "title": "Pydantic v2 Settings & Schema Migration",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_07_native_closed_loop_rsi_skill_distillation": {
+      "num": 7,
+      "title": "Native Closed-Loop RSI Skill Distillation",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_08_autonomous_headless_konsole_tui_execution": {
+      "num": 8,
+      "title": "Autonomous Headless & Konsole TUI Execution",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_09_openjev_fastmcp_decision_gate": {
+      "num": 9,
+      "title": "OpenJev FastMCP Decision Gate",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_10_full_substrate_integration_nvml_hardware_gate": {
+      "num": 10,
+      "title": "Full Substrate Integration & NVML Hardware Gate",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_11_polyglot_compiler_linter_verification_gate": {
+      "num": 11,
+      "title": "Polyglot Compiler & Linter Verification Gate",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_12_sol_pi_runtime_harness_two_strike_tabu": {
+      "num": 12,
+      "title": "SoL-Pi Runtime Harness & Two-Strike Tabu",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_13_stair_structural_ast_5_layer_memory": {
+      "num": 13,
+      "title": "STAIR Structural AST & 5-Layer Memory",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_14_declarative_attention_loopcd_scoping": {
+      "num": 14,
+      "title": "Declarative Attention & LoopCD Scoping",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_15_proactive_security_gate_sympy_vram_proof": {
+      "num": 15,
+      "title": "Proactive Security Gate & SymPy VRAM Proof",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_16_dream_rsi_replay_simulator_mass_loop": {
+      "num": 16,
+      "title": "Dream-RSI Replay Simulator & MASS Loop",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_17_hibernate_and_train_logra_nora_growmtp": {
+      "num": 17,
+      "title": "Hibernate-and-Train LoGRA/NoRA \\+ GrowMTP",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_18_embodied_visual_world_model_smolvlm2_at_spi2": {
+      "num": 18,
+      "title": "Embodied Visual World Model (SmolVLM2 \\+ AT-SPI2)",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_19_banach_fixed_point_latent_deliberator": {
+      "num": 19,
+      "title": "Banach Fixed-Point Latent Deliberator",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_20_google_harness_continuous_rsi_meta_loop": {
+      "num": 20,
+      "title": "Google Harness\u00b2 Continuous RSI Meta-Loop",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_21_google_adk_2_9_taskdag_a2a_federation": {
+      "num": 21,
+      "title": "Google ADK 2.9+ TaskDAG & A2A Federation",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_22_spec_kit_2_0_failure_cluster_annealing": {
+      "num": 22,
+      "title": "Spec-Kit 2.0 Failure Cluster Annealing",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_23_open_world_replay_simulator_pool_dream_rsi_2_0": {
+      "num": 23,
+      "title": "Open-World Replay Simulator Pool (Dream-RSI 2.0)",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_24_autonomous_offline_logra_nora_consolidation": {
+      "num": 24,
+      "title": "Autonomous Offline LoGRA/NoRA Consolidation",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_25_dream_arsi_master_omniscient_kernel": {
+      "num": 25,
+      "title": "Dream-ARSI Master Omniscient Kernel",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_26_turn_0_zero_spoon_intent_compiler": {
+      "num": 26,
+      "title": "Turn-0 Zero-Spoon Intent Compiler",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_27_two_stage_zero_eviction_decision_router": {
+      "num": 27,
+      "title": "Two-Stage Zero-Eviction Decision Router",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_28_harness_sequential_worktree_probing": {
+      "num": 28,
+      "title": "Harness\u00b2 Sequential Worktree Probing",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_29_live_state_db_sqlite_wal_dream_rsi_sync": {
+      "num": 29,
+      "title": "Live state.db SQLite WAL Dream-RSI Sync",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_30_omniscient_runtime_master_gate_reaper": {
+      "num": 30,
+      "title": "Omniscient Runtime Master Gate & Reaper",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_31_gemma_cpu_sidecars_neuro_symbolic_arc_agi": {
+      "num": 31,
+      "title": "Gemma CPU Sidecars & Neuro-Symbolic ARC-AGI",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_32_asymmetric_attention_production_agi_gauntlet": {
+      "num": 32,
+      "title": "Asymmetric Attention & Production AGI Gauntlet",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    }
+  }
+}

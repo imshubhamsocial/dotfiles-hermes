@@ -1,0 +1,14 @@
+{
+  "cuda_vram_delta_mib": 0,
+  "sympy_vram_proof_passed": true,
+  "topological_regen_success": true,
+  "patch_debt_reduction_pct": 71.89,
+  "failure_clusters_identified": 2,
+  "clean_slate_lines": 52,
+  "kahn_topological_order": [
+    "SchemaValidator",
+    "MetricsAggregator",
+    "RecordParser",
+    "PipelineOrchestrator"
+  ]
+}

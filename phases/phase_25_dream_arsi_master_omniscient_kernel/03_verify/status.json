@@ -1,0 +1,9 @@
+{
+  "phase": "phase_25_dream_arsi_master_omniscient_kernel",
+  "phase_num": 25,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

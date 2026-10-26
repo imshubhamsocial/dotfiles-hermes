@@ -1,0 +1,9 @@
+{
+  "phase": "phase_04_two_tier_progressive_skill_catalog",
+  "phase_num": 4,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

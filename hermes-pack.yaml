@@ -1,0 +1,137 @@
+# Hermes Agent OS — Declarative Plugin Pack
+# Manage via: hermes plugins [list|enable|disable|remove|pack]
+
+name: hermes-champion-suite
+version: 2.0.0
+description: Core capability and intelligence plugins for the Hermes Agent OS environment.
+
+plugins:
+  - name: adk_orchestrator
+    description: "Google ADK 2.0 TaskDAG Pipeline Composition and Autonomous Orchestrator"
+    version: "1.0.0"
+    enabled: true
+
+  - name: agent_os
+    description: "Two-Tier Agent OS Standards & Plan.json Decomposition Engine"
+    version: "1.0.0"
+    enabled: true
+
+  - name: agentshield
+    description: "ECC AgentShield Multi-Layer Security Boundary, Shannon Entropy & Role Enforcer"
+    version: "1.0.0"
+    enabled: true
+
+  - name: bpe_workspace
+    description: "Belief-Progress-Experience (BPE) State Workspace and Subgoal DAG (EvoHarness-RL)"
+    version: "1.0.0"
+    enabled: true
+
+  - name: branch_swapper
+    description: "Faraday 27B AI Director Two-Strike Tabu Search Branch Swapper"
+    version: "1.0.0"
+    enabled: true
+
+  - name: cactus_uncertainty
+    description: "Cactus Hybrid Uncertainty Detection & Action Gating Engine"
+    version: "1.0.0"
+    enabled: true
+
+  - name: capability_guard
+    description: "Subagent Dynamic Role-Based Capability Isolation and Mask Guard"
+    version: "1.0.0"
+    enabled: true
+
+  - name: cog_verifier
+    description: "COG Dual-Agent Verifier & Second Brain Concept Vault"
+    version: "1.0.0"
+    enabled: true
+
+  - name: context_budget_manager
+    description: "Hybrid Context Router (32K HOT / 256K WARM / COLD) & Token Budget Guard"
+    version: "1.0.0"
+    enabled: true
+
+  - name: demo_validator
+    description: "Frontend HTML/JS Demo & Generative UI Artifacts Validator"
+    version: "1.0.0"
+    enabled: true
+
+  - name: embedding_gemma
+    description: "On-Device CPU FastEmbed Runtime & CUDA Offload Prohibition Guard"
+    version: "1.0.0"
+    enabled: true
+
+  - name: gepa_optimizer
+    description: "GEPA-Lite Reflective Pareto Prompt & Skill Evolution Engine"
+    version: "1.0.0"
+    enabled: true
+
+  - name: mcp_tools
+    description: "Unified FastMCP Tool Server providing Crawl4AI web extraction and ast-grep AST search"
+    version: "1.0.0"
+    enabled: true
+
+  - name: nemo_guardrails
+    description: "NVIDIA NeMo Guardrails Colang 2.0 Input/Output Rails and Action Blocker"
+    version: "1.0.0"
+    enabled: true
+
+  - name: observer_gate
+    description: "6-Point AST Observer Gate & Verification Matrix Pre-Commit Hook"
+    version: "1.0.0"
+    enabled: true
+
+  - name: openskills
+    description: "Anthropic Universal Skills L0/L1/L2 Progressive Loading Manager"
+    version: "1.0.0"
+    enabled: true
+
+  - name: quorum_audit
+    description: "Quorum Cross-Model Consensus & Independent AST Audit Gate"
+    version: "1.0.0"
+    enabled: true
+
+  - name: recirculation_adapter
+    description: "Google DeepMind Recirculation System-2 Prefill Hook"
+    version: "1.0.0"
+    enabled: true
+
+  - name: reflective_learner_adapter
+    description: "Google ADK 2.0 TaskDAG & Reflective Learning Loop"
+    version: "1.0.0"
+    enabled: true
+
+  - name: reward_scorer
+    description: "EvoHarness-RL Constitutional Reward Scorer (8 Golden Laws & FrogNano Frontier)"
+    version: "1.0.0"
+    enabled: true
+
+  - name: self_evolution
+    description: "Autonomous Failure Clustering, Spec Hypotheses and Zero-Regression Gate"
+    version: "1.0.0"
+    enabled: true
+
+  - name: skill_intelligence
+    description: "Frontier Skill Intelligence OS (Thought Signatures & Superpowers Registry)"
+    version: "1.0.0"
+    enabled: true
+
+  - name: symbol_index
+    description: "Codebase Memory AST Indexer & Litho C4 Architecture Documentation Generator"
+    version: "1.0.0"
+    enabled: true
+
+  - name: synergy_bus_adapter
+    description: "Unified Reactive Execution & Memory Synergy Bus Adapter"
+    version: "1.0.0"
+    enabled: true
+
+  - name: trajectory_recorder
+    description: "Comprehensive Trajectory & Session Observability Engine with SQLite WAL and Observation Windowing"
+    version: "1.0.0"
+    enabled: true
+
+  - name: antigravity_bridge
+    description: "Google Antigravity 2.0 (AGY) & Jules Cloud Agent Protocol Bridge with Artifacts, Thought Signatures, Hierarchical Rules, Magentic-One Ledgers, and A2A Server"
+    version: "1.0.0"
+    enabled: true

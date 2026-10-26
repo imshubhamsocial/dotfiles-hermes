@@ -1,0 +1,9 @@
+{
+  "phase": "phase_27_two_stage_zero_eviction_decision_router",
+  "phase_num": 27,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

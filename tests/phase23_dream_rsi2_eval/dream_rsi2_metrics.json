@@ -1,0 +1,8 @@
+{
+  "cuda_vram_delta_mib": 0,
+  "call_reduction_ratio": 26.0,
+  "rrsi_stability_gate_passed": true,
+  "dream_eval_latency_ms": 0.029,
+  "performance_lift": 1.5457,
+  "tree_root_hash": "e723734e152fb1555d281aa9ccb4dab9d07fdd5ec3853c483d814ce12a4f7351"
+}

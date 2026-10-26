@@ -1,0 +1,9 @@
+{
+  "phase": "phase_10_full_substrate_integration_nvml_hardware_gate",
+  "phase_num": 10,
+  "stage": "complete",
+  "strikes": 0,
+  "verified": true,
+  "contract": "contract.sh",
+  "vram_ceiling_mib": 5400.0
+}

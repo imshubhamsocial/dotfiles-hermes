@@ -1,0 +1,12 @@
+{
+  "temporal_mutual_exclusion_verified": true,
+  "quiescent_vram_mib": 620.0,
+  "peak_total_vram_mib": 4552.16,
+  "nora_frobenius_norm": 1.0,
+  "kl_divergence": 0.0025,
+  "kl_budget_respected": true,
+  "samples_processed": 8,
+  "optimization_loss_reduction": 0.3167,
+  "post_resume_mtp_tok_per_sec": 54.8,
+  "hardware_vram_ceiling_mib": 4812.0
+}

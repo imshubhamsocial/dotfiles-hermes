@@ -1,24 +1,16 @@
 # Ignore all workspace root files, documentation, and container dotfiles
-AGENTS.md
-Issues.md
-Makefile
-Plan.md
-README.md
-State.md
-hermes-pack.yaml
-package.json
-pyproject.toml
-conftest.py
-docs/**
-tests/**
 tmp/**
 Desktop/**
 
 # Ignore container user environment
 .bashrc
 .distroboxrc
-.local/**
-dot_local/**
+.local/lib/**
+.local/share/**
+.local/state/**
+dot_local/lib/**
+dot_local/share/**
+dot_local/state/**
 
 # Build & Python artifacts
 build/**
@@ -71,7 +63,6 @@ build/**
 .hermes/.hermes_history
 .hermes/.skills_prompt_snapshot.json
 .hermes/processes.json
-.hermes/tui-theme-boot.json
 .hermes/spawn-ledger.json
 .hermes/environment.json
 .hermes/auth.lock
@@ -110,9 +101,12 @@ build/**
 .hermes/skills/**/resources/**
 
 # Ignore dynamic autonomous RSI daemons and local skills
-.hermes/hermes-rsi-daemon.service
-.hermes/hermes_rsi_daemon.py
-.hermes/skills/karpathy-surgical-diff
-.hermes/skills/karpathy-surgical-diff/**
-.hermes/skills/speckit-annealing
-.hermes/skills/speckit-annealing/**
+
+# Ignore nested git repositories inside testbeds
+**/.git
+**/.git/**
+
+!.local/bin/llama-server
+!dot_local/bin/llama-server
+!.local/bin/openviking-server
+!dot_local/bin/openviking-server

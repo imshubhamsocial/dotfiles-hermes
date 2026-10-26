@@ -1,0 +1,9 @@
+{
+  "attended_token_reduction_pct": 85.71,
+  "loopcd_pass_at_1_gain": 0.65,
+  "loopcd_decision": "B",
+  "loopcd_probability": 0.6951,
+  "slot_cache_hit_rate_pct": 92.5,
+  "peak_vram_mib": 5170,
+  "phase14_certified": true
+}

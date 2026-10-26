@@ -1,0 +1,8 @@
+{
+  "sympy_vram_bound_verified": true,
+  "fastembed_cuda_mib": 0,
+  "open_notebook_mcp_connected": true,
+  "memory_poisoning_blocked": 100,
+  "regen_roundoff_error": 0.0,
+  "calculated_vram_mib": 4301.625
+}

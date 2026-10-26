@@ -1,0 +1,6 @@
+{
+  "simulated_calls_reduction_ratio": 2.0,
+  "harness2_worktree_compose_gain": 0.23529411764705868,
+  "rrsi_stability_margin_exceeded": true,
+  "held_out_pytest_exit_code": 0
+}

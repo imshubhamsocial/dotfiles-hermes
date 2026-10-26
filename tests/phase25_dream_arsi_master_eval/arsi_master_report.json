@@ -1,0 +1,97 @@
+{
+  "all_14_phases_certified": true,
+  "peak_online_vram_mib": 4609.0,
+  "zero_spoon_feeding_verified": true,
+  "chezmoi_sync_clean": true,
+  "argon_gauntlet_challenges_passed": 6,
+  "active_llm_port": 8138,
+  "vision_sidecar_port": 8139,
+  "openviking_port": 1933,
+  "mtp_throughput_tok_per_sec": 88.4,
+  "challenges": [
+    {
+      "id": 1,
+      "name": "STAIR AST Navigation",
+      "passed": true,
+      "details": "Extracted 3 symbols on CPU RAM with 0 MiB CUDA delta",
+      "metrics": {
+        "total_lines": 8,
+        "indexed_symbols": 3,
+        "symbols": [
+          {
+            "line": 2,
+            "signature": "class MasterRegistry"
+          },
+          {
+            "line": 3,
+            "signature": "def __init__(self) -> None"
+          },
+          {
+            "line": 6,
+            "signature": "def register_endpoint(self, name"
+          }
+        ],
+        "cuda_delta_mib": 0.0
+      }
+    },
+    {
+      "id": 2,
+      "name": "Declarative Attention & Latent Attractor",
+      "passed": true,
+      "details": "Attractor converged in 5 steps (delta=0.033819), KV reuse=91.0%",
+      "metrics": {
+        "convergence_steps": 5,
+        "final_delta": 0.03381913774001564,
+        "kv_cache_reuse_ratio": 0.9102222222222223
+      }
+    },
+    {
+      "id": 3,
+      "name": "Proactive Security & SymPy VRAM Proof",
+      "passed": true,
+      "details": "Injections neutralized (100%), SymPy VRAM proof certified (4401.0 <= 4812.0 MiB)",
+      "metrics": {
+        "injection_blocked": true,
+        "active_vram_mib": 4401.0,
+        "vram_limit_mib": 4812.0
+      }
+    },
+    {
+      "id": 4,
+      "name": "Google ADK TaskDAG Federation",
+      "passed": true,
+      "details": "Kahn's topological sort resolved 4 subagent nodes with 0 circular deadlocks",
+      "metrics": {
+        "dag_order": [
+          "architect_recon",
+          "coder_diff",
+          "tester_verify",
+          "critic_distill"
+        ],
+        "cycle_count": 0
+      }
+    },
+    {
+      "id": 5,
+      "name": "Spec-Kit 2.0 Failure Annealing",
+      "passed": true,
+      "details": "Failure cluster annealed clean-slate; residual error rate Dt+1 = 0.0",
+      "metrics": {
+        "clusters_annealed": 2,
+        "residual_error_rate": 0.0
+      }
+    },
+    {
+      "id": 6,
+      "name": "Dream-RSI 2.0 & Offline LoGRA TME",
+      "passed": true,
+      "details": "TME quorum verified (612.4 <= 650 MiB), ||A||_F == 1.0, MTP throughput 88.4 tok/s",
+      "metrics": {
+        "quiescent_vram_mib": 612.4,
+        "nora_frobenius_norm": 1.0,
+        "post_resume_mtp_tok_per_sec": 88.4,
+        "dream_call_reduction_factor": 2.6
+      }
+    }
+  ]
+}

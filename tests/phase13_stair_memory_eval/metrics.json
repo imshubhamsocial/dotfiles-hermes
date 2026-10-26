@@ -1,0 +1,8 @@
+{
+  "recall_at_1": 1.0,
+  "chunk_boundary_errors": 0,
+  "symbols_indexed": 12,
+  "peak_vram_mib": 5170,
+  "openviking_connected": true,
+  "phase13_certified": true
+}

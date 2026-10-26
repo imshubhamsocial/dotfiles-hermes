@@ -1,0 +1,42 @@
+# Phase 03: Ebbinghaus Memory Forgetting & Spillover Gate — Specification Manifest
+
+> **Phase ID**: `phase_03_ebbinghaus_memory_forgetting_spillover_gate`  
+> **Canonical Enterprise Tool / Framework**: `mcp\_openjev.py (\_auto\_spillover\_memory\_md) \+ OpenViking3`  
+> **ICM Architectural Layer**: `**Layer 2** File-Based Memory Spillover (MEMORY.md ![][image25] EXPERIENCE.md)3`  
+> **Hardware Boundary Assertion**: `0.0 MiB CUDA (100% CPU string/file I/O)5`  
+
+---
+
+## 1. Master Matrix Realignment Summary
+| Field | Specification |
+| :--- | :--- |
+| **Capability Title** | Ebbinghaus Memory Forgetting & Spillover Gate |
+| **Enterprise Toolkit** | mcp\_openjev.py (\_auto\_spillover\_memory\_md) \+ OpenViking3 |
+| **ICM Layer / Stage** | **Layer 2** File-Based Memory Spillover (MEMORY.md ![][image25] EXPERIENCE.md)3 |
+| **Primary Verification Gate** | `python3 \-c "assert len(open('.hermes/memories/MEMORY.md').read()) \<= 2200"1` |
+| **Hardware Assertion** | 0.0 MiB CUDA (100% CPU string/file I/O)5 |
+
+---
+
+## 2. Exhaustive Phase Specification
+Phase 03 binds \_auto\_spillover\_memory\_md() inside .hermes/mcp\_openjev.py alongside memory\_char\_limit: 2200 in .hermes/config.yaml1. This implements the CliefNotes **Layer 2 File-Based Memory Spillover** pattern and Sub-8K Context Discipline by locking immutable system invariants (CORE\_HEADER\_SET §1–§8, ![][image22] chars) inside .hermes/memories/MEMORY.md while spilling episodic notes into .hermes/memories/EXPERIENCE.md governed by an Ebbinghaus retention curve ![][image74]1. All string parsing and file spillover operations run 100% on CPU (0.0 MiB CUDA delta), preventing prompt growth from pushing Port 8138 KV cache above ![][image75]3. The exact verification contract (![][image73]) is:
+
+---
+
+## 3. Operational Invariants for Active Stage
+1. **Sub-8K Context Discipline**: Read ONLY this file during Stage `01_spec`. Do not load other phases.
+2. **Turn 1 Reconnaissance**: Emit `<deliberation><global>...</global></deliberation>`, call `jev_compile_intent` and `extract_workspace_ast`.
+3. **Task Formulation**: Populate `02_impl/task.md` with target files and symbols before advancing to Stage `02_impl`.
+
+
+<!-- Embedded Formula References -->
+[image22]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAAAVCAYAAADl/ahuAAAC+UlEQVR4Xu2XWahNURzG/5lJMhfK5UGGkiHji2tOXogHHqSbmyE8mKJkfkEZSoSQK1PJUBKFhBdJPPDgQSKXUDIVSonv819773X+Z193n713t5POr7466/vvvdrn22uvQaRChQr/Ab2h5tZMyTaozppgLHQRugPdhsYVVJUWovffgh5Cu6C2BVc0Ia2gYdAW6AM0oqCajr7QN+ik8cdAb6BRrj0Z+gFNDK9QzkKnRINqA10WDSs3BkL7RTtvjHroKnQD+i35BHQJ+iXFAT2A9hnvtGgAATNEn6O75w1y3mjPS0U1dEh0NPQoLDXKWsknoKnQASkeQf1E+1/ueWQz9FV0tJAT0Puo/BfWGPh64yeCn8g86DhU49ppyCMgzl/3oG5SHNAc0f75rD4rnc+XSx5DT6NyyCfoujX/RRdoE3RM9FvOSh4BLYJWu982oFWi/TMon2XOX+Dan0VDsryDnlszjk6iD8JPabCpZSFrQB2g+1BL17YBbZD4gJY4f7Fr83dcQJzcX1vTMgn6Cc23hRzIGtBOaKbXtgGtk/iAGAz9Wtf+LvEBMZwX1rS0Fh3Cr6CbohNiXgQBjbSFBFSJroQ+NqCFov3P9Tyy1PmzXJv/7UlUDnkruidKBIcxR9FdpwmF5VRkCeic6FLsYwOaLdp/jecRvnD64137EfQsrEZ8Ed2KlMxQ0Ymaew9u+NISBBRs4kqBYfDehsQJuI/7vUJvCdkuulns6NpHRVcsn3ai9+4wfkn0gvZCF6DpppaEIKC4zRiXby7PXL6T0FW0L7tR5PHiiPG4STzvtaeI3lvleXwmesM9LzVcTdZAV6S08wu3DHwILgSWYCJl+EnoKXr9GePzCMKlmnXCz/Ij1D+8QuHZa4/XZtCHvXaTUge9lOhz4CrJN83JM2Ca6E623vMagqOBn0jQHydWf0QPgLaKnrcOQkO8WkAz0ZfC4xI/OY5uemXPNWtUiOgsxXNK2VEtutQlEfclSU7zSdkt0VJcwdAe2mjNcuIP/JG4AAda9qIAAAAASUVORK5CYII=>
+
+[image25]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAVCAYAAACpF6WWAAAAbklEQVR4XmNgGAWjYFCAAHQBaoANQCyILkgpcAHiCnRBaoAeILZCF6QUMAPxSiCuBGJWNDkwWAjEu8nAF4D4HRAnMlAJiALxeiAWQ5cgFzAB8VYglkSXoAQEA3E0uiClAORtrJFDCdBDFxgFcAAAUUUTNyPN6gQAAAAASUVORK5CYII=>
+
+[image73]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAAAVCAYAAAAZ6IOkAAACnElEQVR4Xu2XW4hOURTH/24R5VJueZA7eZOS5OFLLgmRwhNNCY1mXB/cGbkToUSiBiGXEnKJRimUS7yIIk+SZ4+88P+31nb2bIOvmTMvp/OvX9/ea+2zzz7rrL3O/oBSpUqVKvWHOpDb5Bv56bwnE+NB1Fn3ic9kUXN3MTQX9oBnUoerI3lD5qSOImkcLAj3UoernuxKjUVTT2RbIdVA8oh0Th1F1FfyHVYnYp0noxNbYfUMlg0DIttssi7qF16XYEGY4P1ebkszI09NSQ05qdXz7oUFYb73j5Ahv735S7XmaGrMSVdSQ7VaAQvCKjKJLG3uzlU9yEXkHwRl7XryOnVUq+mwIBwn+xJf0AzSRDbCDlCdYDc+5H1du8nHKpBvSSNsPj3wbvcpXR+SJ2QbGUumkQ/kFqwYaz5Jdemkj9tDurtd0jruwuZdS4bBzjpfYONnZkOr01BYELSQvolPGk4+kT6kH+whBpFacjoad50s9/Ya2Hxdva/rx3hbi0wzYSt5SkaQOrctIyu9vYMc9LZOrVqDNBVWv6QK2pAJOhX+gL3tlqSo30+NsEXXRH2l4x1v65AVFie9Q3YkbykIyqJjiU3ZNs99N8hlt+sem8OgSBW0IQj/kxat1Ev1Eva2gnSy1OFK0hu8EPkUBG0TKQ5CqOZ60MPeDrpJDnhbGXbV28qCsPViVZAFodVfib9pJOxA1dv7k93WgOxhupDnsC0iqcimQdB1kvbwKdKNbHGbfuMgaD5tUd1H2kCukZ1kCSwQ4RNeA8ua8bD7SO1y1J9FXsAm19dEUqFSmjbCCl2w67zxALagBbA9rn+r58hg0t/bCsQo2Bt8TD7CtlHQflg2NJDV5BVZ7L7tyAq16oKkoJyAFeuFbiv1L/0CauSEJ1Lri1UAAAAASUVORK5CYII=>
+
+[image74]: <data:image/png;base64,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>
+
+[image75]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG8AAAAVCAYAAABIfLDHAAAE/ElEQVR4Xu2YZ8gdRRSGj72LvUsSWyygWLFn7SgKoljAih1rVKxY4g9REQtWSMQ/USxYggiKjc+OCiqK4h8NKDE2rIioiJ7HM3O/s+fu3Tt7iRDhPvDy3XlnvtndObszZ0ZkzJgxY8aMwOaqM1UrO29v1a2uPArrqL5TbRYrlBNUz6jeUD2qmlKv/pfdVE+oXlZNiN1TKSX9e55U/e10X726jwmpt786+eeqvlYdncq7hnZRf6ieVk1L7Tuzr/R3+o1qL99oBO4W62vL4J+tel8suHCN6itXBh56gWqXVN5f9ZvYvQ6jpP8mllC9rpqv+l61Qr26xxTVW2LPNjvU3ZL8i4N/ZPLvDD4v9jti452ftRP7qb5Qfan6QDVHNb3Wojs7q36X/uCtKxaEo5y3pNj1L3EeD3SHK8ODqqeCFyntfxDPq24Uu2/fh+dyseDQ5vZQt7TqLOkP/EHS3B4Yf+o+jhUl8DYPmya68qrY4HNT/kU4NXnbOg9eUD2bfjON04YpyHOt6mexARpESf9tELwdxfp4PNRl5qkqGRyMJtqCN1Ws7s/gF1HJog3eMarrVZdK/5d3V/I2dh6wtv2iWl7s/2lzfK2FyIXJnxF8T0n/bRC81VSviQ3mGvVq2V41S9qDt7r0X78teIeI1XHtzlSqh8Tmaxb5b1W3ia0BXVlObN1YUZqDlxOD9ZwHDyd/U9VF6TdB9JyT/FOC7ynpv40cvJli7UnkPDeJPU8l/cHI94dyApMZFLw9VAtV76o2CnVFkNV9rtoklXnAH1WX9VqUw3qQB7cpeM8lLw4u6xn+Vqqr0u8YPNaSpgH1lPTfRg7eBmLtX3R1vMx5za2kPxjU75n8QcGbL3YNxEuOx9+mjLyIVaQ/lX5A9ZNqreC3sbbYjeQvtil4pMVNg8v18FnveGmagkfQ8FnXBlHSfxs5ePk3/5OnQHIDngmqVBe/pFWTPyh4sT3jzgvHWn5wqBuZnHEdGytaIG2e4cpNwZubvPWdB0zb+GuqTk+/47XZAuAfEXxPSf9tEDDWLDhD7H+uSGWeL09tVaqLwWCv3CV4wFLDVobZbsNQ1wpfyYTqTbGUOpOnrvOc1wYLOeuKpyl43Dxe3JTOSz73kPdEJ/sGMpmeV8H3lPTfhg8ef9lEf6RaRiwfyFTSHAwSoq7Bg7wms+wUs6zqL9WvYklGJm82D3VeGzlQg/RZandSKu+QyhmyO6ZcmCrWZmav1rhBbA+Xp7UmSvpvg+D5DDMH/UqxhCRTJT8Gg/0dftfg5ZnhulgxjLdV2wWPt+wHqT8IX9BhrjyM/BX4L4+3mfn9ROfxAnGMdoHzOBKb48pAsvBY8NhO7O7Kpf0Pwn95cJzYM9CnP6Gpkh+DsVLyuwSPdZIjNer3CXVDISD3yOSXxxkie5zTei2MBdL8Vg+CPmm/TfAPFztzXCqVWePek/oejGnvU7GsD7YWO7Ka3msxeW7IS+Yp6b8JErdPxLJafmeP/SGJkOcAsWuzr/RwwoM/K/iMMX48HmON5DCAupHPkkkOXlK9Ija9MAARvgbWABKHNrhRBosbQgz6I7UWIgeqbhZLMDiJiZth4ItlGmFKuVf6ZwcGii+qaXNb0r8nHkyjDNfP25+dUl0UXxptFqYyL//9MvxgGn0okwfZ/ymc97Wl6mMWY0hktojmmMUf9iBx7h/zP+F8GfH8bcyi5x/IwYMoHdYDHAAAAABJRU5ErkJggg==>
+

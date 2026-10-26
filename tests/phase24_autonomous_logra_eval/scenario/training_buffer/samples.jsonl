@@ -1,0 +1,8 @@
+{"id": "traj_001", "task": "AST parameterized SQL query refactoring", "reward": 0.96, "tokens": 412, "logprob_sum": -12.4, "status": "verified"}
+{"id": "traj_002", "task": "SymPy VRAM formal budget proof generation", "reward": 0.98, "tokens": 584, "logprob_sum": -16.1, "status": "verified"}
+{"id": "traj_003", "task": "Pydantic v2 BaseSettings migration", "reward": 0.94, "tokens": 320, "logprob_sum": -9.8, "status": "verified"}
+{"id": "traj_004", "task": "Doubly Robust counterfactual policy evaluation", "reward": 0.95, "tokens": 648, "logprob_sum": -19.3, "status": "verified"}
+{"id": "traj_005", "task": "Kahn topological dependency DAG annealing", "reward": 0.92, "tokens": 490, "logprob_sum": -14.7, "status": "verified"}
+{"id": "traj_006", "task": "Two-strike tabu backoff on build failure", "reward": 0.89, "tokens": 376, "logprob_sum": -11.2, "status": "verified"}
+{"id": "traj_007", "task": "SmolVLM2 visual bounding box crop alignment", "reward": 0.93, "tokens": 512, "logprob_sum": -15.5, "status": "verified"}
+{"id": "traj_008", "task": "OpenViking hierarchical context retrieval", "reward": 0.97, "tokens": 430, "logprob_sum": -13.0, "status": "verified"}

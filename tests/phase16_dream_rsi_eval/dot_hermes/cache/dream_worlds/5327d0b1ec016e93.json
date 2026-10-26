@@ -1,0 +1,24 @@
+{
+  "task_hash": "5327d0b1ec016e93",
+  "baseline_calls": 4,
+  "pruned_calls": 4,
+  "reduction_ratio": 1.0,
+  "nodes": [
+    {
+      "tool_name": "read_file",
+      "pytest_exit_code": 0
+    },
+    {
+      "tool_name": "apply_diff",
+      "pytest_exit_code": 1
+    },
+    {
+      "tool_name": "read_file",
+      "pytest_exit_code": 0
+    },
+    {
+      "tool_name": "apply_diff",
+      "pytest_exit_code": 0
+    }
+  ]
+}

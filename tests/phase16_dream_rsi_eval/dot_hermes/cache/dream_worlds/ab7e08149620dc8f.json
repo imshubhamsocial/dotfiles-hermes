@@ -1,0 +1,28 @@
+{
+  "task_hash": "ab7e08149620dc8f",
+  "baseline_calls": 7,
+  "pruned_calls": 4,
+  "reduction_ratio": 1.75,
+  "nodes": [
+    {
+      "tool_name": "read_file",
+      "focus_regime": "<global>",
+      "pytest_exit_code": 0
+    },
+    {
+      "tool_name": "ast_outline",
+      "focus_regime": "<focus>",
+      "pytest_exit_code": 0
+    },
+    {
+      "tool_name": "apply_diff",
+      "focus_regime": "<focus>",
+      "pytest_exit_code": 1
+    },
+    {
+      "tool_name": "apply_diff",
+      "focus_regime": "<focus>",
+      "pytest_exit_code": 1
+    }
+  ]
+}

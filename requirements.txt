@@ -1,0 +1,4 @@
+# Hermes Agent OS — Master Python Dependencies
+# Canonical dependency specifications are maintained in pyproject.toml (PEP 621).
+# Install all core and development packages in editable mode:
+-e .[dev,benchmark,vision]

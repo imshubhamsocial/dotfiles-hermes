@@ -1,0 +1,20 @@
+{
+  "task_hash": "7467b3cd465cd3c3",
+  "baseline_calls": 3,
+  "pruned_calls": 3,
+  "reduction_ratio": 1.0,
+  "nodes": [
+    {
+      "tool": "A",
+      "pytest_exit_code": 0
+    },
+    {
+      "tool": "B",
+      "pytest_exit_code": 1
+    },
+    {
+      "tool": "C",
+      "pytest_exit_code": 1
+    }
+  ]
+}

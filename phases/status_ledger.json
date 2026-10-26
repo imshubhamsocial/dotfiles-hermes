@@ -1,9 +1,9 @@
 {
-  "total_phases": 32,
-  "current_phase": "phase_32_asymmetric_attention_production_agi_gauntlet",
-  "verified_count": 32,
+  "total_phases": 33,
+  "current_phase": "remediation_gauntlet",
+  "verified_count": 33,
   "active_stage": "complete",
-  "updated_at": "2026-10-25T17:40:00Z",
+  "updated_at": "2026-10-26T20:17:30Z",
   "phases": {
     "phase_01_canonical_upstream_parity_zero_bespoke_core": {
       "num": 1,
@@ -225,6 +225,13 @@
     "phase_32_asymmetric_attention_production_agi_gauntlet": {
       "num": 32,
       "title": "Asymmetric Attention & Production AGI Gauntlet",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "remediation_gauntlet": {
+      "num": 33,
+      "title": "Post-Certification Pre-Flight Remediation Gauntlet",
       "stage": "complete",
       "strikes": 0,
       "verified": true

@@ -5,6 +5,10 @@
 > **Operational Scope**: You operate strictly on the active phase directory defined in `phases/status_ledger.json`.  
 > **Context Discipline**: Never read `docs/reference/` or future `phases/phase_XX/` directories unless explicitly instructed. Maintain working context between 2,000 and 8,000 tokens.
 
+## Hardware & Security Invariants  
+- NVML VRAM Ceiling: `query_live_nvml_vram()` MUST verify `used_mib <= 5400.0`.  
+- Cryptographic Sealing: Tasks are incomplete until `/tmp/hermes_verified_receipt.json` returns `exitstatus == 0` AND `modified != ["verified_clean_tree"]` on bug-fixing benchmarks.  
+
 ---
 
 ## Stage Gate Machine (Mandatory Order)

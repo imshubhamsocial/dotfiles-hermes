@@ -1,7 +1,7 @@
 {
-  "total_phases": 38,
-  "current_phase": "phase_38_offline_dream_rsi_dpo_distillation_and_merge",
-  "verified_count": 38,
+  "total_phases": 43,
+  "current_phase": "phase_43_closed_loop_dreamrsi_dpo_gdr24_distillation",
+  "verified_count": 43,
   "active_stage": "complete",
   "updated_at": "2026-10-28T20:11:15Z",
   "phases": {
@@ -267,6 +267,41 @@
     "phase_38_offline_dream_rsi_dpo_distillation_and_merge": {
       "num": 38,
       "title": "Offline dreamRSI DPO Distillation & CPU GGUF Merge",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_39_harness_responses_api_fix_and_dual_track_routing": {
+      "num": 39,
+      "title": "Harness Responses API Fix & Dual-Track Routing Contract",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_40_ephemeral_fastmcp_dynamic_tool_bridge_1934": {
+      "num": 40,
+      "title": "Ephemeral FastMCP Dynamic Tool Bridge on Port 1934",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_41_epistemic_scorer_validator_false_positive_elimination": {
+      "num": 41,
+      "title": "Epistemic Scorer Validator & False-Positive Elimination",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_42_sub8k_context_compaction_and_fastpath_deliberation": {
+      "num": 42,
+      "title": "Sub-8K Context Compaction & Fast-Path Deliberation",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_43_closed_loop_dreamrsi_dpo_gdr24_distillation": {
+      "num": 43,
+      "title": "Closed-Loop dreamRSI DPO Compilation & Hardware Isolation",
       "stage": "complete",
       "strikes": 0,
       "verified": true

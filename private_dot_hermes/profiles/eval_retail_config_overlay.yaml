@@ -1,0 +1,21 @@
+# GDR24 Upstream-Pure Declarative MCP & Toolset Isolation Overlay
+mcp_servers:
+  openjev_cpu_sidecar:
+    command: "python3"
+    args: ["/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes/.hermes/mcp_openjev.py"]
+    timeout: 30
+    connect_timeout: 10
+  ephemeral_eval_bridge:
+    url: "http://127.0.0.1:1934/mcp"
+    timeout: 30
+    connect_timeout: 10
+
+platform_toolsets:
+  api_server:
+    - ephemeral_eval_bridge
+    - openjev_cpu_sidecar
+  cli:
+    - ephemeral_eval_bridge
+    - openjev_cpu_sidecar
+    - bash
+    - web_search

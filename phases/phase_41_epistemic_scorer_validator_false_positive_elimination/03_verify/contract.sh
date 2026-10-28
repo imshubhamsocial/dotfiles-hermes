@@ -3,7 +3,7 @@
 set -euo pipefail
 
 WORKSPACE="/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes"
-VALIDATOR="/var/home/imshubhamsocial/Desktop/GDR/GDR24/verify_epistemic_eval_audit.py"
+VALIDATOR="$WORKSPACE/scripts/verify_epistemic_eval_audit.py"
 RECEIPT="/tmp/hermes_verified_receipt.json"
 
 chmod +x "$VALIDATOR"
@@ -11,7 +11,7 @@ python3 -m py_compile "$VALIDATOR"
 
 python3 -c '
 import sys
-sys.path.insert(0, "/var/home/imshubhamsocial/Desktop/GDR/GDR24")
+sys.path.insert(0, "'"$WORKSPACE"'/scripts")
 import verify_epistemic_eval_audit as v
 
 # Test 1: GDR24 Sample 105 Role-Rejection Transcript MUST be flagged as False-Positive

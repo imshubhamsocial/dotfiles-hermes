@@ -882,47 +882,6 @@ def jev_gemma_sidecar_embed_and_refine(
         "cuda_delta_mib": 0.0,  
     }
 
-@mcp.tool()  
-def jev_arc_agi_neurosymbolic_solve(  
-    train_pairs: list[dict[str, list[list[int]]]] | list,  
-    test_input: list[list[int]],  
-    human_baseline_actions: int = 6,  
-    agent_actions_taken: int = 5,  
-) -> dict[str, Any]:  
-    """Phase 31 / RISK-01: ARC-AGI-2/3 Neuro-Symbolic Visual-Program Synthesis Solver."""  
-    synthesized_program = ""  
-    with contextlib.suppress(Exception):  
-        payload = {  
-            "prompt": (  
-                f"<start_of_turn>user\n"  
-                f"Synthesize Python function def transform(grid): for ARC pairs: {json.dumps(train_pairs)[:150]}\n"  
-                f"Output code only.<end_of_turn>\n<start_of_turn>model\n"  
-            ),  
-            "max_tokens": 64,  
-            "temperature": 0.0,  
-        }  
-        req = urllib.request.Request(  
-            "http://127.0.0.1:8138/v1/completions",  
-            data=json.dumps(payload).encode("utf-8"),  
-            headers={"Content-Type": "application/json"},  
-        )  
-        with urllib.request.urlopen(req, timeout=1.0) as resp:  
-            data = json.loads(resp.read().decode("utf-8"))  
-            synthesized_program = data.get("choices", [{}])[0].get("text", "").strip()  
-
-    if not synthesized_program:  
-        synthesized_program = "def transform(grid):\n    return [row[::-1] for row in grid]"  
-
-    predicted = [row[::-1] for row in test_input]  
-    rhae_score = min(1.0, float(human_baseline_actions) / max(1.0, float(agent_actions_taken)))  
-
-    return {  
-        "synthesized_program": synthesized_program,  
-        "predicted_output": predicted,  
-        "rhae_score": round(rhae_score, 4),  
-        "solved": True,  
-        "cuda_delta_mib": 0.0,  
-    }
 
 if __name__ == "__main__":  
     mcp.run(transport="stdio")

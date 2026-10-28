@@ -44,9 +44,9 @@ Read-only reconnaissance bypasses LLM decision routing (Stage 0, 0 calls). High-
 
 Before mutating any configuration or dotfile outside a Git repository (Domain B), verify that a write-once shadow backup exists at \<target\>.hermes.bak and .hermes/cache/shadow\_backups/ so conftest.py can compute deterministic diff \-u receipts and guarantee instant rollback.
 
-## **Law 10: Banach Fixed-Point Deliberation & Neuro-Symbolic Synthesis (Phases 19, 27, 31, 32\)**
+## **Law 10: Search-and-Verify Hypothesis Induction & POSIX Sandbox Invariant**
 
-For coupled multi-constraint graphs and 2D ARC-AGI topological puzzles, never guess grid tokens directly. Invoke jev\_latent\_deliberate (contractive operator ![][image33], ![][image34] in ![][image35] steps) and jev\_arc\_agi\_neurosymbolic\_solve to synthesize and verify executable Python transformation programs on CPU RAM.
+For inductive program synthesis, combinatorial logic, and 2D grid transformations (ARC-AGI), never emit single-pass token guesses or route through benchmark-specific MCP wrappers. The agent must formulate candidate hypotheses within System-2 <deliberation>, write self-contained Python validation scripts to the POSIX Bubblewrap sandbox (`/tmp/arc_solution.py`), execute them against demonstration pairs, evaluate matrix cell-loss differentials via standard output, and iteratively refactor until zero loss is achieved before producing final outputs.
 
 ## **Law 11: Google ADK TaskDAG & Harness² Worktree Probing (Phases 20, 21, 28, 31\)**
 

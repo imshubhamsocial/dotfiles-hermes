@@ -1,9 +1,9 @@
 {
-  "total_phases": 33,
-  "current_phase": "remediation_gauntlet",
-  "verified_count": 33,
+  "total_phases": 38,
+  "current_phase": "phase_38_offline_dream_rsi_dpo_distillation_and_merge",
+  "verified_count": 38,
   "active_stage": "complete",
-  "updated_at": "2026-10-26T20:17:30Z",
+  "updated_at": "2026-10-28T20:11:15Z",
   "phases": {
     "phase_01_canonical_upstream_parity_zero_bespoke_core": {
       "num": 1,
@@ -232,6 +232,41 @@
     "remediation_gauntlet": {
       "num": 33,
       "title": "Post-Certification Pre-Flight Remediation Gauntlet",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_34_phase_31_excision_and_purity_sealing": {
+      "num": 34,
+      "title": "Phase 31 Excision & Substrate Purity Sealing",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_35_domain_db_tool_precedence_deployment": {
+      "num": 35,
+      "title": "Domain DB Tool Precedence Skill Deployment",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_36_openviking_context_ingestion_and_retrieval": {
+      "num": 36,
+      "title": "OpenViking L0/L1/L2 Procedural Ingestion & Retrieval",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_37_gateway_dynamic_passthrough_and_fastmcp_bridge": {
+      "num": 37,
+      "title": "Port 8642 Gateway Dynamic Tool Passthrough & FastMCP Bridging",
+      "stage": "complete",
+      "strikes": 0,
+      "verified": true
+    },
+    "phase_38_offline_dream_rsi_dpo_distillation_and_merge": {
+      "num": 38,
+      "title": "Offline dreamRSI DPO Distillation & CPU GGUF Merge",
       "stage": "complete",
       "strikes": 0,
       "verified": true

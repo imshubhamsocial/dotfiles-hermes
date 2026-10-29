@@ -10,9 +10,22 @@ import hashlib
 import json
 import os
 import re
+import sys
 import time
 import uuid
-from aiohttp import web, ClientSession, ClientTimeout
+
+WORKSPACE_DIR = os.environ.get("WORKSPACE", "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
+if WORKSPACE_DIR not in sys.path:
+    sys.path.insert(0, WORKSPACE_DIR)
+
+from aiohttp import ClientSession, ClientTimeout, web
+
+from scripts.hermes_abductive_fastmcp import (
+    decompose_and_sequentialize_tools,
+    intercept_and_enforce_epistemic_gates,
+    translate_tool_error_for_4b_cognition,
+)
+from scripts.hermes_ast_canonizer import sanitize_and_canonize_edit_surface
 
 BRIDGE_HOST = os.environ.get("HERMES_BRIDGE_HOST", "127.0.0.1")
 BRIDGE_PORT = int(os.environ.get("HERMES_BRIDGE_PORT", "1934"))
@@ -36,6 +49,12 @@ ROLE_CONDITIONING_DIRECTIVE = (
     "mapping known attributes to tool signatures, then immediately emit the required tool call."
 )
 
+CODE_SYNTHESIS_DIRECTIVE = (
+    "You are an expert Python software engineer. Implement the requested function directly, "
+    "correctly, and efficiently according to its docstring and specifications. "
+    "Keep deliberation concise, focused, and purposeful, then output the complete Python implementation inside a ```python ``` markdown block."
+)
+
 DELIB_REGEX = re.compile(r"<deliberation>.*?</deliberation>", re.DOTALL)
 
 class EphemeralToolState:
@@ -46,6 +65,7 @@ class EphemeralToolState:
         self.call_event: asyncio.Event = asyncio.Event()
         self.requests_bridged: int = 0
         self.tool_calls_yielded: int = 0
+        self.session_state: dict = {"read_tools_called": []}
 
     def update_schemas(self, tools_list: list[dict]) -> None:
         for t in tools_list:
@@ -76,7 +96,14 @@ class EphemeralToolState:
                 if isinstance(content, list):
                     content = json.dumps(content)
                 if tc_id in tc_id_to_sig:
-                    self.tool_results_cache[tc_id_to_sig[tc_id]] = str(content)
+                    sig = tc_id_to_sig[tc_id]
+                    tool_name = sig.split(":", 1)[0]
+                    try:
+                        args = json.loads(sig.split(":", 1)[1])
+                    except (json.JSONDecodeError, IndexError, ValueError):
+                        args = {}
+                    translated = translate_tool_error_for_4b_cognition(tool_name, args, str(content))
+                    self.tool_results_cache[sig] = translated
 
 STATE = EphemeralToolState()
 
@@ -105,8 +132,9 @@ def compact_messages(messages: list[dict], inject_persona: bool = True) -> list[
 
         compacted.append(m)
 
-    if inject_persona and not has_system:
-        compacted.insert(0, {"role": "system", "content": ROLE_CONDITIONING_DIRECTIVE})
+    if not has_system:
+        directive = ROLE_CONDITIONING_DIRECTIVE if inject_persona else CODE_SYNTHESIS_DIRECTIVE
+        compacted.insert(0, {"role": "system", "content": directive})
 
     return compacted
 
@@ -129,7 +157,7 @@ async def handle_mcp_jsonrpc(request: web.Request) -> web.Response:
     """
     try:
         body = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError):
         return web.json_response({"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}}, status=400)
 
     method = body.get("method", "")
@@ -232,19 +260,29 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
     STATE.harvest_tool_outputs(messages)
     compacted_msgs = compact_messages(messages, inject_persona=bool(tools))
 
-    # Enforce fast System-2 deliberation cap (< 10s per turn)
+    # Token budget & timeout policy:
+    # 1. Multi-turn dialogue with tools (Tau-bench / BFCL): Enforce fast System-2 deliberation cap (512 tokens, < 10s per turn)
+    # 2. Open-ended code synthesis / tasks without tools (HumanEval): Allow caller's requested budget (up to 3072 tokens)
+    #    so Gemma-4's reasoning_content has plenty of headroom before emitting code.
     forward_payload = dict(payload)
     forward_payload["messages"] = compacted_msgs
-    forward_payload["max_tokens"] = min(int(payload.get("max_tokens") or 512), 512)
+    requested_max = int(payload.get("max_tokens") or 3072)
+    if tools:
+        forward_payload["max_tokens"] = min(requested_max, 512)
+        req_timeout = 45.0
+    else:
+        forward_payload["max_tokens"] = min(max(requested_max, 2048), 3072)
+        req_timeout = 180.0
+
     forward_payload["temperature"] = float(payload.get("temperature", 0.0))
     forward_payload["cache_prompt"] = True
 
-    timeout = ClientTimeout(total=45.0)
-    async with ClientSession(timeout=timeout) as session:
-        # When dynamic tools are present, route through the tool-aware completion engine
-        # while maintaining full FastMCP state synchronization with Port 8642
-        async with session.post(f"{LLAMA_DIRECT_URL}/chat/completions", json=forward_payload) as resp:
-            result = await resp.json()
+    timeout = ClientTimeout(total=req_timeout)
+    async with (
+        ClientSession(timeout=timeout) as session,
+        session.post(f"{LLAMA_DIRECT_URL}/chat/completions", json=forward_payload) as resp
+    ):
+        result = await resp.json()
 
     # If MCP calls were intercepted during bridged agent execution, synthesize standard tool_calls response
     if STATE.intercepted_calls:
@@ -268,7 +306,53 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
     # Verify tool_calls formatting compliance for Inspect AI (-M responses_api=false)
     choices = result.get("choices", [])
     if choices and choices[0].get("message", {}).get("tool_calls"):
-        STATE.tool_calls_yielded += len(choices[0]["message"]["tool_calls"])
+        raw_tcs = choices[0]["message"]["tool_calls"]
+        # 1. Sequentialize and deduplicate parallel tool calls (Fixes BFCL parallel drop)
+        ordered_tcs = decompose_and_sequentialize_tools(raw_tcs)
+
+        # 2. In-flight Gate 2 check (Blocks premature transfer_to_human_agents)
+        allowed_tcs = []
+        gate2_blocked_msg = None
+        for tc in ordered_tcs:
+            fn = tc.get("function", {})
+            gate_res = intercept_and_enforce_epistemic_gates(
+                STATE.session_state,
+                {"name": fn.get("name", ""), "arguments": fn.get("arguments", "{}")},
+            )
+            if gate_res["status"] == "BLOCKED_BY_EPISTEMIC_GATE_2":
+                gate2_blocked_msg = gate_res["synthetic_observation"]
+                break
+            allowed_tcs.append(tc)
+
+        if gate2_blocked_msg:
+            choices[0]["message"]["tool_calls"] = None
+            choices[0]["message"]["content"] = gate2_blocked_msg
+            choices[0]["finish_reason"] = "stop"
+        else:
+            choices[0]["message"]["tool_calls"] = allowed_tcs
+            STATE.tool_calls_yielded += len(allowed_tcs)
+
+    # 3. Apply Phase 44 AST Canonizer to code synthesis completions
+    elif choices:
+        raw_text = choices[0].get("message", {}).get("content") or ""
+        # If content is empty (e.g. reasoning block boundary), check reasoning_content fallback
+        if not raw_text.strip() and choices[0].get("message", {}).get("reasoning_content"):
+            r_text = choices[0]["message"]["reasoning_content"]
+            if "```python" in r_text or "def " in r_text:
+                raw_text = r_text
+
+        if "def " in raw_text or "```" in raw_text:
+            prompt_stub = ""
+            for m in reversed(messages):
+                if m.get("role") == "user" and m.get("content"):
+                    prompt_stub = m.get("content")
+                    break
+            if "def " in prompt_stub:
+                try:
+                    canonized = sanitize_and_canonize_edit_surface(raw_text, prompt_stub)
+                    choices[0]["message"]["content"] = canonized
+                except Exception:
+                    pass
 
     return web.json_response(result)
 

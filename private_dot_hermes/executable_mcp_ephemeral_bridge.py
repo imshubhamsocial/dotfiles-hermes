@@ -27,6 +27,7 @@ from scripts.hermes_abductive_fastmcp import (
     translate_tool_error_for_4b_cognition,
 )
 from scripts.hermes_ast_canonizer import sanitize_and_canonize_edit_surface
+from scripts.hermes_fresh_session_verifier import FreshSessionVerifier, SystemOneGateType
 from scripts.hermes_stair_retriever import HermesSTAIRVerifier
 
 BRIDGE_HOST = os.environ.get("HERMES_BRIDGE_HOST", "127.0.0.1")
@@ -35,6 +36,7 @@ GATEWAY_URL = os.environ.get("HERMES_GATEWAY_URL", "http://127.0.0.1:8642/v1")
 LLAMA_DIRECT_URL = os.environ.get("HERMES_LLAMA_URL", "http://127.0.0.1:8138/v1")
 OPENVIKING_URL = os.environ.get("OPENVIKING_URL", "http://127.0.0.1:1933")
 STAIR_VERIFIER = HermesSTAIRVerifier(Path(WORKSPACE_DIR))
+FRESH_VERIFIER = FreshSessionVerifier(Path(WORKSPACE_DIR))
 
 ROLE_CONDITIONING_DIRECTIVE = (
     "CRITICAL OPERATIONAL IDENTITY & EPISTEMIC PRECEDENCE CONTRACT:\n"
@@ -335,6 +337,13 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
                 parsed_args = {}
             grounded, stair_msg = STAIR_VERIFIER.verify_tool_call_grounding(
                 fn_name, parsed_args, prior_outputs
+            )
+            FRESH_VERIFIER.evaluate_and_log(
+                SystemOneGateType.COMMIT_GUARD if grounded else SystemOneGateType.CLAIMS_GATE,
+                ROLE_CONDITIONING_DIRECTIVE,
+                "\n".join(prior_outputs),
+                parsed_args,
+                metadata={"tool_name": fn_name, "grounded": grounded},
             )
             if not grounded:
                 gate2_blocked_msg = stair_msg

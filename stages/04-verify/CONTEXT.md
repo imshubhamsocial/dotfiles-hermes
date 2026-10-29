@@ -1,34 +1,28 @@
-# Stage 04-verify: Fresh-Session Adversarial Verification Contract
+# Stage 04 Contract: Fresh-Session Verification & Decision Receipt (04-verify)
 
-> **ICM Layer 2 Stage Gate**: Fresh-Session Verification ("One Reader in Three Hats")  
-> **Precondition**: Candidate code synthesis or state mutation proposed in Layer 4.  
-> **Postcondition**: Cryptographically sealed decision receipt in `.hermes/decisions/`.
+## Inputs
 
-## 1. Selective Section Loading Schema
-
-| Source | File | Section | Why |
+| Source | File/Location | Section/Scope | Why |
 | :--- | :--- | :--- | :--- |
-| Layer 0 | `AGENTS.md` | `## Stage Gate Machine` | Deterministic verification criteria and strike gates. |
-| Layer 3 | `rules/anti_rationalization_tables.md` | `## Common Rationalisations` | Detects false-pass and lazy confirmation traps. |
-| Layer 3 | `rules/anti_sycophancy_directives.md` | `## Directives` | Prevents sycophantic approval of ungrounded changes. |
-| Layer 4 | Active Phase Contract | `contract.sh` | Deterministic execution suite and exit code verification. |
+| Stage 01 Spec | ../01-spec/output/spec_packet.md | ## Acceptance Criteria | Original ground-truth requirements |
+| Stage 03 Manifest | ../03-execute/output/execution_manifest.md | Full file | Artifacts and hashes to verify |
+| System One Gates | ../../rules/anti_rationalization_tables.md | ## Claims & Commit Guards | Block unverified claims before Git commit |
+| ICM Walk Test | ~/.hermes/skills/icm-architect/SKILL.md | ## The Walk Test | 8-point cold-agent verification checklist |
 
-## 2. History Stripping Protocol
-1. **Exclude Intermediate Context**: Completely block all conversational chatter, scratchpad notes, and `HANDOFF.md`.
-2. **Isolate Verification Triad**:
-   - Canonical Layer 3 Specification (`spec.md`).
-   - Grounded Layer 4 Read Evidence (Prior verified tool outputs).
-   - Candidate Mutation/Output (Under review).
+## Process
 
-## 3. "One Reader in Three Hats" Protocol
-- **Hat 1 (Contract & Spec)**: Does the candidate strictly satisfy the specification and contract without scope creep?
-- **Hat 2 (Evidence & Grounding)**: Are all IDs, parameters, and assertions present in Layer 4 read evidence?
-- **Hat 3 (Policy & Safety Boundaries)**: Does the candidate preserve all 3-Tier permissions and negative invariants?
+> 1. Invoke the native delegate_task tool to spawn a fresh, zero-history subagent ("Verifier Hat").
+> 2. Instruct the subagent to cold-walk the workspace starting from AGENTS.md and independently verify every claim in execution_manifest.md.
+> 3. Execute the 8-point ICM Walk Test (wc -l check on all CONTEXT.md < 80 lines and rules/*.md < 200 lines).
+> 4. Write the signed verification report to output/verification_receipt.md and append a decision receipt to .hermes/decisions/.
 
-## 4. Decision Recording Invariant
-Every evaluation MUST log an append-only receipt to `.hermes/decisions/decision_receipts.jsonl` containing:
-- `timestamp`: ISO-8601 UTC timestamp.
-- `candidate_snapshot_hash`: SHA-256 hash of the exact candidate output.
-- `gate_name`: One of the 6 System One decision gates.
-- `routing_probs`: Confidence scores across hats.
-- `outcome`: `PASS`, `REJECT`, or `BLOCKED`.
+## Outputs
+
+| Artifact | Location | Format |
+| :--- | :--- | :--- |
+| Verification Receipt | stages/04-verify/output/verification_receipt.md | Markdown receipt signed by zero-history delegate_task |
+
+## Checkpoint & Audit
+
+* **Checkpoint**: Human review gate before git commit if any Walk Test item or Claims Guard check fails.
+* **Audit**: [ ] Verified by zero-history delegate_task; [ ] All CONTEXT.md < 80 lines; [ ] hermes doctor passes with 0 warnings.

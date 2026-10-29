@@ -1,0 +1,20 @@
+# .pre-commit-config.yaml — Zero-Custom-Code POSIX & Ruff Verification
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: icm-context-line-limit
+        name: Enforce ICM < 80 lines on all CONTEXT.md and AGENTS.md files
+        entry: bash -c 'for f in "$@"; do lines=$(wc -l < "$f"); if [ "$lines" -ge 80 ]; then echo "FAIL: $f has $lines lines (ICM limit is < 80)"; exit 1; fi; done' --
+        language: system
+        files: (CONTEXT|AGENTS|CLAUDE)\.md$
+      - id: icm-rules-line-limit
+        name: Enforce ICM < 200 lines on all Layer 3 reference files
+        entry: bash -c 'for f in "$@"; do lines=$(wc -l < "$f"); if [ "$lines" -ge 200 ]; then echo "FAIL: $f has $lines lines (ICM limit is < 200)"; exit 1; fi; done' --
+        language: system
+        files: ^(rules|_config|stages/.*/references)/.*\.md$

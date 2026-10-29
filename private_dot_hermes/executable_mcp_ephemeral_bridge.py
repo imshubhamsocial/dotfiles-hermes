@@ -261,15 +261,15 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
     compacted_msgs = compact_messages(messages, inject_persona=bool(tools))
 
     # Token budget & timeout policy:
-    # 1. Multi-turn dialogue with tools (Tau-bench / BFCL): Enforce fast System-2 deliberation cap (512 tokens, < 10s per turn)
+    # 1. Multi-turn dialogue with tools (Tau-bench / BFCL): 768-token ceiling (60s timeout) to support parallel tool dispatch & multi-arg schemas
     # 2. Open-ended code synthesis / tasks without tools (HumanEval): Allow caller's requested budget (up to 3072 tokens)
     #    so Gemma-4's reasoning_content has plenty of headroom before emitting code.
     forward_payload = dict(payload)
     forward_payload["messages"] = compacted_msgs
     requested_max = int(payload.get("max_tokens") or 3072)
     if tools:
-        forward_payload["max_tokens"] = min(requested_max, 512)
-        req_timeout = 45.0
+        forward_payload["max_tokens"] = min(requested_max, 768)
+        req_timeout = 60.0
     else:
         forward_payload["max_tokens"] = min(max(requested_max, 2048), 3072)
         req_timeout = 180.0
@@ -351,8 +351,8 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
                 try:
                     canonized = sanitize_and_canonize_edit_surface(raw_text, prompt_stub)
                     choices[0]["message"]["content"] = canonized
-                except Exception:
-                    pass
+                except (SyntaxError, ValueError, TypeError) as exc:
+                    sys.stderr.write(f"[AST Canonizer Fallback] {exc}\n")
 
     return web.json_response(result)
 

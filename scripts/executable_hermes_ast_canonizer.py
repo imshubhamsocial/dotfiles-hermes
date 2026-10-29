@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
-Hermes 60% Infrastructure Gate: Deterministic AST Signature & Scope Canonizer
+Hermes 60% Infrastructure Gate: Deterministic AST Signature & Scope Canonizer (v3)
 Executes on MWP Layer 4 Edit Surface (0.0 MiB GPU VRAM, <2ms latency).
-Eliminates NameError (35.5%), SyntaxError (16.1%), and TypeError (9.7%).
+Resolves all 6 edge-case syntax traps in 4B local LLM code generation:
+1. Closed and unclosed <deliberation> / <thought> trace stripping.
+2. Multi-fence extraction preferring the block defining the target entry point.
+3. Preamble preservation (imports, type aliases, upstream helpers from prompt_stub).
+4. Target signature verification against helper-only FunctionDef hijacks.
+5. Asymmetrical first-line indentation normalization for body-only completions.
+6. Iterative tail-line truncation recovery on SyntaxError.
 """
 import ast
 import contextlib
 import re
 import sys
+import textwrap
 
 
 class CanonicalSignatureTransformer(ast.NodeTransformer):
@@ -92,52 +99,132 @@ def extract_canonical_function_info(prompt_stub: str) -> tuple[str | None, list[
 
 def sanitize_and_canonize_edit_surface(raw_completion: str, prompt_stub: str) -> str:
     """
-    Sanitize raw model completions against canonical prompt stubs.
-    1. Strips markdown fences.
-    2. Combines stub + body or removes duplicate def stubs.
-    3. Transforms signature and parameters via CanonicalSignatureTransformer.
-    4. Unparses into clean, standard Python source wrapped in fenced code.
+    AST Canonizer v3 for Hermes Agent OS (GDR27).
+    Resolves all 6 edge-case syntax traps in 4B local LLM code generation:
+    1. Closed and unclosed <deliberation> / <thought> trace stripping.
+    2. Multi-fence extraction preferring the block defining the target entry point.
+    3. Preamble preservation (imports, type aliases, upstream helpers from prompt_stub).
+    4. Target signature verification against helper-only FunctionDef hijacks.
+    5. Asymmetrical first-line indentation normalization for body-only completions.
+    6. Iterative tail-line truncation recovery on SyntaxError.
     """
-    import textwrap
+    # 1. Strip closed deliberation/thought blocks; handle unclosed tags gracefully
+    clean_code = re.sub(
+        r"<(?:deliberation|thought)>.*?</(?:deliberation|thought)>",
+        "",
+        raw_completion,
+        flags=re.DOTALL,
+    ).strip()
+    if "<deliberation>" in clean_code or "<thought>" in clean_code:
+        clean_code = re.sub(
+            r"^.*?<(?:deliberation|thought)>.*?(?=```|def\s+|async\s+def\s+)",
+            "",
+            clean_code,
+            flags=re.DOTALL,
+        ).strip()
+        clean_code = re.sub(
+            r"^<(?:deliberation|thought)>.*", "", clean_code, flags=re.DOTALL
+        ).strip()
 
-    clean_code = sanitize_markdown_fences(raw_completion)
-    target_name, target_args = extract_canonical_function_info(prompt_stub)
+    # Extract target function name and preamble (imports/helpers) from prompt_stub
+    target_fn_name, target_args = extract_canonical_function_info(prompt_stub)
 
-    if not target_name:
-        return f"```python\n{clean_code}\n```"
-
-    # If clean_code already contains the target function definition at top level
-    try:
-        candidate_tree = ast.parse(clean_code)
-        has_target = any(
-            isinstance(node, ast.FunctionDef) and node.name == target_name
-            for node in candidate_tree.body
+    stub_matches = list(
+        re.finditer(
+            r"^(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(",
+            prompt_stub,
+            flags=re.MULTILINE,
         )
-        if has_target:
-            transformer = CanonicalSignatureTransformer(target_name, target_args)
-            fixed_tree = ast.fix_missing_locations(transformer.visit(candidate_tree))
-            canon_code = ast.unparse(fixed_tree)
-            return f"```python\n{canon_code}\n```"
+    )
+    if stub_matches:
+        if not target_fn_name:
+            target_fn_name = stub_matches[-1].group(1)
+        preamble_src = prompt_stub[: stub_matches[-1].start()].strip()
+    else:
+        preamble_src = ""
+
+    # 2. Extract all markdown code blocks (prefer block containing target_fn_name)
+    blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)\n?```", clean_code, flags=re.DOTALL)
+    if not blocks and "```" in clean_code:
+        m_unclosed = re.search(
+            r"```(?:python|py)?\s*\n(.*)$", clean_code, flags=re.DOTALL
+        )
+        if m_unclosed:
+            blocks = [m_unclosed.group(1)]
+    if blocks:
+        chosen = blocks[-1].strip()
+        if target_fn_name:
+            for b in reversed(blocks):
+                if re.search(rf"\bdef\s+{re.escape(target_fn_name)}\b", b):
+                    chosen = b.strip()
+                    break
+        clean_code = chosen
+
+    # 3 & 4. Standalone function check with target signature verification & preamble merge
+    try:
+        dedented_candidate = textwrap.dedent(clean_code).strip()
+        parsed = ast.parse(dedented_candidate)
+        defined_fns = {
+            node.name
+            for node in parsed.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        if (target_fn_name and target_fn_name in defined_fns) or (
+            not target_fn_name and defined_fns
+        ):
+            if target_fn_name:
+                transformer = CanonicalSignatureTransformer(target_fn_name, target_args)
+                parsed = ast.fix_missing_locations(transformer.visit(parsed))
+                dedented_candidate = ast.unparse(parsed)
+            if preamble_src:
+                combined = preamble_src + "\n\n" + dedented_candidate
+                try:
+                    ast.parse(combined)
+                    return f"```python\n{combined}\n```"
+                except SyntaxError:
+                    pass
+            return f"```python\n{dedented_candidate}\n```"
     except SyntaxError:
         pass
 
-    # Build candidate source by combining prompt_stub + properly indented body
-    dedented = textwrap.dedent(clean_code).strip()
-    body = textwrap.indent(dedented, "    ")
-    candidate_src = prompt_stub.rstrip() + "\n" + body
+    # 5. Body-only reconstruction with asymmetrical first-line indentation normalization
+    raw_lines = [line for line in clean_code.splitlines() if line.strip() != ""]
+    if raw_lines:
+        first_indent = len(raw_lines[0]) - len(raw_lines[0].lstrip(" "))
+        if first_indent == 0 and len(raw_lines) > 1:
+            if not raw_lines[0].rstrip().endswith(":"):
+                second_indent = len(raw_lines[1]) - len(raw_lines[1].lstrip(" "))
+                if second_indent >= 4:
+                    clean_code = (" " * second_indent) + clean_code.lstrip(" ")
+            else:
+                rest_indents = [
+                    len(line) - len(line.lstrip(" ")) for line in raw_lines[1:]
+                ]
+                if rest_indents and min(rest_indents) >= 4 and max(rest_indents) > min(rest_indents):
+                    shift = min(rest_indents)
+                    clean_code = (" " * shift) + clean_code.lstrip(" ")
+        dedented_body = textwrap.dedent(clean_code)
+    else:
+        dedented_body = "pass"
 
-    try:
-        tree = ast.parse(candidate_src)
-    except SyntaxError:
+    indented_body = textwrap.indent(dedented_body.strip(), "    ")
+    candidate_src = prompt_stub.rstrip() + "\n" + indented_body
+
+    # 6. AST validation & iterative truncated tail-line recovery
+    body_lines = indented_body.splitlines()
+    while body_lines:
+        trial_src = prompt_stub.rstrip() + "\n" + "\n".join(body_lines)
         try:
-            tree = ast.parse(prompt_stub.rstrip() + "\n" + clean_code)
+            trial_tree = ast.parse(trial_src)
+            if target_fn_name:
+                transformer = CanonicalSignatureTransformer(target_fn_name, target_args)
+                trial_tree = ast.fix_missing_locations(transformer.visit(trial_tree))
+                trial_src = ast.unparse(trial_tree)
+            return f"```python\n{trial_src}\n```"
         except SyntaxError:
-            return f"```python\n{clean_code}\n```"
+            body_lines.pop()
 
-    transformer = CanonicalSignatureTransformer(target_name, target_args)
-    fixed_tree = ast.fix_missing_locations(transformer.visit(tree))
-    canon_code = ast.unparse(fixed_tree)
-    return f"```python\n{canon_code}\n```"
+    return f"```python\n{candidate_src}\n```"
 
 
 if __name__ == "__main__":

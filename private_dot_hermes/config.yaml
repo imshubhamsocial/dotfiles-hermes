@@ -1,4 +1,5 @@
 # ~/.hermes/config.yaml — Canonical Zero-Custom-Code Hermes Agent OS Configuration (GDR28)
+_config_version: 44
 
 model:
   provider: local-llama

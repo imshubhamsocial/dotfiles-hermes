@@ -2,64 +2,70 @@
 
 > **Architectural Standard**: Jake Van Clief's Interpretable Context Methodology (ICM / MWP, arXiv:2603.16021)  
 > **Layering Rule**: **60% Infrastructure** (POSIX/Git) | **30% Orchestration** (ICM Folders + FastMCP Pydantic v2) | **10% AI Cognition** (Gemma-4-E4B on Port 8138)  
-> **Operational Scope**: You operate strictly on the active phase directory defined in `phases/status_ledger.json`.  
-> **Context Discipline**: Never read `docs/reference/` or future `phases/phase_XX/` directories unless explicitly instructed. Maintain working context between 2,000 and 8,000 tokens.
-
-## Hardware & Security Invariants  
-- NVML VRAM Ceiling: `query_live_nvml_vram()` MUST verify `used_mib <= 5400.0`.  
-- Cryptographic Sealing: Tasks are incomplete until `/tmp/hermes_verified_receipt.json` returns `exitstatus == 0` AND `modified != ["verified_clean_tree"]` on bug-fixing benchmarks.  
+> **Working Context Discipline**: Maintain active working context strictly between 2,000 and 8,000 tokens.
 
 ---
 
-## Stage Gate Machine (Mandatory Order)
+## 1. Operating Scope & Layering Allocation
+- **Active Phase Constraint**: Operate strictly on the active phase defined in `phases/status_ledger.json`.
+- **Infrastructure First (60%)**: Enforce POSIX file system integrity, git tracking via Chezmoi (`dotfiles-hermes`), and AST compiler gates before test execution.
+- **Orchestration (30%)**: Route tools via Ephemeral FastMCP Bridge (Port 1934) and OpenViking Hierarchical Memory (Port 1933).
+- **AI Cognition (10%)**: Bound local model reasoning tokens under tight deliberation budgets.
 
-### 1. RECON & INTENT (Stage `01_spec`)
+---
+
+## 2. 3-Tier Permissions Boundary
+- **Always (Autonomous Execution)**:
+  - Read files, query AST, run pre-commit linters (`ruff check`), and execute phase verification contracts (`contract.sh`).
+  - Query local read-only database tools before mutating state.
+- **Ask First (User Escalation Required)**:
+  - Mutating upstream git remotes outside prescribed phase contracts.
+  - Deleting non-temporary files or modifying environment configurations.
+- **Never (Hard Forbidden Invariants)**:
+  - Never bypass permission checks, credentials, or sandbox boundaries.
+  - Never modify canonical test assertions to force passing benchmarks.
+  - Never execute with GPU VRAM exceeding 5,400.0 MiB.
+
+---
+
+## 3. ICM 5-Layer Progressive Context Architecture
+- **Layer 0 (Global Rules)**: Root `AGENTS.md` (symlinked to `CLAUDE.md`).
+- **Layer 1 (Workspace Scope)**: Project `CONTEXT.md` defining goals and explicit Exclusion Tables.
+- **Layer 2 (Stage Gate Contracts)**: Numbered stage directories (`01_spec/`, `02_impl/`, `03_verify/`) with `CONTEXT.md` <= 80 lines.
+- **Layer 3 (Factory / Immutables)**: Rules, schemas, and references in `rules/` <= 200 lines per file.
+- **Layer 4 (Product / Mutables)**: Output artifacts, diffs, and verification receipts.
+- **Selective Section Loading**: Stage inputs must be loaded using 4-column tables (`Source | File | Section | Why`), extracting only targeted heading sections.
+
+---
+
+## 4. Stage Gate Machine (Mandatory Order)
+
+### Stage 1: RECON & INTENT (`01_spec`)
 - **Deliberation Tag**: Emit `<deliberation><global>...</global></deliberation>`.
-- **Turn 1 Mandatory Dispatch**: Call `jev_compile_intent` and `extract_workspace_ast` on Turn 1 before mutating files.
-- **Context Scope**: Read **ONLY** `phases/<active_phase>/01_spec/spec.md` and `phases/<active_phase>/03_verify/status.json`.
-- **Stage Progression**: Write concrete symbol targets and causal hypotheses into `02_impl/task.md`. Update `status.json` stage to `"02_impl"`.
+- Read **ONLY** `phases/<active_phase>/01_spec/spec.md` and `phases/<active_phase>/03_verify/status.json`.
+- Write concrete symbol targets and causal hypotheses into `02_impl/task.md`. Update `status.json` stage to `"02_impl"`.
 
-### 2. SURGICAL IMPLEMENTATION (Stage `02_impl`)
+### Stage 2: SURGICAL IMPLEMENTATION (`02_impl`)
 - **Deliberation Tag**: Emit `<deliberation><focus id="target_symbol">...</focus></deliberation>`.
-- **Context Scope**: Read `02_impl/task.md`. If domain-specific rules are needed, call `skill_view(name)` on demand.
-- **Shadow Backups**: If mutating non-Git files (Domain B), verify `<target>.hermes.bak` exists first.
-- **Karpathy U12 Limit**: Apply ONE causal change per turn via `jev_mutate_module` (<= 15 lines diff). Never use raw `sed`/`awk` or modify test assertions.
-- **Pre-Commit Linter Gate**: If `jev_mutate_module` returns AST or `ruff` errors, fix them before advancing. Update `status.json` stage to `"03_verify"`.
+- Read `02_impl/task.md`. Create `<target>.hermes.bak` shadow backups before modifying non-git files.
+- Apply focused causal changes (Karpathy U12: <= 15 lines diff per step). Run AST and `ruff check`. Update `status.json` stage to `"03_verify"`.
 
-### 3. DETERMINISTIC VERIFICATION & FAILURE HANDLING (Stage `03_verify`)
+### Stage 3: DETERMINISTIC VERIFICATION (`03_verify`)
 - **Deliberation Tag**: Emit `<deliberation><local>...</local></deliberation>`.
-- **Execution Command**: Execute the exact command in `phases/<active_phase>/03_verify/contract.sh`.
-
-#### HAPPY PATH (Exit Code 0)
-- Verify `/tmp/hermes_verified_receipt.json` exists with `"exitstatus": 0` and `query_live_nvml_vram()` reports `used_mib <= 5400.0`.
-- Update `03_verify/status.json` to `{"stage": "complete", "strikes": 0, "verified": true}`.
-- Advance `phases/status_ledger.json` to the next phase.
-
-#### UNHAPPY PATH — STRIKE 1 (Exit Code != 0, `strikes == 0`)
-- Increment `strikes` to `1` in `03_verify/status.json`.
-- Read **ONLY** the 40/60 head-tail truncated traceback (bottom 600 bytes).
-- Formulate a single new causal hypothesis in `02_impl/task.md` and return to Stage `02_impl`.
-
-#### UNHAPPY PATH — STRIKE 2 TABU ROLLBACK (Exit Code != 0, `strikes >= 1`)
-- **HALT** incremental patching immediately.
-- Execute `git checkout HEAD -- <file>` (or restore `<file>.hermes.bak` from `.hermes/cache/shadow_backups/`).
-- Call `jev_anneal_cluster` with the failure trace to write a clean-slate spec in `01_spec/specs/annealed_<id>.md`.
-- Reset `strikes` to `0`, and restart from Stage `01_spec`.
-
-#### UNHAPPY PATH — INFRASTRUCTURE / VRAM BREACH
-- If `used_mib > 5400.0`, upstream `.hermes/hermes-agent` is dirty (`git status --porcelain != ""`), or a required sidecar port (8138, 1933) is unreachable, abort immediately without mutating files and report the exact gate failure.
+- Execute `phases/<active_phase>/03_verify/contract.sh`. Exit code 0 certifies pass.
+- Cryptographically seal `/tmp/hermes_verified_receipt.json`. Update `status.json` to complete and advance ledger.
+- **Two-Strike Tabu Rule**: Strike 1 allows 1 new hypothesis; Strike 2 requires clean-slate `git checkout` / shadow restore.
 
 ---
 
-## Single-Stage Agent Execution Command
+## 5. Anti-Rationalization & Epistemic Persistence Gates
+- **Anti-Rationalization Rebuttal**: Consult `rules/anti_rationalization_tables.md`. Never use missing attributes as justification to bail out without read-tool queries.
+- **Anti-Sycophancy Directives**: Enforce all 17 rules in `rules/anti_sycophancy_directives.md`. Ground truth supersedes authority.
+- **Fresh-Session Review**: Verify critical state mutations independently of conversational history to prevent self-referential bias.
 
-```bash
-distrobox enter ws-hermes -- hermes chat --yolo -q '
-Execute the next unverified phase in phases/status_ledger.json following ~/.hermes/SOUL.md and AGENTS.md:
-1. Turn 1: Invoke jev_compile_intent and extract_workspace_ast.
-2. Read phases/<active_phase>/03_verify/status.json and phases/<active_phase>/01_spec/spec.md. Do not read any other phase folders.
-3. Document your surgical plan in 02_impl/task.md, apply mutations strictly via jev_mutate_module, and run 03_verify/contract.sh.
-4. Enforce the Two-Strike Tabu rule on test failures: revert to clean state on Strike 2 and invoke jev_anneal_cluster.
-5. Do not declare completion until 03_verify/contract.sh exits 0, /tmp/hermes_verified_receipt.json is sealed, and query_live_nvml_vram() confirms used_mib <= 5400.0.
-'
-```
+---
+
+## 6. Hardware & Cryptographic Invariants
+- **NVML VRAM Ceiling**: `query_live_nvml_vram()` MUST verify `used_mib <= 5400.0`.
+- **Receipt Sealing**: Tasks are incomplete until `/tmp/hermes_verified_receipt.json` returns `exitstatus == 0`.
+- **Substrate Purity**: Upstream `.hermes/hermes-agent` must remain 100% clean (`git status --porcelain == ""`).

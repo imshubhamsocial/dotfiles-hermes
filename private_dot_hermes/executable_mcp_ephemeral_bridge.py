@@ -13,6 +13,7 @@ import re
 import sys
 import time
 import uuid
+from pathlib import Path
 
 WORKSPACE_DIR = os.environ.get("WORKSPACE", "/var/home/imshubhamsocial/Projects/Workspace/Personal/hermes")
 if WORKSPACE_DIR not in sys.path:
@@ -26,12 +27,14 @@ from scripts.hermes_abductive_fastmcp import (
     translate_tool_error_for_4b_cognition,
 )
 from scripts.hermes_ast_canonizer import sanitize_and_canonize_edit_surface
+from scripts.hermes_stair_retriever import HermesSTAIRVerifier
 
 BRIDGE_HOST = os.environ.get("HERMES_BRIDGE_HOST", "127.0.0.1")
 BRIDGE_PORT = int(os.environ.get("HERMES_BRIDGE_PORT", "1934"))
 GATEWAY_URL = os.environ.get("HERMES_GATEWAY_URL", "http://127.0.0.1:8642/v1")
 LLAMA_DIRECT_URL = os.environ.get("HERMES_LLAMA_URL", "http://127.0.0.1:8138/v1")
 OPENVIKING_URL = os.environ.get("OPENVIKING_URL", "http://127.0.0.1:1933")
+STAIR_VERIFIER = HermesSTAIRVerifier(Path(WORKSPACE_DIR))
 
 ROLE_CONDITIONING_DIRECTIVE = (
     "CRITICAL OPERATIONAL IDENTITY & EPISTEMIC PRECEDENCE CONTRACT:\n"
@@ -310,17 +313,31 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
         # 1. Sequentialize and deduplicate parallel tool calls (Fixes BFCL parallel drop)
         ordered_tcs = decompose_and_sequentialize_tools(raw_tcs)
 
-        # 2. In-flight Gate 2 check (Blocks premature transfer_to_human_agents)
+        # 2. In-flight Gate 2 & STAIR Grounding checks
+        prior_outputs = [str(m.get("content", "")) for m in messages if m.get("role") == "tool"]
+        prior_outputs.extend(STATE.tool_results_cache.values())
         allowed_tcs = []
         gate2_blocked_msg = None
         for tc in ordered_tcs:
             fn = tc.get("function", {})
+            fn_name = fn.get("name", "")
+            raw_args = fn.get("arguments", "{}")
             gate_res = intercept_and_enforce_epistemic_gates(
                 STATE.session_state,
-                {"name": fn.get("name", ""), "arguments": fn.get("arguments", "{}")},
+                {"name": fn_name, "arguments": raw_args},
             )
             if gate_res["status"] == "BLOCKED_BY_EPISTEMIC_GATE_2":
                 gate2_blocked_msg = gate_res["synthetic_observation"]
+                break
+            try:
+                parsed_args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+            except (json.JSONDecodeError, TypeError, ValueError):
+                parsed_args = {}
+            grounded, stair_msg = STAIR_VERIFIER.verify_tool_call_grounding(
+                fn_name, parsed_args, prior_outputs
+            )
+            if not grounded:
+                gate2_blocked_msg = stair_msg
                 break
             allowed_tcs.append(tc)
 

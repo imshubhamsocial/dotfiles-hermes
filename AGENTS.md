@@ -30,5 +30,5 @@
 - **Never (Hard Forbidden Invariants)**:
   - Never author bespoke Python wrappers or custom plugins in `scripts/` or `plugins/`.
   - Never bypass permission checks, credentials, or sandbox boundaries.
-  - Never execute with GPU VRAM exceeding 5,400.0 MiB (`nvidia-smi` live NVML check).
+  - Never execute with GPU VRAM exceeding the ceiling defined in rules/hardware_vram_invariants.md (nvidia-smi live NVML check).
   - Upstream substrate purity: `.hermes/hermes-agent` must remain 100% clean.

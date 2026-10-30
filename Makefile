@@ -229,7 +229,7 @@ benchmark-swebench: ## Run Upstream Princeton SWE-bench Lite inside Distrobox ag
 		--predictions_path tests/benchmarks/upstream/results/swebench_lite/predictions.jsonl \
 		--max_workers 4 --cache_level env --clean True --run_id gdr12_swebench_lite
 
-benchmark-bfcl: ## Run Berkeley Function Calling Benchmark (BFCL) via UK AISI Inspect-AI on Port 8138
+benchmark-bfcl: ## Run Berkeley Function Calling Benchmark (BFCL) via UK AISI Inspect-AI on Port 8138 (Layer A)
 	@CUDA_VISIBLE_DEVICES="" OPENAI_API_KEY="hermes-local" OPENAI_BASE_URL="http://127.0.0.1:8138/v1" \
 		uv run inspect eval inspect_evals/bfcl \
 		--model openai/dory \
@@ -237,6 +237,49 @@ benchmark-bfcl: ## Run Berkeley Function Calling Benchmark (BFCL) via UK AISI In
 		--temperature 0.0 \
 		--max-connections 1 \
 		--log-dir tests/benchmarks/upstream/results/inspect_bfcl
+
+benchmark-harness-gaia: ## Run GAIA Level 1 Agent Evaluation against Hermes Gateway Port 8642 (Layer B)
+	@uv run inspect eval inspect_evals/gaia_level1 \
+		--model openai/hermes-agent \
+		--model-base-url http://127.0.0.1:8642/v1 \
+		-M responses_api=false \
+		--solver generate \
+		-T split=validation \
+		--limit 10 \
+		--temperature 0.0 \
+		--max-connections 1 \
+		--log-dir logs/inspect_gaia_port8642
+
+benchmark-harness-tau-react: ## Run Tau-Bench Retail via ReAct strategy against Hermes Gateway Port 8642 (Layer B)
+	@OPENAI_BASE_URL="http://127.0.0.1:8642/v1" OPENAI_API_KEY="sk-hermes-local-prod-12345678" \
+		uv run --with "tau-bench @ git+https://github.com/sierra-research/tau-bench.git" \
+		python -m tau_bench.run \
+		--env retail \
+		--agent-strategy react \
+		--model hermes-agent \
+		--model-provider openai \
+		--user-model hermes-agent \
+		--user-model-provider openai \
+		--user-strategy llm \
+		--temperature 0.0 \
+		--task-split test \
+		--start-index 0 \
+		--end-index 10 \
+		--num-trials 1 \
+		--max-concurrency 1 \
+		--log-dir logs/tau_bench_port8642
+
+benchmark-harness-tau2: ## Run Inspect-AI Tau2 Retail against Hermes Gateway Port 8642 (Layer B)
+	@uv run inspect eval inspect_evals/tau2_retail \
+		--model openai/hermes-agent \
+		--model-base-url http://127.0.0.1:8642/v1 \
+		-M responses_api=false \
+		-T shuffle=false \
+		-T message_limit=30 \
+		--limit 10 \
+		--temperature 0.0 \
+		--max-connections 1 \
+		--log-dir logs/inspect_tau2_retail
 
 benchmark-inspect-safety: ## Run UK AISI Inspect-AI Coding & Agentic Safety Suite on Port 8138
 	@CUDA_VISIBLE_DEVICES="" OPENAI_API_KEY="hermes-local" OPENAI_BASE_URL="http://127.0.0.1:8138/v1" \
@@ -247,8 +290,8 @@ benchmark-inspect-safety: ## Run UK AISI Inspect-AI Coding & Agentic Safety Suit
 		--max-connections 1 \
 		--log-dir tests/benchmarks/upstream/results/inspect_humaneval
 
-benchmark-upstream: benchmark-adk benchmark-bfcl benchmark-inspect-safety ## Execute unified upstream benchmark suite
-	@echo "✅ All Upstream Google ADK, BFCL, and UK AISI Inspect Benchmarks Certified!"
+benchmark-upstream: benchmark-adk benchmark-harness-gaia benchmark-harness-tau-react run-eval ## Execute unified Layer B upstream benchmark suite
+	@echo "✅ All Upstream Layer B Agent Harness Benchmarks Certified!"
 
 purge-bespoke: ## Purge all bespoke scripts in skills/, cron/, .local/bin/, and deduplicate profiles/
 	@echo "==> [1/3] Purging bespoke .py/.sh/.js scripts inside .hermes/skills/ and .hermes/cron/..."

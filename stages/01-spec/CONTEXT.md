@@ -5,7 +5,7 @@
 | Source | File/Location | Section/Scope | Why |
 | :--- | :--- | :--- | :--- |
 | User Task | Active Prompt / Issue | Full description | Primary problem statement |
-| Hardware Rules | ../../rules/hardware_vram_invariants.md | ## Envelope Limits | Enforce <= 5,400.0 MiB VRAM & zero-code bounds |
+| Hardware Rules | ../../rules/hardware_vram_invariants.md | ## Envelope Limits | Enforce hardware VRAM & zero-code bounds per rules/hardware_vram_invariants.md |
 | System One Gates | ../../rules/anti_rationalization_tables.md | ## Intent & Scope Guards | Prevent scope creep and unrequested code |
 | Epistemic Rules | ../../rules/anti_sycophancy_directives.md | ## Premise Validation | Reject flawed user assumptions early |
 
@@ -24,5 +24,5 @@
 
 ## Checkpoint & Audit
 
-* **Checkpoint**: Pause if user requirements conflict with the Zero-Custom-Code Imperative or <= 5,400.0 MiB VRAM ceiling.
+* **Checkpoint**: Pause if user requirements conflict with the Zero-Custom-Code Imperative or rules/hardware_vram_invariants.md ceiling.
 * **Audit**: [ ] Exact target files listed; [ ] No custom .py wrappers proposed; [ ] Hardware ceiling explicitly cited.

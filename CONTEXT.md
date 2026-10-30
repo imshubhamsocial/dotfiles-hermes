@@ -14,6 +14,6 @@ Work progresses sequentially through four numbered folders. Each stage reads the
 ## 2. Shared Factory Reference Index (Layer 3)
 
 * _config/substrate_ports.md: Port 8138 (GPU LLM), Port 8139 (CPU Embed), Port 8642 (Gateway), Port 1933 (OpenViking).
-* rules/hardware_vram_invariants.md: Live NVML VRAM <= 5,400.0 MiB ceiling and CPU thread pinning (0-5 GPU, 6-11 CPU).
+* rules/hardware_vram_invariants.md: Single source of truth for 128K TurboQuant KV cache, live NVML VRAM ceiling, and CPU thread pinning.
 * rules/anti_rationalization_tables.md: Six System One Jev Gates (rashedint32/jev-gates).
 * rules/anti_sycophancy_directives.md: 17 epistemic grounding rules (RinDig/GPTmetrics).

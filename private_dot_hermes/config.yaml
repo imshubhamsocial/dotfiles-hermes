@@ -1,11 +1,11 @@
-# ~/.hermes/config.yaml — Canonical Zero-Custom-Code Hermes Agent OS Configuration (GDR28)
-_config_version: 44
+# ~/.hermes/config.yaml — Canonical Zero-Custom-Code Hermes Agent OS Configuration
 
+_config_version: 44
 model:
   provider: local-llama
   default: gemma-4-E4B-it-qat
   base_url: http://127.0.0.1:8138/v1
-  context_length: 32768
+  context_length: 131072
 
 providers:
   local-llama:
@@ -14,10 +14,13 @@ providers:
     stale_timeout_seconds: 120
     models:
       gemma-4-E4B-it-qat:
-        context_length: 32768
+        context_length: 131072
+        max_output_tokens: 4096
+      gemma-4-E4B-it-qat-exact:
+        context_length: 131072
         max_output_tokens: 4096
       nemotron-3.5-bolt-e4b:
-        context_length: 32768
+        context_length: 131072
         max_output_tokens: 4096
   local-embedding-cpu:
     api: http://127.0.0.1:8139/v1
@@ -27,14 +30,15 @@ providers:
         context_length: 8192
         dimensions: 768
 
-# Declarative Fix for Upstream Issue #56360 (Eliminates 30-60% Tool Text Leaks on 4B QAT Models)
+# Declarative Fix for Upstream Issues #56360 & #81670 (Eliminates Tool Text Leaks & Verification Loops)
 agent:
   tool_use_enforcement: false
+  execution_guidance: false
   task_completion_guidance: false
   parallel_tool_call_guidance: false
   max_turns: 25
 
-# Declarative Fix for Upstream Issue #28825 (Preserves Client-Supplied Tools & Bare Model Overrides on Port 8642)
+# Declarative Fix for Upstream Issues #28825 & #144082 (Preserves Bare Model Overrides on Port 8642)
 gateway:
   host: 127.0.0.1
   port: 8642
@@ -44,22 +48,21 @@ gateway:
       extra:
         direct_model_requests: true
 
-# Upstream Tiered BM25 Tool Search (Replaces hermes_abductive_fastmcp.py)
-# Note: Set enabled: "off" during UK AISI Inspect AI benchmark runs so external benchmark tools are not deferred
+# Upstream Tiered Tool Search (Set "off" during external benchmark gauntlets)
 tools:
   tool_search:
-    enabled: "on"
+    enabled: "off"
     threshold_pct: 4
     listing_max_tokens: 1200
 
-# Upstream In-Process AST + Pyright LSP Diagnostics (Replaces hermes_ast_canonizer.py)
+# Upstream Native LSP Diagnostics
 lsp:
   enabled: true
   servers:
     pyright:
       disabled: false
 
-# Official OpenViking Hierarchical Memory Plugin (Port 1933, Replaces hermes_stair_retriever.py)
+# Official OpenViking Hierarchical Memory Plugin (Port 1933)
 memory:
   provider: openviking
   openviking:
@@ -68,13 +71,16 @@ memory:
     embedding_model: embeddinggemma-2-q8_0
     matryoshka_dim: 256
 
-# Upstream Native Skill Curator & Append-Only Audit Ledger (Replaces hermes_skill_distiller.py & skill_evaluator.py)
+approvals:
+  mode: "off"
+
 skills:
   ledger: true
   ledger_max_bytes: 5242880
   write_approval: false
   external_dirs:
     - ~/.agents/skills
+    - ~/.hermes/skills
 
 curator:
   enabled: true
@@ -92,7 +98,6 @@ auxiliary:
     model: gemma-4-E4B-it-qat
     timeout: 600
 
-# Official Catalog Plugins (Zero Custom Python Code)
 plugins:
   enabled:
     - openviking
@@ -100,9 +105,9 @@ plugins:
   entries:
     jev-curator:
       settings:
-        mode: guard                  # "off" | observe | guard | apply
-        provider: custom             # Uses local/configured endpoint; guard mode has 0 network overhead
-        allow_content_egress: false  # Strictly enforces 100% local privacy ($0 API cost)
+        mode: guard
+        provider: custom
+        allow_content_egress: false
         timeout_seconds: 25
         max_requests: 50
         max_pairs: 100

@@ -5,7 +5,7 @@ model:
   provider: local-llama
   default: nemotron-3.5-bolt-e4b
   base_url: http://127.0.0.1:8138/v1
-  context_length: 131072
+  context_length: 65536
 
 providers:
   local-llama:
@@ -20,7 +20,7 @@ providers:
         context_length: 131072
         max_output_tokens: 4096
       nemotron-3.5-bolt-e4b:
-        context_length: 131072
+        context_length: 65536
         max_output_tokens: 4096
   local-embedding-cpu:
     api: http://127.0.0.1:8139/v1

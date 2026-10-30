@@ -8,8 +8,8 @@ HF_HUB_DIR="${HF_HUB_DIR:-${WORKSPACE_ROOT:-$(pwd)}/.cache/huggingface/hub}"
 if [[ ! -d "$HF_HUB_DIR" && -d "${HOME}/.cache/huggingface/hub" ]]; then
     HF_HUB_DIR="${HOME}/.cache/huggingface/hub"
 fi
-MODEL_MAIN="${HF_HUB_DIR}/models--google--gemma-4-E4B-it-qat-q4_0-gguf/snapshots/main/gemma-4-E4B_q4_0-it.gguf"
-MODEL_DRAFT="${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf"
+MODEL_MAIN="${HERMES_MODEL_PATH:-${HF_HUB_DIR}/models--google--gemma-4-E4B-it-qat-q4_0-gguf/snapshots/main/gemma-4-E4B_q4_0-it.gguf}"
+MODEL_DRAFT="${HERMES_DRAFT_PATH:-${HF_HUB_DIR}/models--bartowski--gemma-4-E4B-it-GGUF/snapshots/main/mtp-gemma-4-E4B-it-Q4_0.gguf}"
 DRAFT_FLAGS=()
 if [[ -f "$MODEL_DRAFT" ]]; then
     DRAFT_FLAGS=(--model-draft "$MODEL_DRAFT" --spec-type draft-mtp,ngram-map-k --spec-draft-ngl 99 --spec-draft-n-max 5 --spec-draft-p-min 0.72 --spec-ngram-map-k-size-n 8 --spec-ngram-map-k-size-m 16 --spec-ngram-map-k-min-hits 1)

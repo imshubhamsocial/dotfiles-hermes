@@ -146,7 +146,7 @@ guardrails-test: ## Verify upstream NVIDIA NeMo Guardrails library actions
 	@distrobox enter ws-hermes -- python3 -c 'from nemoguardrails.library.sensitive_data_detection.actions import detect_sensitive_data; from nemoguardrails.library.jailbreak_detection.actions import jailbreak_detection_heuristics; print("✓ NVIDIA NeMo Guardrails upstream modules active.")'
 
 run-eval: ## Launch canonical testbed evaluation (ast_grep_eval)
-	@distrobox enter ws-hermes -- hermes --in tests/ast_grep_eval "Search calculate_fibonacci using ast-grep and compile with gcc"
+	@distrobox enter ws-hermes -- hermes --in tests/ast_grep_eval -z "Search calculate_fibonacci using ast-grep and compile with gcc"
 
 clean: ## Clean up temporary bytecode and pytest caches
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -253,30 +253,17 @@ benchmark-harness-gaia: ## Run GAIA Level 1 Agent Evaluation against Hermes Gate
 benchmark-harness-tau-react: ## Run Tau-Bench Retail via ReAct strategy against Hermes Gateway Port 8642 (Layer B)
 	@OPENAI_BASE_URL="http://127.0.0.1:8642/v1" OPENAI_API_KEY="sk-hermes-local-prod-12345678" \
 		uv run --with "tau-bench @ git+https://github.com/sierra-research/tau-bench.git" \
-		python -m tau_bench.run \
-		--env retail \
-		--agent-strategy react \
-		--model hermes-agent \
-		--model-provider openai \
-		--user-model hermes-agent \
-		--user-model-provider openai \
-		--user-strategy llm \
-		--temperature 0.0 \
-		--task-split test \
-		--start-index 0 \
-		--end-index 10 \
-		--num-trials 1 \
-		--max-concurrency 1 \
-		--log-dir logs/tau_bench_port8642
+		python -c "import litellm; litellm.register_model({'hermes-agent': {'input_cost_per_token': 0.0, 'output_cost_per_token': 0.0, 'litellm_provider': 'openai', 'mode': 'chat'}}); from tau_bench.types import RunConfig; from tau_bench.run import run; run(RunConfig(env='retail', agent_strategy='react', model='hermes-agent', model_provider='openai', user_model='hermes-agent', user_model_provider='openai', user_strategy='llm', temperature=0.0, task_split='test', start_index=$${START_INDEX:-0}, end_index=$${END_INDEX:-10}, num_trials=1, max_concurrency=1, log_dir='logs/tau_bench_port8642'))"
 
 benchmark-harness-tau2: ## Run Inspect-AI Tau2 Retail against Hermes Gateway Port 8642 (Layer B)
-	@uv run inspect eval inspect_evals/tau2_retail \
+	@OPENAI_API_KEY="sk-hermes-local-prod-12345678" \
+		uv run inspect eval inspect_evals/tau2_retail \
 		--model openai/hermes-agent \
 		--model-base-url http://127.0.0.1:8642/v1 \
 		-M responses_api=false \
 		-T shuffle=false \
 		-T message_limit=30 \
-		--limit 10 \
+		--limit $${TAU_LIMIT:-10} \
 		--temperature 0.0 \
 		--max-connections 1 \
 		--log-dir logs/inspect_tau2_retail

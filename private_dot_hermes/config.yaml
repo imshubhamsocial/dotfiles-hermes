@@ -3,7 +3,7 @@
 _config_version: 44
 model:
   provider: local-llama
-  default: gemma-4-E4B-it-qat
+  default: nemotron-3.5-bolt-e4b
   base_url: http://127.0.0.1:8138/v1
   context_length: 131072
 
